@@ -133,6 +133,7 @@ application.macosx
 
 # Other
 *.old
+*.directory
 
 # Common Output Files
 out.txt
