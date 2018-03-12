@@ -133,3 +133,9 @@ application.macosx
 
 # Other
 *.old
+
+# Common Output Files
+out.txt
+*/out.txt
+data.csv
+*/data.csv
