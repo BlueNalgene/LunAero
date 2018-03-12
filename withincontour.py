@@ -3,7 +3,7 @@
 #  - Put a contour around the moon
 #  - Track the motion of the moon from the center of the screen
 
-#This particular file deals with hierarchy
+#This particular file centers the moon and subtracks the background.
 
 import numpy as np
 import cv2
