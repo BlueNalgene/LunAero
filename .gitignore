@@ -1,3 +1,5 @@
+### Python ###
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -99,3 +101,35 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+### Processing ###
+
+# application
+.DS_Store
+applet
+application.linux32
+application.linux64
+application.windows32
+application.windows64
+application.macosx
+
+# animation
+*.tif
+*.mov
+
+### USER SPECIFIC ###
+
+# Movies
+*.mp4
+*.mkv
+*.ods
+
+# Images
+*.jpg
+*.png
+*.gif
+*.tif
+
+# Other
+*.old
