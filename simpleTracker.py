@@ -1,17 +1,24 @@
 # This is a test program for the LunAero project which is able to:
-#  - Locate a simplified moon
+#  - Locate the moon or a simulated moon
 #  - Put a contour around the moon
 #  - Track the motion of the moon from the center of the screen
 
-# This tester changes simu.py to report with LED's
 
+# Includes code from speed-cam.py by Calude Pageau
+# https://github.com/pageauc/rpi-speed-camera/tree/master/
 
+#-----------------------------------------------------------------------------------------------
 
-import numpy as np
-import cv2
+# Package Imports
+import numpy as np 
+import cv2 #OpenCV
 import time
 from time import sleep
-import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO #RPi GPIO controller
+#from picamera.array import PiRGBArray #RPi Camera
+from picamera import PiCamera #RPi Camera
+
+# Setup GPIO
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT) # A PWM
 GPIO.setup(12, GPIO.OUT) # A input 2
@@ -19,6 +26,8 @@ GPIO.setup(13, GPIO.OUT) # A input 1
 GPIO.setup(15, GPIO.OUT) # B input 1
 GPIO.setup(16, GPIO.OUT) # B input 2
 GPIO.setup(18, GPIO.OUT) # B PWM
+
+# Start GPIO with 'off' values
 GPIO.output(11, GPIO.HIGH)
 GPIO.output(12, GPIO.LOW)
 GPIO.output(13, GPIO.LOW)
@@ -26,16 +35,17 @@ GPIO.output(15, GPIO.LOW)
 GPIO.output(16, GPIO.LOW)
 GPIO.output(18, GPIO.HIGH)
 
+# Location of movie file if using a pre-captured simulation or training video
+# NOTE: If you have a Pi Camera attached to your RPi, it will use it before using 'cap'
 cap = cv2.VideoCapture('testmoonvie.mov')
+
+
+#-----------------------------------------------------------------------------------------------
 
 try:
 	while(cap.isOpened()):
-	    GPIO.output(11, GPIO.HIGH)
-	    GPIO.output(12, GPIO.LOW)
-	    GPIO.output(13, GPIO.LOW)
-	    GPIO.output(15, GPIO.LOW)
-	    GPIO.output(16, GPIO.LOW)
-	    GPIO.output(18, GPIO.HIGH)
+	    TB66.horzOFF()
+	    TB66.vertOFF()
 	    ret, frame = cap.read()
 	    
 	    #Defines some important things
@@ -79,7 +89,7 @@ try:
 	        #Check which how motors need to move to put moon in center
 	        if cx < whalf:
 			print "pan camera RIGHT"
-			horzCW()
+			TB66.horzCW()
 			sleep(0.05)
 			GPIO.output(13, GPIO.LOW)
 	        elif cx > whalf:
@@ -117,47 +127,100 @@ cap.release()
 GPIO.cleanup()
 cv2.destroyAllWindows()
 
-def vertCW():
-	# PWM on 1 high 2 low
-	GPIO.output(13, GPIO.LOW) #1
-	GPIO.output(12, GPIO.HIGH) #2
-	GPIO.output(11, GPIO.HIGH) #pwm
+#-----------------------------------------------------------------------------------------------
+class TB66:
+    def vertCW():
+        # PWM on 1 high 2 low
+        GPIO.output(13, GPIO.LOW) #1
+        GPIO.output(12, GPIO.HIGH) #2
+        GPIO.output(11, GPIO.HIGH) #pwm
 
-def horzCW():
-	GPIO.output(15, GPIO.LOW) #1
-	GPIO.output(16, GPIO.HIGH) #2
-	GPIO.output(18, GPIO.HIGH) #pwm
+    def horzCW():
+        GPIO.output(15, GPIO.LOW) #1
+        GPIO.output(16, GPIO.HIGH) #2
+        GPIO.output(18, GPIO.HIGH) #pwm
 
-def vertCCW():
-	# PWM on 1 high 2 low
-	GPIO.output(13, GPIO.HIGH) #1
-	GPIO.output(12, GPIO.LOW) #2
-	GPIO.output(11, GPIO.HIGH) #pwm
+    def vertCCW():
+        # PWM on 1 high 2 low
+        GPIO.output(13, GPIO.HIGH) #1
+        GPIO.output(12, GPIO.LOW) #2
+        GPIO.output(11, GPIO.HIGH) #pwm
 
-def horzCCW():
-	GPIO.output(15, GPIO.HIGH) #1
-	GPIO.output(16, GPIO.LOW) #2
-	GPIO.output(18, GPIO.HIGH) #pwm
+    def horzCCW():
+        GPIO.output(15, GPIO.HIGH) #1
+        GPIO.output(16, GPIO.LOW) #2
+        GPIO.output(18, GPIO.HIGH) #pwm
 
-def vertBrake():
-	# PWM on 1 high 2 low
-	GPIO.output(13, GPIO.HIGH) #1
-	GPIO.output(12, GPIO.HIGH) #2
-	GPIO.output(11, GPIO.LOW) #pwm
+    def vertBrake():
+        # PWM on 1 high 2 low
+        GPIO.output(13, GPIO.HIGH) #1
+        GPIO.output(12, GPIO.HIGH) #2
+        GPIO.output(11, GPIO.LOW) #pwm
 
-def horzBrake():
-	GPIO.output(15, GPIO.HIGH) #1
-	GPIO.output(16, GPIO.HIGH) #2
-	GPIO.output(18, GPIO.LOW) #pwm
+    def horzBrake():
+        GPIO.output(15, GPIO.HIGH) #1
+        GPIO.output(16, GPIO.HIGH) #2
+        GPIO.output(18, GPIO.LOW) #pwm
 
-def vertOFF():
-	# PWM on 1 high 2 low
-	GPIO.output(13, GPIO.LOW) #1
-	GPIO.output(12, GPIO.LOW) #2
-	GPIO.output(11, GPIO.HIGH) #pwm
+    def vertOFF():
+        # PWM on 1 high 2 low
+        GPIO.output(13, GPIO.LOW) #1
+        GPIO.output(12, GPIO.LOW) #2
+        GPIO.output(11, GPIO.HIGH) #pwm
 
-def horzOFF():
-	GPIO.output(15, GPIO.LOW) #1
-	GPIO.output(16, GPIO.LOW) #2
-	GPIO.output(18, GPIO.HIGH) #pwm
+    def horzOFF():
+        GPIO.output(15, GPIO.LOW) #1
+        GPIO.output(16, GPIO.LOW) #2
+        GPIO.output(18, GPIO.HIGH) #pwm
+
+#-----------------------------------------------------------------------------------------------
+class PiVideoStream:
+    def __init__(self, resolution=(CAMERA_WIDTH, CAMERA_HEIGHT), framerate=CAMERA_FRAMERATE, rotation=0, hflip=False, vflip=False):
+        # initialize the camera and stream
+        self.camera = PiCamera()
+        self.camera.resolution = resolution
+        self.camera.rotation = rotation
+        self.camera.framerate = framerate
+        self.camera.hflip = hflip
+        self.camera.vflip = vflip
+        self.rawCapture = PiRGBArray(self.camera, size=resolution)
+        self.stream = self.camera.capture_continuous(self.rawCapture,
+            format="bgr", use_video_port=True)
+
+        # initialize the frame and the variable used to indicate
+        # if the thread should be stopped
+        self.frame = None
+        self.stopped = False
+
+    def start(self):
+        # start the thread to read frames from the video stream
+        t = Thread(target=self.update, args=())
+        t.daemon = True
+        t.start()
+        return self
+
+    def update(self):
+        # keep looping infinitely until the thread is stopped
+        for f in self.stream:
+            # grab the frame from the stream and clear the stream in
+            # preparation for the next frame
+            self.frame = f.array
+            self.rawCapture.truncate(0)
+
+            # if the thread indicator variable is set, stop the thread
+            # and resource camera resources
+            if self.stopped:
+                self.stream.close()
+                self.rawCapture.close()
+                self.camera.close()
+                return
+
+    def read(self):
+        # return the frame most recently read
+        return self.frame
+
+    def stop(self):
+        # indicate that the thread should be stopped
+        self.stopped = True
+
 
