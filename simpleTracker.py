@@ -10,13 +10,14 @@
 #-----------------------------------------------------------------------------------------------
 
 # Package Imports
-import numpy as np 
+import numpy as np
 import cv2 #OpenCV
 import time
 from time import sleep
 import RPi.GPIO as GPIO #RPi GPIO controller
-#from picamera.array import PiRGBArray #RPi Camera
 from picamera import PiCamera #RPi Camera
+from picamera.array import PiRGBArray #Required to capture frames as arrays
+from threading import thread #Handler for videostream thread
 
 # Setup GPIO
 GPIO.setmode(GPIO.BOARD)
@@ -35,15 +36,31 @@ GPIO.output(15, GPIO.LOW)
 GPIO.output(16, GPIO.LOW)
 GPIO.output(18, GPIO.HIGH)
 
+# Video Stream Variables
+resolution = (1440, 1080)
+framerate = 30
+
 # Location of movie file if using a pre-captured simulation or training video
 # NOTE: If you have a Pi Camera attached to your RPi, it will use it before using 'cap'
-cap = cv2.VideoCapture('testmoonvie.mov')
+#cap = cv2.VideoCapture('testmoonvie.mov')
+
+PiCamera.resolution = resolution
+#PiCamera.rotation = rotation
+PiCamera.framerate = framerate
+#PiCamera.hflip = hflip
+#PiCamera.vflip = vflip
+rawCapture = PiRGBArray(PiCamera(), size=resolution)
+stream = PiCamera.capture_continuous(rawCapture,
+    format="bgr", use_video_port=True)
 
 
 #-----------------------------------------------------------------------------------------------
 
+vs = PiVideoStream.start()
+time.sleep(2.0)
 try:
-	while(cap.isOpened()):
+    while True:
+        cap = vs.read()
 	    TB66.horzOFF()
 	    TB66.vertOFF()
 	    ret, frame = cap.read()
@@ -174,22 +191,10 @@ class TB66:
         GPIO.output(18, GPIO.HIGH) #pwm
 
 #-----------------------------------------------------------------------------------------------
+# From https://github.com/jrosebr1/imutils
 class PiVideoStream:
-    def __init__(self, resolution=(CAMERA_WIDTH, CAMERA_HEIGHT), framerate=CAMERA_FRAMERATE, rotation=0, hflip=False, vflip=False):
-        # initialize the camera and stream
-        self.camera = PiCamera()
-        self.camera.resolution = resolution
-        self.camera.rotation = rotation
-        self.camera.framerate = framerate
-        self.camera.hflip = hflip
-        self.camera.vflip = vflip
-        self.rawCapture = PiRGBArray(self.camera, size=resolution)
-        self.stream = self.camera.capture_continuous(self.rawCapture,
-            format="bgr", use_video_port=True)
-
-        # initialize the frame and the variable used to indicate
-        # if the thread should be stopped
-        self.frame = None
+    def __init__(self):
+        self.cap = None
         self.stopped = False
 
     def start(self):
@@ -204,7 +209,7 @@ class PiVideoStream:
         for f in self.stream:
             # grab the frame from the stream and clear the stream in
             # preparation for the next frame
-            self.frame = f.array
+            self.cap = f.array
             self.rawCapture.truncate(0)
 
             # if the thread indicator variable is set, stop the thread
@@ -217,7 +222,7 @@ class PiVideoStream:
 
     def read(self):
         # return the frame most recently read
-        return self.frame
+        return self.cap
 
     def stop(self):
         # indicate that the thread should be stopped
