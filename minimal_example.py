@@ -12,6 +12,23 @@ import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
 import picamera
 
+# Setup GPIO
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(11, GPIO.OUT) # A PWM
+GPIO.setup(12, GPIO.OUT) # A input 2
+GPIO.setup(13, GPIO.OUT) # A input 1
+GPIO.setup(15, GPIO.OUT) # B input 1
+GPIO.setup(16, GPIO.OUT) # B input 2
+GPIO.setup(18, GPIO.OUT) # B PWM
+
+# Start GPIO with 'off' values
+GPIO.output(11, GPIO.HIGH)
+GPIO.output(12, GPIO.LOW)
+GPIO.output(13, GPIO.LOW)
+GPIO.output(15, GPIO.LOW)
+GPIO.output(16, GPIO.LOW)
+GPIO.output(18, GPIO.HIGH)
+
 if __name__ == '__main__':
 	try:
 		DATA = io.BytesIO()
@@ -54,27 +71,43 @@ if __name__ == '__main__':
 		#Check which how motors need to move to put moon in center
 		if CX < WIDTH:
 			print "pan camera RIGHT"
+			GPIO.output(15, GPIO.LOW) #1
+			GPIO.output(16, GPIO.HIGH) #2
+			GPIO.output(18, GPIO.HIGH) #pwm
 			sleep(0.05)
-			GPIO.output(13, GPIO.LOW)
+			#GPIO.output(18, GPIO.LOW)
 		elif CX > WIDTH:
 			print "pan camera LEFT"
-			GPIO.output(15, GPIO.HIGH)
+			GPIO.output(15, GPIO.HIGH) #1
+			GPIO.output(16, GPIO.LOW) #2
+			GPIO.output(18, GPIO.HIGH) #pwm
 			sleep(0.05)
-			GPIO.output(15, GPIO.LOW)
+			#GPIO.output(18, GPIO.LOW)
 		else:
 			print "Center X"
+			GPIO.output(15, GPIO.LOW) #1
+			GPIO.output(16, GPIO.LOW) #2
+			GPIO.output(18, GPIO.HIGH) #pwm
 		if CY < HEIGHT:
 			print "pan camera DOWN"
-			GPIO.output(16, GPIO.HIGH)
+			GPIO.output(13, GPIO.LOW) #1
+			GPIO.output(12, GPIO.HIGH) #2
+			GPIO.output(11, GPIO.HIGH) #pwm
 			sleep(0.05)
-			GPIO.output(16, GPIO.LOW)
+			#GPIO.output(16, GPIO.LOW)
 		elif CY > HEIGHT:
 			print "pan camera UP"
-			GPIO.output(18, GPIO.HIGH)
+			GPIO.output(13, GPIO.HIGH) #1
+			GPIO.output(12, GPIO.LOW) #2
+			GPIO.output(11, GPIO.HIGH) #pwm
 			sleep(0.05)
-			GPIO.output(18, GPIO.LOW)
+			#GPIO.output(18, GPIO.LOW)
 		else:
 			print "Center Y"
+			GPIO.output(13, GPIO.LOW) #1
+			GPIO.output(12, GPIO.LOW) #2
+			GPIO.output(11, GPIO.HIGH) #pwm
+			
 		#cv2.imshow("Contour",frame)
 #		else:
 #			# The next frame is not ready, so we try to read it again
