@@ -20,6 +20,7 @@ from threading import Thread #Handler for videostream thread
 import numpy as np
 import cv2 #OpenCV
 import RPi.GPIO as GPIO #RPi GPIO controller
+import picamera
 from picamera import PiCamera #RPi Camera
 from picamera.array import PiRGBArray #Required to capture frames as arrays
 
@@ -42,20 +43,22 @@ GPIO.output(16, GPIO.LOW)
 GPIO.output(18, GPIO.HIGH)
 
 # Video Stream Variables
-RESOLUTION = (1440, 1080)
-FRAMERATE = 30
+RESOLUTION = (640, 480)
+FRAMERATE = 32
 
 # Location of movie file if using a pre-captured simulation or training video
 # NOTE: If you have a Pi Camera attached to your RPi, it will use it before using 'cap'
 #cap = cv2.VideoCapture('testmoonvie.mov')
 
-PiCamera().resolution = RESOLUTION
-#PiCamera().rotation = ROTATION
-PiCamera().framerate = FRAMERATE
-#PiCamera().hflip = HFLIP
-#PiCamera().vflip = VFLIP
-RAWCAPTURE = PiRGBArray(PiCamera(), size=RESOLUTION)
-#stream = PiCamera().capture_continuous(rawCapture, format="bgr", use_video_port=True)
+PiCamera.resolution = RESOLUTION
+#PiCamera.rotation = ROTATION
+PiCamera.framerate = FRAMERATE
+#PiCamera.hflip = HFLIP
+#PiCamera.vflip = VFLIP
+#RAWCAPTURE = PiRGBArray(PiCamera(), size=RESOLUTION)
+#CAMCAP = picamera.PiCamera.capture(RAWCAPTURE, 'bgr')
+RAWCAPTURE = PiRGBArray(PiCamera(), size = RESOLUTION)
+stream = picamera.PiCamera.capture_continuous(RAWCAPTURE, format="bgr", use_video_port=True)
 time.sleep(0.1)
 
 
@@ -217,11 +220,16 @@ try:
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 				break
 except KeyboardInterrupt:
+	print 'exiting'
+except picamera.PiCameraMMALError:
+	print 'MMAL Error Occurred, but the program will be shutting down correctly'
+except:
+	print 'An Unknown Error Occurred.  Helpful, right?'
+finally:
+#	image.release()
+	RAWCAPTURE.truncate(0)
 	GPIO.cleanup()
-image.release()
-RAWCAPTURE.truncate(0)
-GPIO.cleanup()
-cv2.destroyAllWindows()
+	cv2.destroyAllWindows()
 
 #-----------------------------------------------------------------------------------------------
 # From https://github.com/jrosebr1/imutils
