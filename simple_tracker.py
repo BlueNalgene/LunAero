@@ -5,24 +5,18 @@
 #  - Locate the moon or a simulated moon
 #  - Put a contour around the moon
 #  - Track the motion of the moon from the center of the screen
-
-
-# Includes code from speed-cam.py by Calude Pageau
-# https://github.com/pageauc/rpi-speed-camera/tree/master/
 """
 
 #-----------------------------------------------------------------------------------------------
 
 # Package Imports
-import time
+import sys
+import io
 from time import sleep
-from threading import Thread #Handler for videostream thread
 import numpy as np
-import cv2 #OpenCV
+import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
-from picamera import PiCamera #RPi Camera
-from picamera.array import PiRGBArray #Required to capture frames as arrays
-
+import picamera
 
 # Setup GPIO
 GPIO.setmode(GPIO.BOARD)
@@ -41,187 +35,103 @@ GPIO.output(15, GPIO.LOW)
 GPIO.output(16, GPIO.LOW)
 GPIO.output(18, GPIO.HIGH)
 
-# Video Stream Variables
-RESOLUTION = (1440, 1080)
-FRAMERATE = 30
+if __name__ == '__main__':
+	try:
+		DATA = io.BytesIO()
+		with picamera.PiCamera() as picam:
+			picam.capture(DATA, format='jpeg', use_video_port=False, resize=(1920,1080))
+		DATA = np.fromstring(DATA.getvalue(), dtype=np.uint8)
+		IMAGE = cv2.imdecode(DATA, 1)
+		cv2.imwrite('debugimage.jpg', IMAGE)
+#		CAMERA = picam.OpenCVCapture()
+#		RET, IMAGE = cv2.imread()
+		IMAGE = cv2.cvtColor(IMAGE, cv2.COLOR_RGB2GRAY)
+		THRESH = 127
+		MAX_VALUE = 255
 
-# Location of movie file if using a pre-captured simulation or training video
-# NOTE: If you have a Pi Camera attached to your RPi, it will use it before using 'cap'
-#cap = cv2.VideoCapture('testmoonvie.mov')
+#	if RET:
+		# The frame is ready and already captured
+		#cv2.imshow('frame', gray)
+#		POS_FRAME = IMAGE.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)
 
-PiCamera().resolution = RESOLUTION
-#PiCamera().rotation = ROTATION
-PiCamera().framerate = FRAMERATE
-#PiCamera().hflip = HFLIP
-#PiCamera().vflip = VFLIP
-RAWCAPTURE = PiRGBArray(PiCamera(), size=RESOLUTION)
-#stream = PiCamera().capture_continuous(rawCapture, format="bgr", use_video_port=True)
-time.sleep(0.1)
+		#This is the meat.  It processes the grayscale'd frame for contours based on the THRESHold info.
+		TH, DST = cv2.threshold(IMAGE, THRESH, MAX_VALUE, cv2.THRESH_BINARY)
+		CONTOURS, HIERARCHY = cv2.findContours(DST, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+		DST = cv2.cvtColor(DST, cv2.COLOR_GRAY2BGR)
 
+		#Then we draw the contour on the color original
+		cv2.drawContours(IMAGE, CONTOURS, -1, (255, 255, 0), 3)
 
-#---------
-# Define Motor Movements
-def vert_cw():
-	"""
-	Moves vertical motor clockwise
-	PWM on 1 low 2 high
-	"""
-	GPIO.output(13, GPIO.LOW) #1
-	GPIO.output(12, GPIO.HIGH) #2
-	GPIO.output(11, GPIO.HIGH) #pwm
+		#Considers the first contour detected in a frame.
+		CNT = CONTOURS[0]
 
-def horz_cw():
-	"""
-	Moves horizontal motor clockwise
-	PWM on 1 low 2 high
-	"""
-	GPIO.output(15, GPIO.LOW) #1
-	GPIO.output(16, GPIO.HIGH) #2
-	GPIO.output(18, GPIO.HIGH) #pwm
+		#Determines the moments of the contoured shape in the frame, and their XY coordinate
+		M = cv2.moments(CNT)
+		CX = int(M['m10']/M['m00'])
+		CY = int(M['m01']/M['m00'])
 
-def vert_ccw():
-	"""
-	Moves vertical motor counter-clockwise
-	PWM on 1 high 2 low
-	"""
-	GPIO.output(13, GPIO.HIGH) #1
-	GPIO.output(12, GPIO.LOW) #2
-	GPIO.output(11, GPIO.HIGH) #pwm
+		HEIGHT, WIDTH = IMAGE.shape
+		WIDTH = WIDTH/2
+		HEIGHT = HEIGHT/2
 
-def horz_ccw():
-	"""
-	Moves orizontal motor counter-clockwise
-	PWM on 1 high 2 low
-	"""
-	GPIO.output(15, GPIO.HIGH) #1
-	GPIO.output(16, GPIO.LOW) #2
-	GPIO.output(18, GPIO.HIGH) #pwm
+		#Check which how motors need to move to put moon in center
+		if CX < WIDTH:
+			print "pan camera RIGHT"
+			GPIO.output(15, GPIO.LOW) #1
+			GPIO.output(16, GPIO.HIGH) #2
+			GPIO.output(18, GPIO.HIGH) #pwm
+			sleep(0.05)
+			#GPIO.output(18, GPIO.LOW)
+		elif CX > WIDTH:
+			print "pan camera LEFT"
+			GPIO.output(15, GPIO.HIGH) #1
+			GPIO.output(16, GPIO.LOW) #2
+			GPIO.output(18, GPIO.HIGH) #pwm
+			sleep(0.05)
+			#GPIO.output(18, GPIO.LOW)
+		else:
+			print "Center X"
+			GPIO.output(15, GPIO.LOW) #1
+			GPIO.output(16, GPIO.LOW) #2
+			GPIO.output(18, GPIO.HIGH) #pwm
+		if CY < HEIGHT:
+			print "pan camera DOWN"
+			GPIO.output(13, GPIO.LOW) #1
+			GPIO.output(12, GPIO.HIGH) #2
+			GPIO.output(11, GPIO.HIGH) #pwm
+			sleep(0.05)
+			#GPIO.output(16, GPIO.LOW)
+		elif CY > HEIGHT:
+			print "pan camera UP"
+			GPIO.output(13, GPIO.HIGH) #1
+			GPIO.output(12, GPIO.LOW) #2
+			GPIO.output(11, GPIO.HIGH) #pwm
+			sleep(0.05)
+			#GPIO.output(18, GPIO.LOW)
+		else:
+			print "Center Y"
+			GPIO.output(13, GPIO.LOW) #1
+			GPIO.output(12, GPIO.LOW) #2
+			GPIO.output(11, GPIO.HIGH) #pwm
+			
+		#cv2.imshow("Contour",frame)
+#		else:
+#			# The next frame is not ready, so we try to read it again
+#			IMAGE.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, POS_FRAME-1)
+#			print "frame is not ready"
+#			# It is better to wait for a while for the next frame to be ready
+#			cv2.waitKey(1000)
 
-def vert_brake():
-	"""
-	Brakes vertical motor
-	PWM off 1 high 2 high
-	"""
-	GPIO.output(13, GPIO.HIGH) #1
-	GPIO.output(12, GPIO.HIGH) #2
-	GPIO.output(11, GPIO.LOW) #pwm
+		if cv2.waitKey(1) & 0xFF == ord('q'):
+			print 'done'
 
-def horz_brake():
-	"""
-	Brakes orizontal motor
-	PWM off 1 high 2 high
-	"""
-	GPIO.output(15, GPIO.HIGH) #1
-	GPIO.output(16, GPIO.HIGH) #2
-	GPIO.output(18, GPIO.LOW) #pwm
-
-def vert_off():
-	"""
-	Turns vertical motor off
-	PWM on 1 low 2 low
-	"""
-	# PWM on 1 high 2 low
-	GPIO.output(13, GPIO.LOW) #1
-	GPIO.output(12, GPIO.LOW) #2
-	GPIO.output(11, GPIO.HIGH) #pwm
-
-def horz_off():
-	"""
-	Turns horizontal motor off
-	PWM on 1 low 2 low
-	"""
-	GPIO.output(15, GPIO.LOW) #1
-	GPIO.output(16, GPIO.LOW) #2
-	GPIO.output(18, GPIO.HIGH) #pwm
-
-
-try:
-	while True:
-		for f in PiCamera().capture_continuous(RAWCAPTURE, format="bgr", use_video_port=True):
-			image = f.array
-			horz_off()
-			vert_off()
-			ret, frame = image.read()
-
-			#Defines some important things
-			gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-			thresh = 127
-			maxValue = 255
-
-			if ret:
-				# The frame is ready and already captured
-				#cv2.imshow('frame', gray)
-
-				#This determines the frame number
-				#pos_frame = cap.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)
-				#print str(pos_frame)+" frames"
-
-				#This is the meat.  It processes the grayscale'd frame for contours based on the threshold info.
-				th, dst = cv2.threshold(gray, thresh, maxValue, cv2.THRESH_BINARY)
-				contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-				dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
-				#Then we draw the contour on the color original
-				cv2.drawContours(frame, contours, -1, (255, 255, 0), 3)
-
-				#Considers the first contour detected in a frame.
-				cnt = contours[0]
-
-				#Determines the moments of the contoured shape in the frame, and their XY coordinate
-				M = cv2.moments(cnt)
-				cx = int(M['m10']/M['m00'])
-				cy = int(M['m01']/M['m00'])
-
-				#Math to determine roundness
-				#area = cv2.contourArea(cnt)
-				#peri = cv2.arcLength(cnt,True)
-				#arrr = peri/(2*np.pi)
-				#print str(cx) + " and " + str(cy) + " and " + str(height) + "," + str(width)
-
-				height, width, channels = frame.shape
-				whalf = width/2
-				hhalf = height/2
-
-				#Check which how motors need to move to put moon in center
-				if cx < whalf:
-					print "pan camera RIGHT"
-					horz_cw()
-					sleep(0.05)
-					GPIO.output(13, GPIO.LOW)
-				elif cx > whalf:
-					print "pan camera LEFT"
-					GPIO.output(15, GPIO.HIGH)
-					sleep(0.05)
-					GPIO.output(15, GPIO.LOW)
-				else:
-					print "Center X"
-				if cy < hhalf:
-					print "pan camera DOWN"
-					GPIO.output(16, GPIO.HIGH)
-					sleep(0.05)
-					GPIO.output(16, GPIO.LOW)
-				elif cy > hhalf:
-					print "pan camera UP"
-					GPIO.output(18, GPIO.HIGH)
-					sleep(0.05)
-					GPIO.output(18, GPIO.LOW)
-				else:
-					print "Center Y"
-				#cv2.imshow("Contour",frame
-			else:
-				# The next frame is not ready, so we try to read it again
-				image.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, pos_frame-1)
-				print "frame is not ready"
-				# It is better to wait for a while for the next frame to be ready
-				cv2.waitKey(1000)
-
-			if cv2.waitKey(1) & 0xFF == ord('q'):
-				break
-except KeyboardInterrupt:
-	GPIO.cleanup()
-image.release()
-RAWCAPTURE.truncate(0)
-GPIO.cleanup()
-cv2.destroyAllWindows()
-
-#-----------------------------------------------------------------------------------------------
-# From https://github.com/jrosebr1/imutils
+	except KeyboardInterrupt:
+		print 'exiting'
+	except Exception as e:
+#		print 'An Unknown Error Occurred.  Helpful, right?'
+		e = sys.exc_info()[0]
+		print '\033[91m'+ "Error: %s" % e + '\033[0m'
+		raise
+	finally:
+#		GPIO.cleanup()
+		cv2.destroyAllWindows()
