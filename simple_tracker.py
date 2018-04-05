@@ -40,7 +40,7 @@ GPIO.output(18, GPIO.HIGH)
 
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.mp4'
-
+subprocess.call(['touch', str(OUTFILE)])
 
 if __name__ == '__main__':
 	try:
@@ -130,11 +130,11 @@ if __name__ == '__main__':
 #			cv2.waitKey(1000)
 
 		if os.path.isfile(OUTFILE) is True:
-			subprocess.call(['ffmpeg', '-i', str(IMAGE), '-c:v', 'libx264', '-filter_complex',
-                    '"[0] concat=n=1:v=1:a=0 [v]"', '-map', '"[v]"',
+			subprocess.call(['ffmpeg', '-y', '-i', 'debugimage.jpg', '-c:v', 'libx264', '-filter_complex',
+                    '[0] concat=n=1:v=1:a=0 [v]', '-map', '[v]',
                     str(OUTFILE)], stdout=open(os.devnull, 'w'))
 		else:
-			subprocess.call(['ffmpeg', '-i', str(OUTFILE), '-i', str(IMAGE), '-c:v', 'libx264',
+			subprocess.call(['ffmpeg', 'y', '-i', str(OUTFILE), '-i', 'debugimage.jpg', '-c:v', 'libx264',
                     '-filter_complex', '"[0][1] concat=n=2:v=1:a=0 [v]"',
                     '-map', '"[v]"', str(OUTFILE)], stdout=open(os.devnull, 'w'))
 
@@ -149,5 +149,5 @@ if __name__ == '__main__':
 		print '\033[91m'+ "Error: %s" % e + '\033[0m'
 		raise
 	finally:
-#		GPIO.cleanup()
+		GPIO.cleanup()
 		cv2.destroyAllWindows()
