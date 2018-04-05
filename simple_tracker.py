@@ -10,9 +10,12 @@
 #-----------------------------------------------------------------------------------------------
 
 # Package Imports
+import os
 import sys
 import io
-from time import sleep
+import time
+import subprocess
+
 import numpy as np
 import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
@@ -35,11 +38,15 @@ GPIO.output(15, GPIO.LOW)
 GPIO.output(16, GPIO.LOW)
 GPIO.output(18, GPIO.HIGH)
 
+OUTFILE = int(time.time())
+OUTFILE = str(OUTFILE) + 'out.mp4'
+
+
 if __name__ == '__main__':
 	try:
 		DATA = io.BytesIO()
 		with picamera.PiCamera() as picam:
-			picam.capture(DATA, format='jpeg', use_video_port=False, resize=(1920,1080))
+			picam.capture(DATA, format='jpeg', use_video_port=False, resize=(1920, 1080))
 		DATA = np.fromstring(DATA.getvalue(), dtype=np.uint8)
 		IMAGE = cv2.imdecode(DATA, 1)
 		cv2.imwrite('debugimage.jpg', IMAGE)
@@ -80,14 +87,14 @@ if __name__ == '__main__':
 			GPIO.output(15, GPIO.LOW) #1
 			GPIO.output(16, GPIO.HIGH) #2
 			GPIO.output(18, GPIO.HIGH) #pwm
-			sleep(0.05)
+			time.sleep(0.05)
 			#GPIO.output(18, GPIO.LOW)
 		elif CX > WIDTH:
 			print "pan camera LEFT"
 			GPIO.output(15, GPIO.HIGH) #1
 			GPIO.output(16, GPIO.LOW) #2
 			GPIO.output(18, GPIO.HIGH) #pwm
-			sleep(0.05)
+			time.sleep(0.05)
 			#GPIO.output(18, GPIO.LOW)
 		else:
 			print "Center X"
@@ -99,21 +106,21 @@ if __name__ == '__main__':
 			GPIO.output(13, GPIO.LOW) #1
 			GPIO.output(12, GPIO.HIGH) #2
 			GPIO.output(11, GPIO.HIGH) #pwm
-			sleep(0.05)
+			time.sleep(0.05)
 			#GPIO.output(16, GPIO.LOW)
 		elif CY > HEIGHT:
 			print "pan camera UP"
 			GPIO.output(13, GPIO.HIGH) #1
 			GPIO.output(12, GPIO.LOW) #2
 			GPIO.output(11, GPIO.HIGH) #pwm
-			sleep(0.05)
+			time.sleep(0.05)
 			#GPIO.output(18, GPIO.LOW)
 		else:
 			print "Center Y"
 			GPIO.output(13, GPIO.LOW) #1
 			GPIO.output(12, GPIO.LOW) #2
 			GPIO.output(11, GPIO.HIGH) #pwm
-			
+
 		#cv2.imshow("Contour",frame)
 #		else:
 #			# The next frame is not ready, so we try to read it again
@@ -121,6 +128,15 @@ if __name__ == '__main__':
 #			print "frame is not ready"
 #			# It is better to wait for a while for the next frame to be ready
 #			cv2.waitKey(1000)
+
+		if os.path.isfile(OUTFILE) is True:
+			subprocess.call(['ffmpeg', '-i', str(IMAGE), '-c:v', 'libx264', '-filter_complex',
+                    '"[0] concat=n=1:v=1:a=0 [v]"', '-map', '"[v]"',
+                    str(OUTFILE)], stdout=open(os.devnull, 'w'))
+		else:
+			subprocess.call(['ffmpeg', '-i', str(OUTFILE), '-i', str(IMAGE), '-c:v', 'libx264',
+                    '-filter_complex', '"[0][1] concat=n=2:v=1:a=0 [v]"',
+                    '-map', '"[v]"', str(OUTFILE)], stdout=open(os.devnull, 'w'))
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			print 'done'

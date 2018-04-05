@@ -124,6 +124,7 @@ application.macosx
 *.mp4
 *.mkv
 *.ods
+*.h264
 
 # Images
 *.jpg
