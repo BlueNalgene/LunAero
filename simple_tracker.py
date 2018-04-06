@@ -21,6 +21,10 @@ import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
 import picamera
 
+# Be sure we have access to GPIOmem
+subprocess.call(['sudo', 'chmod', 'g+rw' '/dev/gpiomem'])
+subprocess.call(['sudo', 'chown', 'root.gpio' '/dev/gpiomem'])
+
 # Setup GPIO
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT) # A PWM
@@ -37,6 +41,7 @@ GPIO.output(13, GPIO.LOW)
 GPIO.output(15, GPIO.LOW)
 GPIO.output(16, GPIO.LOW)
 GPIO.output(18, GPIO.HIGH)
+
 
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.mp4'
