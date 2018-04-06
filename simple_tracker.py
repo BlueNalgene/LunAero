@@ -49,11 +49,11 @@ YPINP = 11
 # Setup GPIO and start them with 'off' values
 PINS = (XPIN1, XPIN2, XPINP, YPIN1, YPIN2, YPINP)
 for i in PINS:
-	GPIO.setup(PINS[i], GPIO.OUT)
-	if i != 0 or 5:
-		GPIO.output(PINS[i], GPIO.LOW)
+	GPIO.setup(i, GPIO.OUT)
+	if i != XPINP or YPINP:
+		GPIO.output(i, GPIO.LOW)
 	else:
-		GPIO.output(PINS[i], GPIO.HIGH)
+		GPIO.output(i, GPIO.HIGH)
 
 # Sets up an output file labeled with the current unixtime
 OUTFILE = int(time.time())
