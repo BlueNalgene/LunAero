@@ -17,6 +17,7 @@ import time
 import subprocess
 
 # Package imports requiring pip installs
+from pynput import keyboard
 import numpy as np
 import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
@@ -44,9 +45,9 @@ XPINP = 18
 YPIN1 = 13
 YPIN2 = 12
 YPINP = 11
-PINS = (XPIN1, XPIN2, XPINP, YPIN1, YPIN2, YPINP)
 
 # Setup GPIO and start them with 'off' values
+PINS = (XPIN1, XPIN2, XPINP, YPIN1, YPIN2, YPINP)
 for i in PINS:
 	GPIO.setup(PINS[i], GPIO.OUT)
 	if i != 0 or 5:
@@ -58,6 +59,8 @@ for i in PINS:
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.mp4'
 subprocess.call(['touch', str(OUTFILE)])
+
+key_scanner()
 
 def main():
 	'''This is the main chunk of the program
@@ -100,7 +103,7 @@ def cam_interface():
 	return image
 
 def cv_magic(image):
-	'''This is the meat.  
+	'''This is the meat.
 	It processes the grayscale'd frame for contours based on the threshold info.
 	Then we draw the contour on the color original
 	'''
@@ -162,6 +165,7 @@ def gpio(contours, image):
 			state = (GPIO.LOW, GPIO.LOW, GPIO.HIGH)
 		motor(movex, state)
 
+
 def motor(movex, state):
 	'''This sends the information to the gearmotors.
 	Programming is designed for TB6612FNG
@@ -176,6 +180,49 @@ def motor(movex, state):
 		GPIO.output(YPINP, state[2])
 	time.sleep(0.05)
 
+def on_press(key):
+	'''Detects the keypresses when enabled.  
+	And it does things when it works.
+	Notably, it moves the motors manaually.
+	'''
+	try:
+		k = key.char
+	except:
+		k = key.name
+	if key == keyboard.Key.esc:
+		return False
+	if k in ['left', 'right', 'up', 'down']:
+		if k in ['left', 'right']:
+			if k == 'left':
+				print "pan camera LEFT"
+				movex = True
+				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
+				motor(movex, state)
+			else:
+				print "pan camera RIGHT"
+				movex = True
+				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
+				motor(movex, state)
+		else:
+			if k == 'up':
+				print "pan camera UP"
+				movex = False
+				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
+				motor(movex, state)
+			else:
+				print "pan camera DOWN"
+				movex = False
+				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
+				motor(movex, state)
+
+def key_scanner():
+	'''This is a threaded scanning function.
+	When this is enabled in the main script, another thread will begin
+	polling the keyboard for presses.
+	'''
+	lis = keyboard.Listener(on_press=on_press)
+	lis.start()
+	lis.join()
 
 if __name__ == '__main__':
 	main()
