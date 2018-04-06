@@ -34,8 +34,8 @@ if "0" in subprocess.check_output(['vcgencmd', 'get_camera']):
 
 # Be sure we have access to GPIOmem
 if "root gpio" not in subprocess.check_output(['ls', '-l', '/dev/gpiomem']):
-	subprocess.call(['sudo', 'chmod', 'g+rw' '/dev/gpiomem'])
-	subprocess.call(['sudo', 'chown', 'root.gpio' '/dev/gpiomem'])
+	subprocess.call(['sudo', 'chmod', 'g+rw', '/dev/gpiomem'])
+	subprocess.call(['sudo', 'chown', 'root.gpio', '/dev/gpiomem'])
 
 # Defines the pins being used for the GPIO pins.
 GPIO.setmode(GPIO.BOARD)
@@ -60,7 +60,7 @@ OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.mp4'
 subprocess.call(['touch', str(OUTFILE)])
 
-key_scanner()
+
 
 def main():
 	'''This is the main chunk of the program
@@ -68,10 +68,8 @@ def main():
 	try:
 		while True:
 
-			cam_interface()
-			image = cam_interface.image()
-			cv_magic(image)
-			contours = cv_magic.contours()
+			image = cam_interface()
+			contours = cv_magic(image)
 			gpio(contours, image)
 
 			if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -225,4 +223,5 @@ def key_scanner():
 	lis.join()
 
 if __name__ == '__main__':
+	key_scanner()
 	main()
