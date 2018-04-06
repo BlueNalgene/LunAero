@@ -54,6 +54,7 @@ if __name__ == '__main__':
 
 			DATA = io.BytesIO()
 			with picamera.PiCamera() as picam:
+				#picam.resolution = (1920, 1080)
 				picam.capture(DATA, format='jpeg', use_video_port=False, resize=(1920, 1080))
 			DATA = np.fromstring(DATA.getvalue(), dtype=np.uint8)
 			IMAGE = cv2.imdecode(DATA, 1)
