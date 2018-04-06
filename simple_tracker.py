@@ -130,12 +130,12 @@ if __name__ == '__main__':
 #			cv2.waitKey(1000)
 
 		if os.path.isfile(OUTFILE) is True:
-			subprocess.call(['ffmpeg', '-y', '-i', 'debugimage.jpg', '-c:v', 'libx264', '-filter_complex',
-                    '[0] concat=n=1:v=1:a=0 [v]', '-map', '[v]',
+			subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-y', '-i', 'debugimage.jpg', '-c:v',
+                    'libx264', '-filter_complex', '[0] concat=n=1:v=1:a=0 [v]', '-map', '[v]',
                     str(OUTFILE)], stdout=open(os.devnull, 'w'))
 		else:
-			subprocess.call(['ffmpeg', 'y', '-i', str(OUTFILE), '-i', 'debugimage.jpg', '-c:v', 'libx264',
-                    '-filter_complex', '"[0][1] concat=n=2:v=1:a=0 [v]"',
+			subprocess.call(['ffmpeg', '-loglevel', 'quiet', 'y', '-i', str(OUTFILE), '-i', 'debugimage.jpg',
+                    '-c:v', 'libx264', '-filter_complex', '"[0][1] concat=n=2:v=1:a=0 [v]"',
                     '-map', '"[v]"', str(OUTFILE)], stdout=open(os.devnull, 'w'))
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):
