@@ -22,8 +22,9 @@ import RPi.GPIO as GPIO #RPi GPIO controller
 import picamera
 
 # Be sure we have access to GPIOmem
-subprocess.call(['sudo', 'chmod', 'g+rw' '/dev/gpiomem'])
-subprocess.call(['sudo', 'chown', 'root.gpio' '/dev/gpiomem'])
+if "root gpio" not in (subprocess.check_output(['ls', '-l', '/dev/gpiomem'])):
+	subprocess.call(['sudo', 'chmod', 'g+rw' '/dev/gpiomem'])
+	subprocess.call(['sudo', 'chown', 'root.gpio' '/dev/gpiomem'])
 
 # Setup GPIO
 GPIO.setmode(GPIO.BOARD)
@@ -62,11 +63,6 @@ if __name__ == '__main__':
 			IMAGE = cv2.cvtColor(IMAGE, cv2.COLOR_RGB2GRAY)
 			THRESH = 127
 			MAX_VALUE = 255
-
-	#	if RET:
-			# The frame is ready and already captured
-			#cv2.imshow('frame', gray)
-	#		POS_FRAME = IMAGE.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)
 
 			#This is the meat.  It processes the grayscale'd frame for contours based on the THRESHold info.
 			TH, DST = cv2.threshold(IMAGE, THRESH, MAX_VALUE, cv2.THRESH_BINARY)
@@ -128,14 +124,6 @@ if __name__ == '__main__':
 					GPIO.output(13, GPIO.LOW) #1
 					GPIO.output(12, GPIO.LOW) #2
 					GPIO.output(11, GPIO.HIGH) #pwm
-
-				#cv2.imshow("Contour",frame)
-		#		else:
-		#			# The next frame is not ready, so we try to read it again
-		#			IMAGE.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, POS_FRAME-1)
-		#			print "frame is not ready"
-		#			# It is better to wait for a while for the next frame to be ready
-		#			cv2.waitKey(1000)
 
 			if os.path.isfile(OUTFILE) is True:
 				subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-y', '-i', 'debugimage.jpg', '-c:v',
