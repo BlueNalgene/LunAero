@@ -26,6 +26,11 @@ import picamera
 if os.name == 'nt':
 	print "Some parts of this program may be incompatible with Windows"
 
+# Detect Raspberry Pi Camera
+if "0" in subprocess.check_output(['vcgencmd', 'get_camera']):
+	print "You either do not have a RPi camera attached, or it is not enabled."
+	print "Try 'sudo raspi-config' and enable camera in the Interfacing Options."
+
 # Be sure we have access to GPIOmem
 if "root gpio" not in subprocess.check_output(['ls', '-l', '/dev/gpiomem']):
 	subprocess.call(['sudo', 'chmod', 'g+rw' '/dev/gpiomem'])
@@ -60,25 +65,10 @@ def main():
 	try:
 		while True:
 
-			data = io.BytesIO()
-			with picamera.PiCamera() as picam:
-				#picam.resolution = (1920, 1080)
-				picam.capture(data, format='jpeg', use_video_port=False, resize=(1920, 1080))
-			data = np.fromstring(data.getvalue(), dtype=np.uint8)
-			image = cv2.imdecode(data, 1)
-			cv2.imwrite('debugimage.jpg', image)
-			image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-			thresh = 127
-			max_value = 255
-
-			#This is the meat.  It processes the grayscale'd frame for contours based on the threshold info.
-			th, dst = cv2.threshold(image, thresh, max_value, cv2.thresh_BINARY)
-			contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-			dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
-
-			#Then we draw the contour on the color original
-			cv2.drawContours(image, contours, -1, (255, 255, 0), 3)
-
+			cam_interface()
+			image = cam_interface.image()
+			cv_magic(image)
+			contours = cv_magic.contours()
 			gpio(contours, image)
 
 			if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -95,14 +85,42 @@ def main():
 		GPIO.cleanup()
 		cv2.destroyAllWindows()
 
+def cam_interface():
+	'''This is the interface which pulls an image from the
+	Raspberry Pi camera.  It returns the image which we will use a bunch later.
+	'''
+	data = io.BytesIO()
+	with picamera.PiCamera() as picam:
+		#picam.resolution = (1920, 1080)
+		picam.capture(data, format='jpeg', use_video_port=False, resize=(1920, 1080))
+	data = np.fromstring(data.getvalue(), dtype=np.uint8)
+	image = cv2.imdecode(data, 1)
+	cv2.imwrite('debugimage.jpg', image)
+	image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+	return image
+
+def cv_magic(image):
+	'''This is the meat.  
+	It processes the grayscale'd frame for contours based on the threshold info.
+	Then we draw the contour on the color original
+	'''
+	thresh = 127
+	max_value = 255
+	th, dst = cv2.threshold(image, thresh, max_value, cv2.thresh_BINARY)
+	contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
+	cv2.drawContours(image, contours, -1, (255, 255, 0), 3)
+	return contours
+
 def gpio(contours, image):
 	'''This section controls the GPIO pin movement
+	Considers the first contour detected in a frame.
+	Determines the moments of the contoured shape in the frame, and their XY coordinate
+	Check which and how motors need to move to put moon in center
 	'''
 
-	#Considers the first contour detected in a frame.
 	contours = contours[0]
 
-	#Determines the moments of the contoured shape in the frame, and their XY coordinate
 	m = cv2.moments(contours)
 
 	#The following if prevents and ignores DivideByZero exceptions.
@@ -115,12 +133,11 @@ def gpio(contours, image):
 		width = width/2
 		height = height/2
 
-		#Check which how motors need to move to put moon in center
+		# Print statements are for hardware debugging.
 		if cx < width:
 			print "pan camera RIGHT"
 			movex = True
 			state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-			#GPIO.output(18, GPIO.LOW)
 		elif cx > width:
 			print "pan camera LEFT"
 			movex = True
