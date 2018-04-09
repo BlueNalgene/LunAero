@@ -36,6 +36,8 @@ if "0" in subprocess.check_output(['vcgencmd', 'get_camera']):
 if "root gpio" not in subprocess.check_output(['ls', '-l', '/dev/gpiomem']):
 	subprocess.call(['sudo', 'chmod', 'g+rw', '/dev/gpiomem'])
 	subprocess.call(['sudo', 'chown', 'root.gpio', '/dev/gpiomem'])
+	
+print "1"
 
 # Defines the pins being used for the GPIO pins.
 GPIO.setmode(GPIO.BOARD)
@@ -59,6 +61,7 @@ for i in PINS:
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.mp4'
 subprocess.call(['touch', str(OUTFILE)])
+print "2"
 
 
 
@@ -98,6 +101,7 @@ def cam_interface():
 	image = cv2.imdecode(data, 1)
 	cv2.imwrite('debugimage.jpg', image)
 	image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+	print "0"
 	return image
 
 def cv_magic(image):
@@ -111,6 +115,7 @@ def cv_magic(image):
 	contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
 	cv2.drawContours(image, contours, -1, (255, 255, 0), 3)
+	print "3"
 	return contours
 
 def gpio(contours, image):
@@ -177,6 +182,7 @@ def motor(movex, state):
 		GPIO.output(YPIN2, state[1])
 		GPIO.output(YPINP, state[2])
 	time.sleep(0.05)
+	return
 
 def on_press(key):
 	'''Detects the keypresses when enabled.  
@@ -221,6 +227,7 @@ def key_scanner():
 	lis = keyboard.Listener(on_press=on_press)
 	lis.start()
 	lis.join()
+	return
 
 if __name__ == '__main__':
 	key_scanner()
