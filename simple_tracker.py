@@ -2,9 +2,17 @@
 
 """
 # This is a test program for the LunAero project which is able to:
-#  - Locate the moon or a simulated moon
+#  - Locate the moon or a simulated moon from a sample image
 #  - Put a contour around the moon
 #  - Track the motion of the moon from the center of the screen
+#
+# Additional Functions include:
+#  - Keyboard manual control of motors using arrow key_scanner
+#
+# TODO:
+#  - Make "keyboard period" more obvious.
+#  - Record from the picamera video stream as OUTFILE
+#  - argparse
 """
 
 #-----------------------------------------------------------------------------------------------
@@ -61,7 +69,6 @@ for i in PINS:
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.mp4'
 subprocess.call(['touch', str(OUTFILE)])
-print "2"
 
 
 
@@ -101,7 +108,6 @@ def cam_interface():
 	image = cv2.imdecode(data, 1)
 	cv2.imwrite('debugimage.jpg', image)
 	image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-	print "0"
 	return image
 
 def cv_magic(image):
@@ -111,11 +117,10 @@ def cv_magic(image):
 	'''
 	thresh = 127
 	max_value = 255
-	th, dst = cv2.threshold(image, thresh, max_value, cv2.thresh_BINARY)
+	th, dst = cv2.threshold(image, thresh, max_value, cv2.THRESH_BINARY)
 	contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
 	cv2.drawContours(image, contours, -1, (255, 255, 0), 3)
-	print "3"
 	return contours
 
 def gpio(contours, image):
