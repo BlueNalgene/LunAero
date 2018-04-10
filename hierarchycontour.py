@@ -13,7 +13,7 @@ cap = cv2.VideoCapture('Migrants.mp4')
 #cap = cv2.VideoCapture('Nocturnal.mp4')
 
 #This is the background removing step
-fgbg = cv2.BackgroundSubtractorMOG(100,7,0.5,5)
+fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(100,7,0.5,5)
 
 #This defines a matrix for other functions
 mat = np.ones((3,3),np.uint8)
@@ -41,7 +41,7 @@ try:
             #contours,hierarchy = cv2.findContours(thresh, 3, 2)
             #nocolor = cv2.cvtColor(fgmask, cv2.COLOR_BGR2GRAY)
             ret,thresh = cv2.threshold(fgmask,0,255,cv2.THRESH_BINARY)
-            contours,hierarchy = cv2.findContours(thresh, 3, 2)
+            _, contours, hierarchy = cv2.findContours(thresh, 3, 2)
 
             #This if is required to ignore initial frames
             if not contours:
