@@ -15,26 +15,29 @@ import numpy as np
 import cv2
 from scipy import ndimage as ndi
 
-#CAP = cv2.VideoCapture('statmoonwbirds.mov')
+CAP = cv2.VideoCapture('statmoonwbirds.mov')
 #CAP = cv2.VideoCapture('Migrants.mp4')
-CAP = cv2.VideoCapture('test.mp4')
+#CAP = cv2.VideoCapture('test.mp4')
 
 #This is the background removing step
 FGBG = cv2.bgsegm.createBackgroundSubtractorMOG(100, 7, 0.5, 5)
 
 #This defines a matrix for other functions
 MAT = np.ones((3, 3), np.uint8)
+MATTWO = np.ones((7, 7), np.uint8)
 
 def main():
 	'''This is the main function of the code.
 	'''
 	try:
 		while CAP.isOpened():
-			#pos_frame = CAP.get(cv2.CV_CAP_PROP_POS_FRAMES)
+			pos_frame = CAP.get(cv2.CAP_PROP_POS_FRAMES)
 			ret, frame = CAP.read()
 
 			if ret:
 				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+				#gray = cv_manip(gray)
+				gray = cv2.GaussianBlur(gray, (5, 5), 0)
 				result, frame = cv_contour(frame, gray)
 				cv2.imwrite('current.png', frame)
 				# This mess displays different things side by side
@@ -46,9 +49,13 @@ def main():
 				cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
 				cv2.resizeWindow("Original", 700, 500)
 				cv2.imshow("Original", frame)
+				result = cv2.morphologyEx(result, cv2.MORPH_OPEN, MATTWO)
+				cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
+				cv2.resizeWindow("Test", 700, 500)
+				cv2.imshow("Test", result)
 			else:
 				# The next frame is not ready, so we try to read it again
-				CAP.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, pos_frame-1)
+				CAP.set(cv2.CAP_PROP_POS_FRAMES, pos_frame-1)
 				print "frame is not ready"
 				# It is better to wait for a while for the next frame to be ready
 				cv2.waitKey(1000)
@@ -71,11 +78,14 @@ def cv_manip(gray):
 	This is currently unused
 	Also BROKEN, define fgmask
 	'''
-	blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+	blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+	gray = FGBG.apply(blurred, learningRate=.1)	
 	can = cv2.Canny(blurred, 5, 200)
-	fgmask = FGBG.apply(can, learningRate=.1)
-	fgmask = cv2.addWeighted(fgmask, 0.5, can, 0.5, 0)
-	fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_GRADIENT, MAT)
+	#fgmask = FGBG.apply(can, learningRate=.1)
+	#fgmask = cv2.addWeighted(fgmask, 0.5, can, 0.5, 0)
+	#fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_GRADIENT, MAT)
+	#gray = blurred
+	return gray
 
 def cv_contour(frame, gray):
 	'''This function takes care of contour selections
@@ -86,7 +96,7 @@ def cv_contour(frame, gray):
 	if contours:
 		# We only care about the BIGGEST contour here
 		c = max(contours, key=cv2.contourArea)
-
+		
 		# We treat it as an ellipse to account for irregularities in shape.
 		ellipse = cv2.fitEllipse(c)
 
@@ -108,15 +118,19 @@ def cv_contour(frame, gray):
 
 		# Subtract background from stilled frame
 		# learningRate = 0.05 deals with moon features better, but may be too taxing for Pi
-		result = FGBG.apply(result, learningRate=.1)
-		#result = cv2.GaussianBlur(result, (3, 3), 0)
-		#can = cv2.Canny(result, 5, 200)
-		#result = cv2.addWeighted(result,0.5,can,0.5,0)
+		result = FGBG.apply(result, learningRate=.05)
+		# This is gradient morph is required for FGBG
 		result = cv2.morphologyEx(result, cv2.MORPH_GRADIENT, MAT)
-
+		# Blur what we have before thresholding
+		result = cv2.GaussianBlur(result, (5, 5), 0)
+		
+		#Set dynamic threshold 33% on each side of the mean. 
+		v = np.mean(gray)
+		print v
+		lower_thresh = int(max(0, 0.67 * v))
+		upper_thresh = int(min(255, 1.33 * v))
 		# Retest the image for contours
-		#gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
-		_, thresh = cv2.threshold(result, 127, 255, cv2.THRESH_BINARY)
+		_, thresh = cv2.threshold(result, lower_thresh, upper_thresh, cv2.THRESH_BINARY)
 		_, contours, hierarchy = cv2.findContours(thresh, 2, 1)
 		return result, frame
 
