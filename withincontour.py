@@ -95,10 +95,10 @@ def cv_contour(frame, gray):
 
 	if contours:
 		# We only care about the BIGGEST contour here
-		c = max(contours, key=cv2.contourArea)
+		ellipse = max(contours, key=cv2.contourArea)
 		
 		# We treat it as an ellipse to account for irregularities in shape.
-		ellipse = cv2.fitEllipse(c)
+		ellipse = cv2.fitEllipse(ellipse)
 
 		# This makes an 'image' of all nothing with the same size as the original
 		mask = np.zeros(frame.shape, dtype=np.uint8)
