@@ -15,8 +15,8 @@ import numpy as np
 import cv2
 from scipy import ndimage as ndi
 
-CAP = cv2.VideoCapture('statmoonwbirds.mov')
-#CAP = cv2.VideoCapture('Migrants.mp4')
+#CAP = cv2.VideoCapture('statmoonwbirds.mov')
+CAP = cv2.VideoCapture('Migrants.mp4')
 #CAP = cv2.VideoCapture('test.mp4')
 
 #This is the background removing step
@@ -49,6 +49,7 @@ def main():
 				cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
 				cv2.resizeWindow("Original", 700, 500)
 				cv2.imshow("Original", frame)
+				
 				result = cv2.morphologyEx(result, cv2.MORPH_OPEN, MATTWO)
 				cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
 				cv2.resizeWindow("Test", 700, 500)
@@ -104,8 +105,8 @@ def cv_contour(frame, gray):
 		mask = np.zeros(frame.shape, dtype=np.uint8)
 		# This draws the ellipse onto the empty shape we just made.
 		# The parameters are from the fitEllipse, but they have to be INT.
-		cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]), \
-					int(ellipse[1][1])), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
+		cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), \
+						int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
 		result = frame & mask
 
 		# Now the mask is shifted such that the center of the ellipse is in the center of the screen.
@@ -124,6 +125,7 @@ def cv_contour(frame, gray):
 		# Blur what we have before thresholding
 		result = cv2.GaussianBlur(result, (5, 5), 0)
 		
+		
 		#Set dynamic threshold 33% on each side of the mean. 
 		v = np.mean(gray)
 		print v
@@ -131,9 +133,13 @@ def cv_contour(frame, gray):
 		upper_thresh = int(min(255, 1.33 * v))
 		# Retest the image for contours
 		_, thresh = cv2.threshold(result, lower_thresh, upper_thresh, cv2.THRESH_BINARY)
-		_, contours, hierarchy = cv2.findContours(thresh, 2, 1)
+		ret, contours, hierarchy = cv2.findContours(thresh, 2, 1)
+		#mask = np.zeros(frame.shape, dtype=np.uint8)
+		#mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+		#cv2.ellipse(mask, (int(0), int(0)), (int(ellipse[1][0]/2.5), \
+						#int(ellipse[1][1]/2.5)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
+		#result = result & mask
 		return result, frame
-
 
 def size_exclusion(contours, frame):
 	'''UNUSED

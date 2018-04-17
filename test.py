@@ -9,9 +9,13 @@ if contours:
 	ellipse = max(contours, key=cv2.contourArea)
 	ellipse = cv2.fitEllipse(ellipse)
 	mask = np.zeros(frame.shape, dtype=np.uint8)
+	#cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
+	#print ellipse
 	cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
-	print ellipse
 	result = frame & mask
+	cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2.2), int(ellipse[1][1]/2.2)), int(ellipse[2]), 0, 360, (0, 0, 0), -1, 8)
+	mask = np.invert(mask)
+	result = ~~(result & mask)
 
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("frame", 700, 500)
@@ -31,3 +35,22 @@ cv2.imshow("result", result)
 
 if cv2.waitKey(0) & 0xFF == ord('q'):
 	cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
+
+		##ellipse = max(contours, key=cv2.contourArea)
+		##ellipse = cv2.fitEllipse(ellipse)
+		#mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+		#cv2.ellipse(mask, (0, 0), (int(ellipse[1][0]/2.5), \
+						#int(ellipse[1][1]/2.5)), int(ellipse[2]), 0, 360, (0, 0, 0), -1, 8)
+		##mask = np.invert(mask)
+		#resulttwo = ~~(result & mask)
+		#cv2.namedWindow("mask", cv2.WINDOW_NORMAL)
+		#cv2.resizeWindow("mask", 700, 500)
+		#cv2.imshow("mask", mask)
