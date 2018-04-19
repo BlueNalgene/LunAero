@@ -17,7 +17,7 @@ from scipy import ndimage as ndi
 
 #CAP = cv2.VideoCapture('statmoonwbirds.mov')
 CAP = cv2.VideoCapture('Migrants.mp4')
-#CAP = cv2.VideoCapture('test.mp4')
+#CAP = cv2.VideoCapture('movie.mkv')
 
 #This is the background removing step
 FGBG = cv2.bgsegm.createBackgroundSubtractorMOG(100, 7, 0.5, 5)
@@ -38,7 +38,8 @@ def main():
 				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 				#gray = cv_manip(gray)
 				gray = cv2.GaussianBlur(gray, (5, 5), 0)
-				result, frame = cv_contour(frame, gray)
+				result, frame, contours = cv_contour(frame, gray)
+				
 				cv2.imwrite('current.png', frame)
 				# This mess displays different things side by side
 				# The Mother window shows the manipulated image that is being used for cakculations
@@ -49,8 +50,11 @@ def main():
 				cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
 				cv2.resizeWindow("Original", 700, 500)
 				cv2.imshow("Original", frame)
-				
-				result = cv2.morphologyEx(result, cv2.MORPH_OPEN, MATTWO)
+
+				if contours:
+					result = cv2.morphologyEx(result, cv2.MORPH_OPEN, MATTWO)
+					#result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+					cv2.drawContours(result, contours, -1, (255, 255, 255), 2)
 				cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
 				cv2.resizeWindow("Test", 700, 500)
 				cv2.imshow("Test", result)
@@ -124,22 +128,25 @@ def cv_contour(frame, gray):
 		result = cv2.morphologyEx(result, cv2.MORPH_GRADIENT, MAT)
 		# Blur what we have before thresholding
 		result = cv2.GaussianBlur(result, (5, 5), 0)
-		
-		
+
 		#Set dynamic threshold 33% on each side of the mean. 
 		v = np.mean(gray)
 		print v
 		lower_thresh = int(max(0, 0.67 * v))
 		upper_thresh = int(min(255, 1.33 * v))
+
 		# Retest the image for contours
 		_, thresh = cv2.threshold(result, lower_thresh, upper_thresh, cv2.THRESH_BINARY)
 		ret, contours, hierarchy = cv2.findContours(thresh, 2, 1)
-		#mask = np.zeros(frame.shape, dtype=np.uint8)
-		#mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-		#cv2.ellipse(mask, (int(0), int(0)), (int(ellipse[1][0]/2.5), \
-						#int(ellipse[1][1]/2.5)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
-		#result = result & mask
-		return result, frame
+
+		# Place a thick black ellipse over the largest contour.  This will
+		# act as a mask to cover up the noisy moon edge.
+		mask = np.zeros_like(result)
+		cv2.ellipse(mask, (int(col/2), int(row/2)), (int(ellipse[1][0]/2.2), \
+						int(ellipse[1][1]/2.2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
+		result = result & mask
+		result = np.array(result, np.uint8)
+		return result, frame, contours
 
 def size_exclusion(contours, frame):
 	'''UNUSED
