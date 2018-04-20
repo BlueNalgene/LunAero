@@ -105,13 +105,15 @@ def cam_interface():
 	'''
 	data = io.BytesIO()
 	with picamera.PiCamera() as picam:
-		#picam.resolution = (1920, 1080)
-		picam.capture(data, format='jpeg', use_video_port=False, resize=(1920, 1080))
-	data = np.fromstring(data.getvalue(), dtype=np.uint8)
-	image = cv2.imdecode(data, 1)
-	cv2.imwrite('debugimage.jpg', image)
-	image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-	return image
+		picam.resolution = (1920, 1080)
+		picam.start_recording(OUTFILE)
+		picam.wait_recording(10)
+		picam.capture(data, format='jpeg', use_video_port=True, resize=(1920, 1080))
+		data = np.fromstring(data.getvalue(), dtype=np.uint8)
+		image = cv2.imdecode(data, 1)
+		cv2.imwrite('debugimage.jpg', image)
+		image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+		return image
 
 def cv_magic(image):
 	'''This is the meat.
