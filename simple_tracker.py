@@ -76,13 +76,16 @@ def main():
 	'''This is the main chunk of the program
 	'''
 	try:
+		cam = picamera.PiCamera()
+		cam.resolution(1920, 1080)
+		cam.start_recording(OUTFILE)
 		while True:
 
 			image = cam_interface()
 			contours = cv_magic(image)
 			gpio(contours, image)
 
-			if cv2.waitKey(1) & 0xFF == ord('q'):
+			if cv2.waitKey(10) & 0xFF == ord('q'):
 				print 'done'
 
 	except KeyboardInterrupt:
@@ -93,6 +96,7 @@ def main():
 		print '\033[91m'+ "Error: %s" % e + '\033[0m'
 		raise
 	finally:
+		cam.stop_recording()
 		GPIO.cleanup()
 		cv2.destroyAllWindows()
 
