@@ -77,7 +77,7 @@ def main():
 	'''
 	try:
 		cam = picamera.PiCamera()
-		cam.resolution = (1920, 1080)
+		cam.resolution = (320, 240)
 		cam.start_recording(OUTFILE)
 		while True:
 
@@ -105,7 +105,7 @@ def cam_interface():
 	'''
 	data = io.BytesIO()
 	with picamera.PiCamera() as picam:
-		picam.resolution = (1920, 1080)
+		picam.resolution = (320, 240)
 		picam.start_recording(OUTFILE)
 		picam.wait_recording(10)
 		picam.capture(data, format='jpeg', use_video_port=True, resize=(1920, 1080))
