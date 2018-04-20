@@ -44,7 +44,7 @@ if "0" in subprocess.check_output(['vcgencmd', 'get_camera']):
 if "root gpio" not in subprocess.check_output(['ls', '-l', '/dev/gpiomem']):
 	subprocess.call(['sudo', 'chmod', 'g+rw', '/dev/gpiomem'])
 	subprocess.call(['sudo', 'chown', 'root.gpio', '/dev/gpiomem'])
-	
+
 print "1"
 
 # Defines the pins being used for the GPIO pins.
@@ -96,7 +96,6 @@ def main():
 		print '\033[91m'+ "Error: %s" % e + '\033[0m'
 		raise
 	finally:
-		cam.stop_recording()
 		GPIO.cleanup()
 		cv2.destroyAllWindows()
 
@@ -194,7 +193,7 @@ def motor(movex, state):
 	return
 
 def on_press(key):
-	'''Detects the keypresses when enabled.  
+	'''Detects the keypresses when enabled.
 	And it does things when it works.
 	Notably, it moves the motors manaually.
 	'''
