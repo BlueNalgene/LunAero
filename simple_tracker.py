@@ -31,6 +31,10 @@ import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
 import picamera
 
+print "Initializiing simple_tracker.py...."
+print " "
+print "Press CTRL+c to exit"
+print " "
 # Tell Windows users to GTFO
 if os.name == 'nt':
 	print "Some parts of this program may be incompatible with Windows"
@@ -45,9 +49,8 @@ if "root gpio" not in subprocess.check_output(['ls', '-l', '/dev/gpiomem']):
 	subprocess.call(['sudo', 'chmod', 'g+rw', '/dev/gpiomem'])
 	subprocess.call(['sudo', 'chown', 'root.gpio', '/dev/gpiomem'])
 
-print "1"
-
 # Defines the pins being used for the GPIO pins.
+print "Defining GPIO pins"
 GPIO.setmode(GPIO.BOARD)
 XPIN1 = 15
 XPIN2 = 16
@@ -66,6 +69,7 @@ for i in PINS:
 		GPIO.output(i, GPIO.HIGH)
 
 # Sets up an output file labeled with the current unixtime
+print "Preparing OUTFILE"
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.h264'
 subprocess.call(['touch', str(OUTFILE)])
@@ -76,9 +80,9 @@ def main():
 	'''This is the main chunk of the program
 	'''
 	try:
-		cam = picamera.PiCamera()
-		cam.resolution = (320, 240)
-		cam.start_recording(OUTFILE)
+#		cam = picamera.PiCamera()
+#		cam.resolution = (320, 240)
+#		cam.start_recording(OUTFILE)
 		while True:
 
 			image = cam_interface()
@@ -105,10 +109,10 @@ def cam_interface():
 	'''
 	data = io.BytesIO()
 	with picamera.PiCamera() as picam:
-		picam.resolution = (320, 240)
-		picam.start_recording(OUTFILE)
-		picam.wait_recording(10)
-		picam.capture(data, format='jpeg', use_video_port=True, resize=(1920, 1080))
+#		picam.resolution = (320, 240)
+#		picam.start_recording(OUTFILE)
+#		picam.wait_recording(10)
+		picam.capture(data, format='jpeg', use_video_port=True)
 		data = np.fromstring(data.getvalue(), dtype=np.uint8)
 		image = cv2.imdecode(data, 1)
 		cv2.imwrite('debugimage.jpg', image)
@@ -134,50 +138,51 @@ def gpio(contours, image):
 	Determines the moments of the contoured shape in the frame, and their XY coordinate
 	Check which and how motors need to move to put moon in center
 	'''
+	if contours:
+		contours = contours[0]
 
-	contours = contours[0]
+		m = cv2.moments(contours)
 
-	m = cv2.moments(contours)
+		#The following if prevents and ignores DivideByZero exceptions.
+		#This is a quick and dirty fix which is not meant to see the light of day.
+		if int(m['m00']) != 0:
+			cx = int(m['m10']/m['m00'])
+			cy = int(m['m01']/m['m00'])
 
-	#The following if prevents and ignores DivideByZero exceptions.
-	#This is a quick and dirty fix which is not meant to see the light of day.
-	if int(m['m00']) != 0:
-		cx = int(m['m10']/m['m00'])
-		cy = int(m['m01']/m['m00'])
+			height, width = image.shape
+			width = width/2
+			height = height/2
 
-		height, width = image.shape
-		width = width/2
-		height = height/2
+			# Print statements are for hardware debugging.
+			if cx < width:
+				print "pan camera RIGHT"
+				movex = True
+				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
+			elif cx > width:
+				print "pan camera LEFT"
+				movex = True
+				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
+			else:
+				print "Center X"
+				movex = True
+				state = (GPIO.LOW, GPIO.LOW, GPIO.HIGH)
+			motor(movex, state)
 
-		# Print statements are for hardware debugging.
-		if cx < width:
-			print "pan camera RIGHT"
-			movex = True
-			state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-		elif cx > width:
-			print "pan camera LEFT"
-			movex = True
-			state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
-		else:
-			print "Center X"
-			movex = True
-			state = (GPIO.LOW, GPIO.LOW, GPIO.HIGH)
-		motor(movex, state)
-
-		if cy < height:
-			print "pan camera DOWN"
-			movex = False
-			state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-		elif cy > height:
-			print "pan camera UP"
-			movex = False
-			state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
-		else:
-			print "Center Y"
-			movex = False
-			state = (GPIO.LOW, GPIO.LOW, GPIO.HIGH)
-		motor(movex, state)
-
+			if cy < height:
+				print "pan camera DOWN"
+				movex = False
+				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
+			elif cy > height:
+				print "pan camera UP"
+				movex = False
+				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
+			else:
+				print "Center Y"
+				movex = False
+				state = (GPIO.LOW, GPIO.LOW, GPIO.HIGH)
+			motor(movex, state)
+	else:
+		print "No Contours Found.  I hope it's just clouds."
 
 def motor(movex, state):
 	'''This sends the information to the gearmotors.
