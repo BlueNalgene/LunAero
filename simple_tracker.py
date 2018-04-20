@@ -235,5 +235,5 @@ def key_scanner():
 	return
 
 if __name__ == '__main__':
-	key_scanner()
+	#key_scanner()
 	main()
