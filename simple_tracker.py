@@ -67,7 +67,7 @@ for i in PINS:
 
 # Sets up an output file labeled with the current unixtime
 OUTFILE = int(time.time())
-OUTFILE = str(OUTFILE) + 'out.mp4'
+OUTFILE = str(OUTFILE) + 'out.h264'
 subprocess.call(['touch', str(OUTFILE)])
 
 
@@ -77,7 +77,7 @@ def main():
 	'''
 	try:
 		cam = picamera.PiCamera()
-		cam.resolution(1920, 1080)
+		cam.resolution = (1920, 1080)
 		cam.start_recording(OUTFILE)
 		while True:
 
