@@ -1,56 +1,61 @@
+# Package Imports
+import os
+import sys
+import io
+import time
+import subprocess
+from threading import Thread
+
+# Package imports requiring pip installs
 import numpy as np
 import cv2
-
-frame = cv2.imread('migrant_snap.png')
-gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-_, thresh = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY)
-_, contours, hierarchy = cv2.findContours(thresh, 2, 1)
-if contours:
-	ellipse = max(contours, key=cv2.contourArea)
-	ellipse = cv2.fitEllipse(ellipse)
-	mask = np.zeros(frame.shape, dtype=np.uint8)
-	#cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
-	#print ellipse
-	cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
-	result = frame & mask
-	cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2.2), int(ellipse[1][1]/2.2)), int(ellipse[2]), 0, 360, (0, 0, 0), -1, 8)
-	mask = np.invert(mask)
-	result = ~~(result & mask)
-
-cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("frame", 700, 500)
-cv2.imshow("frame", frame)
-cv2.namedWindow("gray", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("gray", 700, 500)
-cv2.imshow("gray", gray)
-#cv2.namedWindow("ellipse", cv2.WINDOW_NORMAL)
-#cv2.resizeWindow("ellipse", 700, 500)
-#cv2.imshow("ellipse", ellipse)
-cv2.namedWindow("mask", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("mask", 700, 500)
-cv2.imshow("mask", mask)
-cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("result", 700, 500)
-cv2.imshow("result", result)
-
-if cv2.waitKey(0) & 0xFF == ord('q'):
-	cv2.destroyAllWindows()
+import picamera
+from picamera.array import PiRGBArray
 
 
 
+resolution = (1360, 768)
+framerate = 25
+with picamera.PiCamera() as picam:
+	data = io.BytesIO()
+	#raw_capture = PiRGBArray(picam, size=resolution)
+	for stream in picam.capture_continuous(data, format="bgr", use_video_port=True):
+		data.truncate()
+		data.seek(0)
+		if process(data):
+			break
+		#picam.capture(data, format='jpeg', use_video_port=True)
+		#data = np.fromstring(data.getvalue(), dtype=np.uint8)
+		#image = cv2.imdecode(data, 1)
+		#cv2.imwrite('debugimage.jpg', image)
+		#image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+		#return image
+
+#def streamer(resolution, framerate):
+	#'''This starts the camera thread and
+	#begins running it
+	#'''
+	#with picamera.PiCamera() as picam:
+		#raw_capture = PiRGBArray(picam, size=resolution)
+		#stream = picam.capture_continuous(raw_capture, format="bgr", use_video_port=True)
+		#frame = None
+		#stopped = False
+		#thread = Thread(target=update_stream(stream, frame, raw_capture, stopped), args=())
+		#thread.daemon = True
+		#thread.start()
 
 
 
-
-
-
-		##ellipse = max(contours, key=cv2.contourArea)
-		##ellipse = cv2.fitEllipse(ellipse)
-		#mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-		#cv2.ellipse(mask, (0, 0), (int(ellipse[1][0]/2.5), \
-						#int(ellipse[1][1]/2.5)), int(ellipse[2]), 0, 360, (0, 0, 0), -1, 8)
-		##mask = np.invert(mask)
-		#resulttwo = ~~(result & mask)
-		#cv2.namedWindow("mask", cv2.WINDOW_NORMAL)
-		#cv2.resizeWindow("mask", 700, 500)
-		#cv2.imshow("mask", mask)
+#def update_stream(stream, frame, raw_capture, stopped):
+	#'''This updates the stream from streamer
+	#when directed to another thread
+	#'''
+	#for each in stream:
+		#frame = each.array
+		#raw_capture.truncate(0)
+		#if stopped:
+			#stream.close()
+			#raw_capture.close()
+			#with picamera.PiCamera() as picam:
+				#picam.close()
+			#return frame
