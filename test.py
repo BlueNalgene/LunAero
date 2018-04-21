@@ -22,8 +22,10 @@ with picamera.PiCamera() as picam:
 	for stream in picam.capture_continuous(data, format="bgr", use_video_port=True):
 		data.truncate()
 		data.seek(0)
-		if process(data):
-			break
+	img=np.asarray(frame.array)
+cv2.imshow('img', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 		#picam.capture(data, format='jpeg', use_video_port=True)
 		#data = np.fromstring(data.getvalue(), dtype=np.uint8)
 		#image = cv2.imdecode(data, 1)
