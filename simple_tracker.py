@@ -23,6 +23,7 @@ import sys
 import io
 import time
 import subprocess
+from threading import Thread
 
 # Package imports requiring pip installs
 from pynput import keyboard
@@ -30,6 +31,7 @@ import numpy as np
 import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
 import picamera
+from picamera.array import PiRGBArray
 
 print "Initializiing simple_tracker.py...."
 print " "
@@ -73,6 +75,7 @@ print "Preparing OUTFILE"
 OUTFILE = int(time.time())
 OUTFILE = str(OUTFILE) + 'out.h264'
 subprocess.call(['touch', str(OUTFILE)])
+print "OUTFILE will be: " + str(OUTFILE)
 
 
 
@@ -84,7 +87,9 @@ def main():
 #		cam.resolution = (320, 240)
 #		cam.start_recording(OUTFILE)
 		while True:
-
+			resolution = (1360, 768)
+			framerate = 25
+			streamer(resolution, framerate)
 			image = cam_interface()
 			contours = cv_magic(image)
 			gpio(contours, image)
@@ -100,6 +105,8 @@ def main():
 		print '\033[91m'+ "Error: %s" % e + '\033[0m'
 		raise
 	finally:
+		stopped = True
+		update_stream(streamer.stream, streamer.frame, streamer.raw_capture, stopped)
 		GPIO.cleanup()
 		cv2.destroyAllWindows()
 
@@ -109,15 +116,41 @@ def cam_interface():
 	'''
 	data = io.BytesIO()
 	with picamera.PiCamera() as picam:
-#		picam.resolution = (320, 240)
-#		picam.start_recording(OUTFILE)
-#		picam.wait_recording(10)
+		#picam.start_recording(OUTFILE)
+		#picam.wait_recording(10)
 		picam.capture(data, format='jpeg', use_video_port=True)
 		data = np.fromstring(data.getvalue(), dtype=np.uint8)
 		image = cv2.imdecode(data, 1)
 		cv2.imwrite('debugimage.jpg', image)
 		image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 		return image
+
+def streamer(resolution, framerate):
+	'''This starts the camera thread and
+	begins running it
+	'''
+	with picamera.PiCamera() as picam:
+		raw_capture = PiRGBArray(picam, size=resolution)
+		stream = picam.capture_continuous(raw_capture, format="bgr", use_video_port=True)
+		frame = None
+		stopped = False
+		thread = Thread(target=update_stream(stream, frame, raw_capture, stopped), args=())
+		thread.daemon = True
+		thread.start()
+
+def update_stream(stream, frame, raw_capture, stopped):
+	'''This updates the stream from streamer
+	when directed to another thread
+	'''
+	for each in stream:
+		frame = each.array
+		raw_capture.truncate(0)
+		if stopped:
+			stream.close()
+			raw_capture.close()
+			with picamera.PiCamera() as picam:
+				picam.close()
+			return frame
 
 def cv_magic(image):
 	'''This is the meat.
