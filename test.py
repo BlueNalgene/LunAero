@@ -23,6 +23,7 @@ with picamera.PiCamera() as picam:
 		data.truncate()
 		data.seek(0)
 	img=np.asarray(frame.array)
+	cv2.imwrite('debugimage.jpg', img)
 cv2.imshow('img', img)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
