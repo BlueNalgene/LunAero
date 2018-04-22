@@ -54,6 +54,7 @@ sudo pip install
 numpy
 picamera
 pynput
+imutils
 
 # Deprecated
 pygame

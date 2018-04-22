@@ -13,20 +13,36 @@ import picamera
 from picamera.array import PiRGBArray
 
 
-
+print "1"
 resolution = (1360, 768)
 framerate = 25
 with picamera.PiCamera() as picam:
 	data = io.BytesIO()
-	#raw_capture = PiRGBArray(picam, size=resolution)
+	print "2"
+	raw_capture = PiRGBArray(picam, size=resolution)
 	for stream in picam.capture_continuous(data, format="bgr", use_video_port=True):
+		print "3"
+		img=np.asarray(data, dtype=np.uint8)
 		data.truncate()
+		print "4"
 		data.seek(0)
-	img=np.asarray(frame.array)
+		break
+	print "5"
+#	np.asarray(data, dtype=np.uint8)
+	#for lines in data:
+	#data = np.asarray(bytearray(stream.read()), dtype=np.uint8)
+	#img = cv2.imdecode(data, 1)
+#	for x in data.readlines()[0]:
+#		print x.encode('hex')
+#	print type(data.readlines()[0][0])
+#	img = cv2.imdecode(stream, 1)
+#	img=np.asarray(data.array)
+#	print "6"
 	cv2.imwrite('debugimage.jpg', img)
-cv2.imshow('img', img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+	print img
+#cv2.imshow('img', img)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
 		#picam.capture(data, format='jpeg', use_video_port=True)
 		#data = np.fromstring(data.getvalue(), dtype=np.uint8)
 		#image = cv2.imdecode(data, 1)
