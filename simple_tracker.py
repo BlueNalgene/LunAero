@@ -6,36 +6,34 @@
 #  - Put a contour around the moon
 #  - Track the motion of the moon from the center of the screen
 #
-# Additional Functions include:
-#  - Keyboard manual control of motors using arrow key_scanner
-#
-# TODO:
-#  - Make "keyboard period" more obvious.
-#  - Record from the picamera video stream as OUTFILE
-#  - argparse
+# TODO - Record from the picamera video stream as OUTFILE
+# TODO - cleanup
 """
 
 #-----------------------------------------------------------------------------------------------
 
 # Package Imports
 import os
+#import argparse
 import sys
-import io
+#import io
 import time
 import subprocess
-from threading import Thread
+#from threading import Thread
 
 # Package imports requiring pip installs
-from pynput import keyboard
+#from pynput import keyboard
 import numpy as np
 import cv2
 import RPi.GPIO as GPIO #RPi GPIO controller
-import picamera
-from picamera.array import PiRGBArray
+#import picamera
+#from picamera.array import PiRGBArray
+from imutils.video import VideoStream
+import imutils
 
 print "Initializiing simple_tracker.py...."
 print " "
-print "Press CTRL+c to exit"
+print "Press 'CTRL+c' or 'q' to exit"
 print " "
 # Tell Windows users to GTFO
 if os.name == 'nt':
@@ -83,74 +81,69 @@ def main():
 	'''This is the main chunk of the program
 	'''
 	try:
-#		cam = picamera.PiCamera()
-#		cam.resolution = (320, 240)
-#		cam.start_recording(OUTFILE)
 		while True:
-			resolution = (1360, 768)
-			framerate = 25
-			streamer(resolution, framerate)
-			image = cam_interface()
+			#resolution = (1360, 768)
+			#framerate = 25
+			image = VIS.read()
+			image = imutils.resize(image, width=400)
 			contours = cv_magic(image)
 			gpio(contours, image)
-
-			if cv2.waitKey(10) & 0xFF == ord('q'):
-				print 'done'
+			key = cv2.waitKey(1) & 0xFF
+			if  key == ord('q'):
+				print 'done, cleaning up'
 
 	except KeyboardInterrupt:
-		print 'exiting'
-	except Exception as e:
+		print 'exiting from Ctrl+c'
+	except Exception as exep:
 #		print 'An Unknown Error Occurred.  Helpful, right?'
-		e = sys.exc_info()[0]
-		print '\033[91m'+ "Error: %s" % e + '\033[0m'
+		exep = sys.exc_info()[0]
+		print '\033[91m'+ "Error: %s" % exep + '\033[0m'
 		raise
 	finally:
-		stopped = True
-		update_stream(streamer.stream, streamer.frame, streamer.raw_capture, stopped)
 		GPIO.cleanup()
 		cv2.destroyAllWindows()
+		VIS.stop()
 
-def cam_interface():
-	'''This is the interface which pulls an image from the
-	Raspberry Pi camera.  It returns the image which we will use a bunch later.
-	'''
-	data = io.BytesIO()
-	with picamera.PiCamera() as picam:
-		#picam.start_recording(OUTFILE)
-		#picam.wait_recording(10)
-		picam.capture(data, format='jpeg', use_video_port=True)
-		data = np.fromstring(data.getvalue(), dtype=np.uint8)
-		image = cv2.imdecode(data, 1)
-		cv2.imwrite('debugimage.jpg', image)
-		image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-		return image
+#def cam_interface():
+	#'''This is the interface which pulls an image from the
+	#Raspberry Pi camera.  It returns the image which we will use a bunch later.
+	#'''
+	#with picamera.PiCamera() as picam:
+		##picam.start_recording(OUTFILE)
+		##picam.wait_recording(10)
+		#picam.capture(data, format='jpeg', use_video_port=True)
+		#data = np.fromstring(data.getvalue(), dtype=np.uint8)
+		#image = cv2.imdecode(data, 1)
+		#cv2.imwrite('debugimage.jpg', image)
+		#image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+		#return image
 
-def streamer(resolution, framerate):
-	'''This starts the camera thread and
-	begins running it
-	'''
-	with picamera.PiCamera() as picam:
-		raw_capture = PiRGBArray(picam, size=resolution)
-		stream = picam.capture_continuous(raw_capture, format="bgr", use_video_port=True)
-		frame = None
-		stopped = False
-		thread = Thread(target=update_stream(stream, frame, raw_capture, stopped), args=())
-		thread.daemon = True
-		thread.start()
+#def streamer(resolution, framerate):
+	#'''This starts the camera thread and
+	#begins running it
+	#'''
+	#with picamera.PiCamera() as picam:
+		#raw_capture = PiRGBArray(picam, size=resolution)
+		#stream = picam.capture_continuous(raw_capture, format="bgr", use_video_port=True)
+		#frame = None
+		#stopped = False
+		#thread = Thread(target=update_stream(stream, frame, raw_capture, stopped), args=())
+		#thread.daemon = True
+		#thread.start()
 
-def update_stream(stream, frame, raw_capture, stopped):
-	'''This updates the stream from streamer
-	when directed to another thread
-	'''
-	for each in stream:
-		frame = each.array
-		raw_capture.truncate(0)
-		if stopped:
-			stream.close()
-			raw_capture.close()
-			with picamera.PiCamera() as picam:
-				picam.close()
-			return frame
+#def update_stream(stream, frame, raw_capture, stopped):
+	#'''This updates the stream from streamer
+	#when directed to another thread
+	#'''
+	#for each in stream:
+		#frame = each.array
+		#raw_capture.truncate(0)
+		#if stopped:
+			#stream.close()
+			#raw_capture.close()
+			#with picamera.PiCamera() as picam:
+				#picam.close()
+			#return frame
 
 def cv_magic(image):
 	'''This is the meat.
@@ -159,7 +152,7 @@ def cv_magic(image):
 	'''
 	thresh = 127
 	max_value = 255
-	th, dst = cv2.threshold(image, thresh, max_value, cv2.THRESH_BINARY)
+	_, dst = cv2.threshold(image, thresh, max_value, cv2.THRESH_BINARY)
 	contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
 	cv2.drawContours(image, contours, -1, (255, 255, 0), 3)
@@ -174,24 +167,24 @@ def gpio(contours, image):
 	if contours:
 		contours = contours[0]
 
-		m = cv2.moments(contours)
+		moment = cv2.moments(contours)
 
 		#The following if prevents and ignores DivideByZero exceptions.
 		#This is a quick and dirty fix which is not meant to see the light of day.
-		if int(m['m00']) != 0:
-			cx = int(m['m10']/m['m00'])
-			cy = int(m['m01']/m['m00'])
+		if int(moment['m00']) != 0:
+			cxx = int(moment['m10']/moment['m00'])
+			cyy = int(moment['m01']/moment['m00'])
 
 			height, width = image.shape
 			width = width/2
 			height = height/2
 
 			# Print statements are for hardware debugging.
-			if cx < width:
+			if cxx < width:
 				print "pan camera RIGHT"
 				movex = True
 				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-			elif cx > width:
+			elif cxx > width:
 				print "pan camera LEFT"
 				movex = True
 				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
@@ -201,11 +194,11 @@ def gpio(contours, image):
 				state = (GPIO.LOW, GPIO.LOW, GPIO.HIGH)
 			motor(movex, state)
 
-			if cy < height:
+			if cyy < height:
 				print "pan camera DOWN"
 				movex = False
 				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-			elif cy > height:
+			elif cyy > height:
 				print "pan camera UP"
 				movex = False
 				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
@@ -232,51 +225,55 @@ def motor(movex, state):
 	time.sleep(0.05)
 	return
 
-def on_press(key):
-	'''Detects the keypresses when enabled.
-	And it does things when it works.
-	Notably, it moves the motors manaually.
-	'''
-	try:
-		k = key.char
-	except:
-		k = key.name
-	if key == keyboard.Key.esc:
-		return False
-	if k in ['left', 'right', 'up', 'down']:
-		if k in ['left', 'right']:
-			if k == 'left':
-				print "pan camera LEFT"
-				movex = True
-				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
-				motor(movex, state)
-			else:
-				print "pan camera RIGHT"
-				movex = True
-				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-				motor(movex, state)
-		else:
-			if k == 'up':
-				print "pan camera UP"
-				movex = False
-				state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
-				motor(movex, state)
-			else:
-				print "pan camera DOWN"
-				movex = False
-				state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
-				motor(movex, state)
+#def on_press(key):
+	#'''Detects the keypresses when enabled.
+	#And it does things when it works.
+	#Notably, it moves the motors manaually.
+	#'''
+	#try:
+		#k = key.char
+	#except:
+		#k = key.name
+	#if key == keyboard.Key.esc:
+		#return False
+	#if k in ['left', 'right', 'up', 'down']:
+		#if k in ['left', 'right']:
+			#if k == 'left':
+				#print "pan camera LEFT"
+				#movex = True
+				#state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
+				#motor(movex, state)
+			#else:
+				#print "pan camera RIGHT"
+				#movex = True
+				#state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
+				#motor(movex, state)
+		#else:
+			#if k == 'up':
+				#print "pan camera UP"
+				#movex = False
+				#state = (GPIO.HIGH, GPIO.LOW, GPIO.HIGH)
+				#motor(movex, state)
+			#else:
+				#print "pan camera DOWN"
+				#movex = False
+				#state = (GPIO.LOW, GPIO.HIGH, GPIO.HIGH)
+				#motor(movex, state)
 
-def key_scanner():
-	'''This is a threaded scanning function.
-	When this is enabled in the main script, another thread will begin
-	polling the keyboard for presses.
-	'''
-	lis = keyboard.Listener(on_press=on_press)
-	lis.start()
-	lis.join()
-	return
+#def key_scanner():
+	#'''This is a threaded scanning function.
+	#When this is enabled in the main script, another thread will begin
+	#polling the keyboard for presses.
+	#'''
+	#lis = keyboard.Listener(on_press=on_press)
+	#lis.start()
+	#lis.join()
+	#return
 
 if __name__ == '__main__':
+	print "activating camera"
+	VIS = VideoStream(usePiCamera=True).start()
+	time.sleep(2.0)
+	print "recording and running program"
 	#key_scanner()
 	main()
