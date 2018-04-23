@@ -18,6 +18,9 @@ from PIL import Image
 import numpy as np
 import RPi.GPIO as GPIO
 
+# Number of seconds to delay between sampling frames.
+DELAY = 1
+
 # Defines the pins being used for the GPIO pins.
 print "Defining GPIO pins"
 GPIO.setmode(GPIO.BOARD)
@@ -50,11 +53,11 @@ def main():
 	'''
 	with picamera.PiCamera() as camera:
 		try:
-			camera.resolution = (800, 600)
+			camera.resolution = (1920, 1080)
 			camera.start_preview()
 			camera.start_recording(OUTFILE)
 			while True:
-				camera.wait_recording(10)
+				camera.wait_recording(DELAY)
 				camera.capture('debugimage.jpg', use_video_port=True)
 				image_test()
 		except Exception as exep:
