@@ -13,13 +13,13 @@ sudo apt -y install
 # Essential
 python-pip
 python-opencv
-python-pygame # see notes below
+#python-pygame # see notes below
 
 # Makes life easier
 lshw
 ##fbi
 fim ## better than fbi for ssh
-pqiv
+#pqiv
 omxplayer
 
 # Required before installing pygame
@@ -41,7 +41,7 @@ ls -l /dev/gpiomem
 # The permissions should be:
 # crw-rw---- 1 root gpio 244, 0 Dec 28 22:51 /dev/gpiomem
 # If not, run:
-sudo chown root.gpio /dev/giomem
+sudo chown root.gpio /dev/gpiomem
 sudo chmod g+rw /dev/gpiomem
 
 
