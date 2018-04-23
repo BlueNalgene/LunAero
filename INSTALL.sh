@@ -33,29 +33,29 @@ else
 	echo "lshw installed..."
 fi
 
-# Optional, fim is used to view images in terminal and ssh
-if ! [ -x "$(command -v fim)" ]; thenif $? = 1; then
-	echo 'Installing fim' >&2
-	sudo apt -y install fim
-else
-	echo "fim installed..."
-fi
-
-# Optional, omxplayer is used to view videos in terminal.  Only available to RasPi
-if ! [ -x "$(command -v omxplayer)" ]; then
-	echo 'Installing omxplayer' >&2
-	sudo apt -y install omxplayer
-else
-	echo "omxplayer installed..."
-fi
-
-# Optional, imagemagick has millions of uses for image manipulation
-if ! [ -x "$(command -v identify)" ]; then
-	echo 'Installing imagemagick' >&2
-	sudo apt -y install imagemagick
-else
-	echo "imagemagick installed..."
-fi
+# # Optional, fim is used to view images in terminal and ssh
+# if ! [ -x "$(command -v fim)" ]; thenif $? = 1; then
+# 	echo 'Installing fim' >&2
+# 	sudo apt -y install fim
+# else
+# 	echo "fim installed..."
+# fi
+# 
+# # Optional, omxplayer is used to view videos in terminal.  Only available to RasPi
+# if ! [ -x "$(command -v omxplayer)" ]; then
+# 	echo 'Installing omxplayer' >&2
+# 	sudo apt -y install omxplayer
+# else
+# 	echo "omxplayer installed..."
+# fi
+# 
+# # Optional, imagemagick has millions of uses for image manipulation
+# if ! [ -x "$(command -v identify)" ]; then
+# 	echo 'Installing imagemagick' >&2
+# 	sudo apt -y install imagemagick
+# else
+# 	echo "imagemagick installed..."
+# fi
 
 
 
@@ -126,89 +126,125 @@ if [ -z "$CUR_GPU_MEM" ] || [ "$CUR_GPU_MEM" -lt 128 ]; then
 	set_config_var gpu_mem 128 $CONFIG
 fi
 
+
+
+
+
+
+# Checks to see if GPIO is enabled.  If not, it enables the GPIO
+# This is also stolen from rasp-config
+get_rgpio() {
+	if test -e /etc/systemd/system/pigpiod.service.d/public.conf; then
+		echo 0
+	else
+		echo 1
+	fi
+}
+
+if [ "$(get_rgpio)" -eq 1 ]; then
+	mkdir -p /etc/systemd/system/pigpiod.service.d/
+	cat > /etc/systemd/system/pigpiod.service.d/public.conf << EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/pigpiod
+EOF
+	systemctl daemon-reload
+	if systemctl -q is-enabled pigpiod ; then
+		systemctl restart pigpiod
+	fi
+fi
+
+
+
+
 # This checks if the correct permissions are set for the output stream of the camera
 # If not, it corrects this.
 if [[ "$(ls -l /dev/gpiomem)" != *'root gpio'* ]]; then
 	echo "Setting correct permissions for RPi camera"
 	sudo chown root.gpio /dev/gpiomem
 	sudo chmod g+rw /dev/gpiomem
-else
-	echo "RPi camera permissions are set"
-fi
+echo "RPi camera permissions are set"
+
 
 # Now that everything apt is set up, we begin checking the pip packages.
 # Numpy is required for much of the array math
 python -c 'import numpy'
 if [ $? != '0' ]; then
 	pip install numpy
-else
-	echo "numpy is installed"
-fi
+echo "numpy is installed"
+
 
 # Scipy is required for some other array math
 python -c 'import scipy'
 if [ $? != '0' ]; then
 	pip install scipy
-else
-	echo "scipy is installed"
-fi
+echo "scipy is installed"
+
 
 # Install Pillow for Pillow
 python -c 'import PIL'
 if [ $? != '0' ]; then
 	pip install pillow
-else
-	echo "pillow installed"
-fi
+echo "pillow installed"
+
 
 # Picamera is required to work with the picamera in imutils
 python -c 'import picamera'
 if [ $? != '0' ]; then
 	pip install picamera
-else
-	echo "picamera is installed"
-fi
+echo "picamera is installed"
+
 
 # Imutils is required to use picamera and opencv together
 python -c 'import imutils'
 if [ $? != '0' ]; then
 	pip install imutils
-else
-	echo "imutils is installed"
-fi
+echo "imutils is installed"
 
-# This installs a bunch of dependencies for opencv. 
-# Note that it does not check for the packages,
-# nor does it report their installation.
-# This is because these are handled simply by apt.
-# The user will not interact with these things directly,
-# So telling the user about them is not necessary.
 
-# zzzzzzzzzzzzz add to /etc/apt/sources.list
 
-sudo apt -y install libgtk-3-dev
-sudo apt -y install libpng12-dev
-sudo apt -y install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran python2.7-dev python3-dev
 
-wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.1.zip
-unzip opencv.zip
-wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.1.zip
-unzip opencv_contrib.zip
-cd ~/opencv-3.4.1/
-mkdir build
-cd build
-cmake -D CMAKE_BUILD_TYPE=RELEASE \
-	-D CMAKE_INSTALL_PREFIX=/usr/local \
-	-D INSTALL_PYTHON_EXAMPLES=ON \
-	-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib-3.4.1/modules \
-	-D BUILD_EXAMPLES=ON ..
-sudo sed -i -e 's/CONF_SWAPSIZE=100/CONF_SWAPSIZE=1024/g' /etc/dphys-swapfile
-sudo /etc/init.d/dphys-swapfile stop
-sudo /etc/init.d/dphys-swapfile start
-make -j4
-sudo make install
-sudo ldconfig
-sudo sed -i -e 's/CONF_SWAPSIZE=1024/CONF_SWAPSIZE=100/g' /etc/dphys-swapfile
-sudo /etc/init.d/dphys-swapfile stop
-sudo /etc/init.d/dphys-swapfile start
+
+
+
+
+
+
+
+
+
+# # This installs a bunch of dependencies for opencv. 
+# # Note that it does not check for the packages,
+# # nor does it report their installation.
+# # This is because these are handled simply by apt.
+# # The user will not interact with these things directly,
+# # So telling the user about them is not necessary.
 # 
+# # zzzzzzzzzzzzz add to /etc/apt/sources.list
+# 
+# sudo apt -y install libgtk-3-dev
+# sudo apt -y install libpng12-dev
+# sudo apt -y install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran python2.7-dev python3-dev
+# 
+# wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.1.zip
+# unzip opencv.zip
+# wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.1.zip
+# unzip opencv_contrib.zip
+# cd ~/opencv-3.4.1/
+# mkdir build
+# cd build
+# cmake -D CMAKE_BUILD_TYPE=RELEASE \
+# 	-D CMAKE_INSTALL_PREFIX=/usr/local \
+# 	-D INSTALL_PYTHON_EXAMPLES=ON \
+# 	-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib-3.4.1/modules \
+# 	-D BUILD_EXAMPLES=ON ..
+# sudo sed -i -e 's/CONF_SWAPSIZE=100/CONF_SWAPSIZE=1024/g' /etc/dphys-swapfile
+# sudo /etc/init.d/dphys-swapfile stop
+# sudo /etc/init.d/dphys-swapfile start
+# make -j4
+# sudo make install
+# sudo ldconfig
+# sudo sed -i -e 's/CONF_SWAPSIZE=1024/CONF_SWAPSIZE=100/g' /etc/dphys-swapfile
+# sudo /etc/init.d/dphys-swapfile stop
+# sudo /etc/init.d/dphys-swapfile start
+# # 
