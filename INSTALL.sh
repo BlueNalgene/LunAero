@@ -161,36 +161,38 @@ else
 	echo "imutils is installed"
 fi
 
-# # This installs a bunch of dependencies for opencv. 
-# # Note that it does not check for the packages,
-# # nor does it report their installation.
-# # This is because these are handled simply by apt.
-# # The user will not interact with these things directly,
-# # So telling the user about them is not necessary.
-# sudo apt -y install build-essential cmake pkg-config
-# sudo apt -y install libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev
-# sudo apt -y install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
-# sudo apt -y install libxvidcore-dev libx264-dev
-# sudo apt -y install libgtk2.0-dev libgtk-3-dev
-# sudo apt -y install libatlas-base-dev gfortran
-# sudo apt -y install python2.7-dev python3-dev
-# wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.1.zip
-# unzip opencv.zip
-# wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.1.zip
-# unzip opencv_contrib.zip
-# cd ~/opencv-3.4.1/
-# mkdir build
-# cd build
-# cmake -D CMAKE_BUILD_TYPE=RELEASE \
-# 	-D CMAKE_INSTALL_PREFIX=/usr/local \
-# 	-D INSTALL_PYTHON_EXAMPLES=ON \
-# 	-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib-3.4.1/modules \
-# 	-D BUILD_EXAMPLES=ON ..
-# CONF_SWAPSIZE=1024
-# sudo /etc/init.d/dphys-swapfile stop
-# sudo /etc/init.d/dphys-swapfile start
-# make -j4
-# sudo make install
-# sudo ldconfig
+# This installs a bunch of dependencies for opencv. 
+# Note that it does not check for the packages,
+# nor does it report their installation.
+# This is because these are handled simply by apt.
+# The user will not interact with these things directly,
+# So telling the user about them is not necessary.
+
+# zzzzzzzzzzzzz add to /etc/apt/sources.list
+
+sudo apt -y install libgtk-3-dev
+sudo apt -y install libpng12-dev
+sudo apt -y install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran python2.7-dev python3-dev
+
+wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.1.zip
+unzip opencv.zip
+wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.1.zip
+unzip opencv_contrib.zip
+cd ~/opencv-3.4.1/
+mkdir build
+cd build
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+	-D CMAKE_INSTALL_PREFIX=/usr/local \
+	-D INSTALL_PYTHON_EXAMPLES=ON \
+	-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib-3.4.1/modules \
+	-D BUILD_EXAMPLES=ON ..
+sudo sed -i -e 's/CONF_SWAPSIZE=100/CONF_SWAPSIZE=1024/g' /etc/dphys-swapfile
+sudo /etc/init.d/dphys-swapfile stop
+sudo /etc/init.d/dphys-swapfile start
+make -j4
+sudo make install
+sudo ldconfig
+sudo sed -i -e 's/CONF_SWAPSIZE=1024/CONF_SWAPSIZE=100/g' /etc/dphys-swapfile
+sudo /etc/init.d/dphys-swapfile stop
+sudo /etc/init.d/dphys-swapfile start
 # 
-# sudo apt -y install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran python2.7-dev python3-dev
