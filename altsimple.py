@@ -67,6 +67,7 @@ def main():
 			raise
 		finally:
 			camera.stop_recording()
+			camera.stop_preview()
 			GPIO.cleanup()
 
 def image_test():

@@ -24,6 +24,10 @@ When the INSTALL script is executed, it will go through all of the dependencies 
 
 As there are updates to the LunAero version available (as more features become available to users), the install will change and get longer.  If you have already executed INSTALL.sh, you can safely execute it again to catch anything new that you might have missed the first time.
 
+## The targeting reticle: `framechecker.py`
+
+To make sure you have the moon in view when first starting the camera for the evening, use `framechecker.py`.  This program simply turns on a preview screen while you do some manual adjustment of the camera.  To prevent user error, it automatically quits after 10 minutes.  To finish before that, press any key.
+
 ## Running `altsimple.py`
 
 `altsimple.py` is a simple tracking program.  It is executed with the command
@@ -35,4 +39,4 @@ This program simply records a video (a raw h264 video, you will need `VLC` if yo
 
 There is currently no nice/clean/elegant way to exit this program.  To exit use **ctrl+c**
 
-`altsimple.py` does not show anything in a window to the user.  Presumably, it is dark outside when you are using this, and light pollution from the screen may be unwanted.  There is output in the terminal for debugging which tells you the direction that the motors are attempting to move the scope.
+Presumably, it is dark outside when you are using this, and light pollution from the screen may be unwanted.  There is output in the terminal for debugging which tells you the direction that the motors are attempting to move the scope, but you may want to turn you screen off once you have it figured out.
