@@ -145,6 +145,22 @@ else
 	echo "numpy is installed"
 fi
 
+# Scipy is required for some other array math
+python -c 'import scipy'
+if [ $? != '0' ]; then
+	pip install scipy
+else
+	echo "scipy is installed"
+fi
+
+# Install Pillow for Pillow
+python -c 'import PIL'
+if [ $? != '0' ]; then
+	pip install pillow
+else
+	echo "pillow installed"
+fi
+
 # Picamera is required to work with the picamera in imutils
 python -c 'import picamera'
 if [ $? != '0' ]; then

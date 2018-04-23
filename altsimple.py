@@ -14,7 +14,7 @@ import subprocess
 
 import picamera
 from scipy import ndimage
-import Image
+from PIL import Image
 import numpy as np
 import RPi.GPIO as GPIO
 
@@ -48,8 +48,8 @@ def main():
 	'''This is the main chunk of the program
 	It starts the recording, calls the function, and quits at the end.
 	'''
-	try:
-		with picamera.PiCamera() as camera:
+	with picamera.PiCamera() as camera:
+		try:
 			camera.resolution = (800, 600)
 			camera.start_preview()
 			camera.start_recording(OUTFILE)
@@ -57,14 +57,14 @@ def main():
 				camera.wait_recording(10)
 				camera.capture('debugimage.jpg', use_video_port=True)
 				image_test()
-	except Exception as exep:
-#		print 'An Unknown Error Occurred.  Helpful, right?'
-		exep = sys.exc_info()[0]
-		print '\033[91m'+ "Error: %s" % exep + '\033[0m'
-		raise
-	finally:
-		camera.stop_recording()
-		GPIO.cleanup()
+		except Exception as exep:
+	#		print 'An Unknown Error Occurred.  Helpful, right?'
+			exep = sys.exc_info()[0]
+			print '\033[91m'+ "Error: %s" % exep + '\033[0m'
+			raise
+		finally:
+			camera.stop_recording()
+			GPIO.cleanup()
 
 def image_test():
 	'''This section controls the GPIO pin movement
