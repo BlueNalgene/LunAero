@@ -5,57 +5,28 @@ More information as project develops.
 
 Created by @BlueNalgene, working in the lab of @Eli-S-Bridge.
 
-###### Installed from APT
-# This is a list of programs installed from apt.  This will be formatted as an install scri$
-sudo apt update
-sudo apt -y install
+# Install Instructions
+When you install this for the first time on to a 'blank' Raspberry Pi, you will need to enable git to pull this repository.  To do this, execute the lines in the terminal (ctrl+alt+t):
+> sudo apt update
+> sudo apt -y install git
+> git clone https://github.com/BlueNalgene/LunAero.git
+> cd LunAero
+> sudo chmod +x ./INSTALL.sh
+> ./INSTALL.sh
 
-# Essential
-python-pip
-python-opencv
-#python-pygame # see notes below
+This script downloads the 'git' program and then pulls in the repository posted here.  Once you have the repo on your Raspberry Pi, you go into the folder, make the install file executable, then execute the install script.  This should take less than a minute on a modern internet connection.
 
-# Makes life easier
-lshw
-##fbi
-fim ## better than fbi for ssh
-#pqiv
-omxplayer
+When the INSTALL script is executed, it will go through all of the dependencies you need for this program.  If you don't have them installed, it will do that for you.  Note that this **TAKES A LONG TIME**.  You have been warned.
 
-# Required before installing pygame
-# uses the SDL Library
-tar -xzvf SDL-1.2.14.tar.gz
-cd SDL-1.2.14
-./configure
-sudo make all
-sudo make install
-## Edit: this may not be necessary.  Try instead:
-sudo nano /etc/apt/sources.list
-# uncomment the dev-src Raspbian link
-sudo apt update
-sudo apt install python-pygame
+As there are updates to the LunAero version available (as more features become available to users), the install will change and get longer.  If you have already executed INSTALL.sh, you can safely execute it again to catch anything new that you might have missed the first time.
 
-# I could not access GPIO without changing permissions
-# To test this:
-ls -l /dev/gpiomem
-# The permissions should be:
-# crw-rw---- 1 root gpio 244, 0 Dec 28 22:51 /dev/gpiomem
-# If not, run:
-sudo chown root.gpio /dev/gpiomem
-sudo chmod g+rw /dev/gpiomem
+# Running 'altsimple.py'
 
+Altsimple is a simple tracking program.  It is executed with the command
+> python altsimple.py
 
+This program simply records a video (a raw h264 video, you will need VLC if you want to look at it), and takes snapshots every x seconds.  The value for x is written at the beginning of the program with the variable name "DELAY".
 
-###### Installed from PIP
-# This is a list of packages installed from pip to make LunAero work.  It will be formatted$
-sudo pip install
+There is currently no nice/clean/elegant way to exit this program.  To exit use **ctrl+c**
 
-# Essential
-numpy
-picamera
-pynput
-imutils
-
-# Deprecated
-pygame
-
+Altsimple does not show anything in a window to the user.  Presumably, it is dark outside when you are using this, and light pollution from the screen may be unwanted.  There is output in the terminal for debugging which tells you the direction that the motors are attempting to move the scope.
