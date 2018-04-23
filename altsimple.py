@@ -11,6 +11,7 @@
 import time
 import sys
 import subprocess
+import argparse
 
 import picamera
 from scipy import ndimage
@@ -40,12 +41,16 @@ for i in PINS:
 	else:
 		GPIO.output(i, GPIO.HIGH)
 
-# Sets up an output file labeled with the current unixtime
-print "Preparing OUTFILE"
-OUTFILE = int(time.time())
-OUTFILE = str(OUTFILE) + 'out.h264'
-subprocess.call(['touch', str(OUTFILE)])
-print "OUTFILE will be: " + str(OUTFILE)
+## Sets up an output file labeled with the current unixtime
+#print "Preparing OUTFILE"
+#OUTFILE = int(time.time())
+#OUTFILE = str(OUTFILE) + 'out.h264'
+#print "OUTFILE will be: " + str(OUTFILE)
+
+parser.add_argument("-o", "--output", help="Directs the output to a name of your choice")
+args = parser.parse_args()
+with open(args.output, 'w') as output_file:
+    output_file.write("%s\n" % OUTFILE)
 
 def main():
 	'''This is the main chunk of the program

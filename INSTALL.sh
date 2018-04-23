@@ -99,7 +99,26 @@ local fn=assert(arg[3])
 local file=assert(io.open(fn))
 local made_change=false
 for line in file:lines() do
-  if line:match("^#?%s*"..key.."=.*$") then
+  if line:match("^#?%s*"..key.."=.*$") thenget_rgpio() {
+	if test -e /etc/systemd/system/pigpiod.service.d/public.conf; then
+		echo 0
+	else
+		echo 1
+	fi
+}
+
+if [ "$(get_rgpio)" -eq 1 ]; then
+	mkdir -p /etc/systemd/system/pigpiod.service.d/
+	cat > /etc/systemd/system/pigpiod.service.d/public.conf << EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/pigpiod
+EOF
+	systemctl daemon-reload
+	if systemctl -q is-enabled pigpiod ; then
+		systemctl restart pigpiod
+	fi
+fi
     line=key.."="..value
     made_change=true
   end
