@@ -8,16 +8,20 @@ import thread
 import time
 import picamera
 
-killkey = []
-thread.start_new_thread(innit, (L,))
-cam = picamera.PiCamera()
-cam.start_preview(fullscreen=False, window(100, 20, 640, 480))
-while True:
-	time.sleep(0.1)
-	if L:
-		break
-cam.stop_preview()
+def main():
+	killkey = []
+	thread.start_new_thread(innit, (killkey,))
+	cam = picamera.PiCamera()
+	cam.start_preview(fullscreen=False)
+	while True:
+		time.sleep(0.1)
+		if killkey:
+			break
+	cam.stop_preview()
 
 def innit(killkey):
 	raw_input("Press any key to close preview...")
-	L.append(None)
+	killkey.append(None)
+
+if __name__ == '__main__':
+	main()

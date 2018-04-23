@@ -28,6 +28,11 @@ As there are updates to the LunAero version available (as more features become a
 
 To make sure you have the moon in view when first starting the camera for the evening, use `framechecker.py`.  This program simply turns on a preview screen while you do some manual adjustment of the camera.  To prevent user error, it automatically quits after 10 minutes.  To finish before that, press any key.
 
+To run it, use:
+```
+python framechecker.py
+```
+
 ## Running `altsimple.py`
 
 `altsimple.py` is a simple tracking program.  It is executed with the command
