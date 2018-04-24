@@ -15,7 +15,7 @@ sudo apt -y install git
 git clone https://github.com/BlueNalgene/LunAero.git
 cd LunAero
 sudo chmod +x ./INSTALL.sh
-./INSTALL.sh
+sudo ./INSTALL.sh
 ```
 
 This script downloads the `git` program and then pulls in the repository posted here.  Once you have the repo on your Raspberry Pi, you go into the folder, make the install file executable, then execute the install script.  This should take less than a minute on a modern internet connection.

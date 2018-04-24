@@ -16,22 +16,29 @@ if ! [ -x "$(command -v git)" ]; then
 	echo 'Installing git (how did you get this file?)' >&2
 	sudo apt -y install git
 else
-	echo "git installed..."
+	echo "git already installed..."
 fi
 
 if ! [ -x "$(command -v pip)" ]; then
 	echo 'Installing pip' >&2
 	sudo apt -y install python-pip
 else
-	echo "pip installed..."
+	echo "pip already installed..."
 fi
 
 if ! [ -x "$(command -v lshw)" ]; then
 	echo 'Installing lshw' >&2
 	sudo apt -y install lshw
 else
-	echo "lshw installed..."
+	echo "lshw already installed..."
 fi
+
+# Scipy is required for some other array math
+python -c 'import scipy'
+if [ $? != '0' ]; then
+	sudo apt -y install python-scipy
+fi
+echo "scipy is installed"
 
 # # Optional, fim is used to view images in terminal and ssh
 # if ! [ -x "$(command -v fim)" ]; thenif $? = 1; then
@@ -189,14 +196,6 @@ if [ $? != '0' ]; then
 	pip install numpy
 fi
 echo "numpy is installed"
-
-
-# Scipy is required for some other array math
-python -c 'import scipy'
-if [ $? != '0' ]; then
-	pip install scipy
-fi
-echo "scipy is installed"
 
 
 # Install Pillow for Pillow
