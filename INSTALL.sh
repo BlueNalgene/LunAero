@@ -72,64 +72,60 @@ fi
 CONFIG=/boot/config.txt
 
 get_config_var() {
-  lua - "$1" "$2" <<EOF
-local key=assert(arg[1])
-local fn=assert(arg[2])
-local file=assert(io.open(fn))
-local found=false
-for line in file:lines() do
-  local val = line:match("^%s*"..key.."=(.*)$")
-  if (val ~= nil) then
-    print(val)
-    found=true
-    break
+	lua - "$1" "$2" <<EOF
+  local key=assert(arg[1])
+  local fn=assert(arg[2])
+  local file=assert(io.open(fn))
+  local found=false
+    for line in file:lines() do
+    local val = line:match("^%s*"..key.."=(.*)$")
+    if (val ~= nil) then
+      print(val)
+      found=true
+      break
+    end
   end
-end
-if not found then
-  print(0)
-end
+  if not found then
+    print(0)
+  end
 EOF
 }
 
 set_config_var() {
-  lua - "$1" "$2" "$3" <<EOF > "$3.bak"
-local key=assert(arg[1])
-local value=assert(arg[2])
-local fn=assert(arg[3])
-local file=assert(io.open(fn))
-local made_change=false
-for line in file:lines() do
-  if line:match("^#?%s*"..key.."=.*$") thenget_rgpio() {
-	if test -e /etc/systemd/system/pigpiod.service.d/public.conf; then
-		echo 0
-	else
-		echo 1
-	fi
-}
+	lua - "$1" "$2" "$3" <<EOF > "$3.bak"
+  local key=assert(arg[1])
+  local value=assert(arg[2])
+  local fn=assert(arg[3])
+  local file=assert(io.open(fn))
+  local made_change=false
+  for line in file:lines() do
+    if line:match("^#?%s*"..key.."=.*$") thenget_rgpio() {
+      if test -e /etc/systemd/system/pigpiod.service.d/public.conf; then
+        echo 0
+      else
+        echo 1
+      fi
+    }
+EOF
 
 if [ "$(get_rgpio)" -eq 1 ]; then
 	mkdir -p /etc/systemd/system/pigpiod.service.d/
 	cat > /etc/systemd/system/pigpiod.service.d/public.conf << EOF
-[Service]
-ExecStart=
-ExecStart=/usr/bin/pigpiod
+  [Service]
+  ExecStart=
+  ExecStart=/usr/bin/pigpiod
 EOF
 	systemctl daemon-reload
 	if systemctl -q is-enabled pigpiod ; then
 		systemctl restart pigpiod
 	fi
 fi
-    line=key.."="..value
-    made_change=true
-  end
-  print(line)
-end
+		made_change=true
 
-if not made_change then
-  print(key.."="..value)
+if not made_change; then
 end
-EOF
 mv "$3.bak" "$3"
+fi
 }
 
 # This is the meat.  It actually sets the appropriate stuff.
@@ -182,6 +178,7 @@ if [[ "$(ls -l /dev/gpiomem)" != *'root gpio'* ]]; then
 	echo "Setting correct permissions for RPi camera"
 	sudo chown root.gpio /dev/gpiomem
 	sudo chmod g+rw /dev/gpiomem
+fi
 echo "RPi camera permissions are set"
 
 
@@ -190,6 +187,7 @@ echo "RPi camera permissions are set"
 python -c 'import numpy'
 if [ $? != '0' ]; then
 	pip install numpy
+fi
 echo "numpy is installed"
 
 
@@ -197,6 +195,7 @@ echo "numpy is installed"
 python -c 'import scipy'
 if [ $? != '0' ]; then
 	pip install scipy
+fi
 echo "scipy is installed"
 
 
@@ -204,6 +203,7 @@ echo "scipy is installed"
 python -c 'import PIL'
 if [ $? != '0' ]; then
 	pip install pillow
+fi
 echo "pillow installed"
 
 
@@ -211,6 +211,7 @@ echo "pillow installed"
 python -c 'import picamera'
 if [ $? != '0' ]; then
 	pip install picamera
+fi
 echo "picamera is installed"
 
 
@@ -218,6 +219,7 @@ echo "picamera is installed"
 python -c 'import imutils'
 if [ $? != '0' ]; then
 	pip install imutils
+fi
 echo "imutils is installed"
 
 
