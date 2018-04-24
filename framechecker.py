@@ -12,7 +12,7 @@ def main():
 	killkey = []
 	thread.start_new_thread(innit, (killkey,))
 	cam = picamera.PiCamera()
-	cam.start_preview(fullscreen=False)
+	cam.start_preview()
 	while True:
 		time.sleep(0.1)
 		if killkey:
