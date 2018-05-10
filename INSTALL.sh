@@ -244,7 +244,7 @@ echo "imutils is installed"
 # 
 # sudo apt -y install libgtk-3-dev
 # sudo apt -y install libpng12-dev
-# sudo apt -y install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran python2.7-dev python3-dev
+# sudo apt -y install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran python2.7-dev python3-dev
 # 
 # wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.1.zip
 # unzip opencv.zip
