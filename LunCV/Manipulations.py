@@ -18,12 +18,12 @@ from scipy import ndimage as ndi
 FGBG = cv2.bgsegm.createBackgroundSubtractorMOG(100, 7, 0.5, 5)
 MAT = np.ones((3, 3), np.uint8)
 
-class Manipulations:
+class Manipulations():
 	def __init__ (self):
 		'''Null
 		'''
 
-	def center_moon(frame, contours):
+	def center_moon(self, frame, contours):
 		'''This function finds the light source in a frame and centers it.
 		'''
 		if contours:
@@ -40,7 +40,6 @@ class Manipulations:
 			cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), \
 							int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
 			result = frame & mask
-
 			# Now the mask is shifted such that the center of the ellipse is in the center of the screen.
 			col = len(frame[0])
 			row = len(frame)
@@ -48,9 +47,9 @@ class Manipulations:
 			ydi = (row / 2) - int(ellipse[0][1])
 			M = np.float32([[1, 0, xdi], [0, 1, ydi]])
 			result = cv2.warpAffine(result, M, (col, row))
-			return(result)
+			return(ellipse, result)
 
-	def subtract_background(result):
+	def subtract_background(self, result):
 		'''This function removes the background from a frame.
 		It is strongly recommended this only be done with STILL frames.
 		Otherwise it will be a mess.
@@ -61,10 +60,10 @@ class Manipulations:
 		'''
 		result = FGBG.apply(result, learningRate=.05)
 		result = cv2.morphologyEx(result, cv2.MORPH_GRADIENT, MAT)
-		result = cv2.GaussianBlur(result, (5, 5), 0)
+		#result = cv2.GaussianBlur(result, (5, 5), 0)
 		return result
 
-	def magic_thresh(frame):
+	def magic_thresh(self, frame):
 		'''Use a GRAY frame for "frame" here.
 		It will output some magical threshold values
 		which can be used for bandpass filtering
@@ -74,25 +73,44 @@ class Manipulations:
 		upper_thresh = int(min(255, 1.33 * v))
 		return lower_thresh, upper_thresh
 
-	def halo_noise(frame):
+	def halo_noise(self, ellipse, frame):
 		'''Requires a BINARY "frame" to work
 		Puts a black ellipse over the largest contour.
 		Presumably, this is the edge of the moon against the sky
 		This minimizes the noise from clouds and haze.
 		'''
 		mask = np.zeros_like(frame)
+		col = len(frame[0])
+		row = len(frame)
 		cv2.ellipse(mask, (int(col/2), int(row/2)), (int(ellipse[1][0]/2.2), \
 						int(ellipse[1][1]/2.2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
 		frame = frame & mask
 		frame = np.array(frame, np.uint8)
+		return frame
 
-	def cv_contour(frame, lower_thresh, upper_thresh):
+	def cv_contour(self, frame, lower_thresh, upper_thresh):
 		'''This function takes care of contour selections
 		Requires GRAYSCALE
 		'''
 		_, thresh = cv2.threshold(frame, lower_thresh, upper_thresh, cv2.THRESH_BINARY)
 		_, contours, hierarchy = cv2.findContours(thresh, 2, 1)
 		return contours
+
+	def cntsize(self, contours):
+		centers = []
+		size_list = []
+		if contours:
+			cnt = contours[0]
+			for cnt in contours:
+				perimeter = cv2.arcLength(cnt, True)
+				if perimeter > 8 and perimeter < 200:
+					(x, y), radius = cv2.minEnclosingCircle(cnt)
+					centroid = (int(x), int(y))
+					radius = int(radius)
+					centroid = np.array([[x], [y]])
+					centers.append(np.round(centroid))
+					size_list.append(np.round(perimeter))
+		return size_list, centers
 
 
 
