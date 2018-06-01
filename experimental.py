@@ -5,15 +5,27 @@ Run on a normal computer, not the RasPi
 '''
 
 from __future__ import print_function
+
 import time
+import math
 import pygame
+import numpy as np
+#from PIL import Image
+
 import cv2
-from PIL import Image
 
 from LunCV import Manipulations
 
 SIZE = [1280, 810]
 SCREEN = pygame.display.set_mode(SIZE)
+
+#Initialize these variables
+SIZE_LIST = []
+SIZE_LIST_OLD = []
+SIZE_LIST_OLD_OLD = []
+CENTERS = []
+CENTERS_OLD = []
+CENTERS_OLD_OLD = []
 
 def main():
 	'''This is the main function
@@ -47,12 +59,11 @@ def main():
 				if event.key == pygame.K_SPACE:
 					print("space")
 				if event.key == pygame.K_r:
-					print("run tracker")
+					print("run grid tracker")
 					status_flag = True
 				if event.key == pygame.K_RETURN:
-					print("run tracker")
+					print("run grid tracker")
 					status_flag = True
-	print("quitting manual control, switching to tracking")
 
 	SCREEN.fill(background_color)
 	pygame.display.update()
@@ -100,6 +111,9 @@ def main():
 def runner(pos_frame):
 	'''Runs the script with appropriate manipulation
 	'''
+	# We need to tell python to use the global declarations from the beginning
+	global SIZE_LIST_OLD, CENTERS_OLD, SIZE_LIST_OLD_OLD, CENTERS_OLD_OLD, SIZE_LIST, CENTERS
+
 	#CAP = cv2.VideoCapture('/home/wes/Documents/alt/Migrants.mp4')
 	#### IT IS ABOUT 132000 FRAMES
 	CAP = cv2.VideoCapture('/media/wes/ExtraDrive1/1524943548outA.mp4')
@@ -107,7 +121,6 @@ def runner(pos_frame):
 	ret, frame = CAP.read()
 
 	if ret:
-		#print("Frame ", pos_frame)
 		LCV = Manipulations()
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		gray = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -117,46 +130,54 @@ def runner(pos_frame):
 		result = LCV.subtract_background(result)
 		result = LCV.halo_noise(ellipse, result)
 		contours = LCV.cv_contour(result, 0, 255)
-		size_list, centers = LCV.cntsize(contours)
+		SIZE_LIST_OLD_OLD = SIZE_LIST_OLD
+		CENTERS_OLD_OLD = CENTERS_OLD
+		SIZE_LIST_OLD = SIZE_LIST
+		CENTERS_OLD = CENTERS
+		SIZE_LIST, CENTERS = LCV.cntsize(contours)
+		bird_velocity(contours)
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-		for i in range(0, len(size_list)):
-			cv2.circle(result, (int(centers[i][0]), int(centers[i][1])), int(size_list[i]/2), (255, 0, 255), 2)
-			print(pos_frame, ",", centers[i][0][0], ",", centers[i][1][0], ",", size_list[i])
+		if contours:
+			for i in range(0, len(SIZE_LIST)):
+				cv2.circle(result, (int(CENTERS[i][0]), int(CENTERS[i][1])), \
+					int(SIZE_LIST[i]/2), (255, 0, 255), 2)
+				print(pos_frame, ",", CENTERS[i][0][0], ",", CENTERS[i][1][0], ",", SIZE_LIST[i])
 		##cv2.imwrite('current.png', frame)
 		return frame, result
-		# This mess displays different things side by side
-		# The Mother window shows the manipulated image that is being used for cakculations
-		# The Original window shows the contours overlaid on the original frame
-		#cv2.namedWindow("Mother", cv2.WINDOW_NORMAL)
-		#cv2.resizeWindow("Mother", 700, 500)
-		#cv2.imshow("Mother", result)
-		#cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
-		#cv2.resizeWindow("Original", 700, 500)
-		#cv2.imshow("Original", frame)
 
-		#if contours:
-			#result = cv2.morphologyEx(result, cv2.MORPH_OPEN, MATTWO)
-			##result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-			#cv2.drawContours(result, contours, -1, (255, 255, 255), 2)
-		#cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
-		#cv2.resizeWindow("Test", 700, 500)
-		#cv2.imshow("Test", result)
-	#else:
-		## The next frame is not ready, so we try to read it again
-		#CAP.set(cv2.CAP_PROP_POS_FRAMES, pos_frame-1)
-		#print("frame is not ready")
-		## It is better to wait for a while for the next frame to be ready
-		#cv2.waitKey(1000)
-
-	#if cv2.waitKey(10) & 0xFF == ord('q'):
-			#return
+def bird_velocity(contours):
+	'''This function will detect birds based on area and velocity of the contour.
+	The fitness scoring is based on linear relationship between area and velocity.
+	'''
+	# We need to tell python to use the global declarations from the beginning
+	global SIZE_LIST_OLD, CENTERS_OLD, SIZE_LIST_OLD_OLD, CENTERS_OLD_OLD
+	# The Area Velocity constants are calculated from the calibration relationship
+	av_slope = 1.04605
+	av_icept = 12.4457
+	# Initialize empty lists for the scores
+	score_speed = []
+	score_area = []
+	for i in range(np.size(contours, 0)):
+		try:
+			# This equation is the difference between the predicted value of velocity and the observed
+			# y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
+			score_speed.append(float(((av_slope*SIZE_LIST_OLD_OLD[i])+av_icept) - \
+				(math.sqrt((CENTERS_OLD[i][0] - CENTERS_OLD_OLD[i][0])**2) + \
+					((CENTERS_OLD[i][1] - CENTERS_OLD_OLD[i][1])**2))))
+			score_area.append(SIZE_LIST_OLD[i] - SIZE_LIST_OLD_OLD[i])
+		except IndexError:
+			pass
+	print(score_area)
+	print(score_speed)
+	return
 
 def pause_cycle():
+	'''This pauses the program until unpaused
+	'''
 	time.sleep(0.1)
 	while True:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				status_flag = False
 				return
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
@@ -165,6 +186,8 @@ def pause_cycle():
 					return
 
 def frame_cycle():
+	'''This allows us the pick the frame we want to start on
+	'''
 	time.sleep(0.1)
 	font = pygame.font.SysFont('Arial', 25)
 	display_color = (255, 0, 0)
@@ -177,8 +200,7 @@ def frame_cycle():
 		pygame.display.update()
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				status_flag = False
-				return
+				return text
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_RETURN:
 					pygame.draw.rect(SCREEN, background_color, (25, 125, 400, 200), 0)
