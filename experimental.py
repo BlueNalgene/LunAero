@@ -7,7 +7,7 @@ Run on a normal computer, not the RasPi
 from __future__ import print_function
 
 # Define if you want to use the GUI.
-USEGUI = False
+USEGUI = True
 
 import math
 import numpy as np
@@ -73,51 +73,87 @@ def runner(pos_frame):
 		result = lcv.subtract_background(result)
 		result = lcv.halo_noise(ellipse, result)
 		contours = lcv.cv_contour(result, 0, 255)
-		SIZE_LIST_OLD_OLD = SIZE_LIST_OLD
-		CENTERS_OLD_OLD = CENTERS_OLD
 		SIZE_LIST_OLD = SIZE_LIST
 		CENTERS_OLD = CENTERS
 		SIZE_LIST, CENTERS = lcv.cntsize(contours)
-		bird_velocity(contours)
+		fit_score = bird_velocity(pos_frame, contours)
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 		if contours:
 			for i in range(0, len(SIZE_LIST)):
-				cv2.circle(result, (int(CENTERS[i][0]), int(CENTERS[i][1])), \
-					int(SIZE_LIST[i]/2), (255, 0, 255), 2)
-				print(pos_frame, ",", CENTERS[i][0][0], ",", CENTERS[i][1][0], ",", SIZE_LIST[i])
+				if fit_score:
+					if fit_score[i] > 0.5:
+						cv2.circle(result, (int(CENTERS[i][0]), int(CENTERS[i][1])), \
+							int(SIZE_LIST[i]/2), (255, 0, 255), 2)
+						print("ding", fit_score[i])
 		##cv2.imwrite('current.png', frame)
 	else:
 		frame = []
 		result = []
 	return frame, result
 
-def bird_velocity(contours):
+def bird_velocity(pos_frame, contours):
 	'''This function will detect birds based on area and velocity of the contour.
 	The fitness scoring is based on linear relationship between area and velocity.
 	'''
 	# We need to tell python to use the global declarations from the beginning
-	global SIZE_LIST_OLD, CENTERS_OLD, SIZE_LIST_OLD_OLD, CENTERS_OLD_OLD
+	global SIZE_LIST_OLD, CENTERS_OLD
 	# The Area Velocity constants are calculated from the calibration relationship
 	av_slope = 1.04605
 	av_icept = 12.4457
+	speed_factor = 0.5
+	area_factor = 0.5
+	top = 0
+	fit_score = []
 	# Initialize empty lists for the scores
-	score_speed = []
-	score_area = []
-	for i in range(np.size(contours, 0)):
-		try:
-			# This equation is the difference between the predicted value of velocity and the observed
-			# y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
-			score_speed.append(float(((av_slope*SIZE_LIST_OLD_OLD[i])+av_icept) - \
-				(math.sqrt((CENTERS_OLD[i][0] - CENTERS_OLD_OLD[i][0])**2) + \
-					((CENTERS_OLD[i][1] - CENTERS_OLD_OLD[i][1])**2))))
-			score_area.append(SIZE_LIST_OLD[i] - SIZE_LIST_OLD_OLD[i])
-		except IndexError:
-			pass
-	print(score_area)
-	print(score_speed)
-	return
+	score_speed_group = []
+	score_area_group = []
+	for i in range(np.size(SIZE_LIST, 0)):
+		for j in range(np.size(SIZE_LIST_OLD, 0)):
+			try:
+				# This equation is the difference between the predicted value of velocity and the observed
+				# y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
+				score_speed = float(((av_slope*SIZE_LIST_OLD[j])+av_icept) - \
+					(math.sqrt((CENTERS[i][0] - CENTERS_OLD[j][0])**2) + \
+						((CENTERS[i][1] - CENTERS_OLD[j][1])**2)))
+				score_area = (SIZE_LIST[i] - SIZE_LIST_OLD[j])
+				# We need to make an equation to test for goodness
+				# a*(1/abs(speed))+b*(1/abs(area))
+				fit_score.append((speed_factor*(1/(abs(score_speed)+1))) + \
+					(area_factor*(1/(abs(score_area)+1))))
+				score_speed_group.append(score_speed)
+				score_area_group.append(score_area)
+			except IndexError:
+				pass
+		#if fit_score:
+			#top = max(fit_score)
+			#fit_score = []
+		#else:
+			#top = 0
+			#fit_score = []
+		#if top > 0.5:
+			#print(pos_frame, ",", CENTERS[i][0][0], ",", CENTERS[i][1][0], ",", SIZE_LIST[i], ",", top, ",", str(score_speed_group), ",", str(score_area_group))
+	score_speed_group = []
+	score_area_group = []
+	#if pos_frame > 14999:
+		#quit()
+		#print(top)
+		#except ValueError:
+			#print("ValueError")
+			##print(fit_score)
+			##print(score_speed)
+			##print(score_area)
+			#pass
+	#if score_area_group:
+		#print(score_area_group)
+		#print(score_speed_group)
+	#return top
+	return fit_score
 
 if __name__ == '__main__':
-	main()
-	if USEGUI:
-		pygame.quit()
+	try:
+		main()
+	except KeyboardInterrupt:
+		print("keyboard task kill")
+	finally:
+		if USEGUI:
+			pygame.quit()

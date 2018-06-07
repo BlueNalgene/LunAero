@@ -50,9 +50,9 @@ class Manipulations():
 			mmm = np.float32([[1, 0, xdi], [0, 1, ydi]])
 			result = cv2.warpAffine(result, mmm, (col, row))
 		else:
-			frame = []
-			result = []
-		return frame, result
+			#frame = [] #None?
+			result = [] #None?
+		return ellipse, result
 
 
 	def subtract_background(self, result):
