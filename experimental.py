@@ -7,7 +7,7 @@ Run on a normal computer, not the RasPi
 from __future__ import print_function
 
 # Define if you want to use the GUI.
-USEGUI = True
+USEGUI = False
 
 import math
 import numpy as np
@@ -78,13 +78,13 @@ def runner(pos_frame):
 		SIZE_LIST, CENTERS = lcv.cntsize(contours)
 		fit_score = bird_velocity(pos_frame, contours)
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-		if contours:
-			for i in range(0, len(SIZE_LIST)):
-				if fit_score:
-					if fit_score[i] > 0.5:
-						cv2.circle(result, (int(CENTERS[i][0]), int(CENTERS[i][1])), \
-							int(SIZE_LIST[i]/2), (255, 0, 255), 2)
-						print("ding", fit_score[i])
+		#if contours:
+			#for i in range(0, len(SIZE_LIST)):
+				#if fit_score:
+					#if fit_score[i] > 0.5:
+						#cv2.circle(result, (int(CENTERS[i][0]), int(CENTERS[i][1])), \
+							#int(SIZE_LIST[i]/2), (255, 0, 255), 2)
+						#print("ding", fit_score[i])
 		##cv2.imwrite('current.png', frame)
 	else:
 		frame = []
@@ -118,24 +118,18 @@ def bird_velocity(pos_frame, contours):
 				score_area = (SIZE_LIST[i] - SIZE_LIST_OLD[j])
 				# We need to make an equation to test for goodness
 				# a*(1/abs(speed))+b*(1/abs(area))
-				fit_score.append((speed_factor*(1/(abs(score_speed)+1))) + \
-					(area_factor*(1/(abs(score_area)+1))))
-				score_speed_group.append(score_speed)
-				score_area_group.append(score_area)
+				top = ((speed_factor*(1/(abs(score_speed)+1))) + (area_factor*(1/(abs(score_area)+1))))
+				#fit_score.append((top)
+				#score_speed_group.append(score_speed)
+				#score_area_group.append(score_area)
+				if top > 0.25:
+					print(pos_frame, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i], top, score_speed, score_area)
 			except IndexError:
 				pass
-		#if fit_score:
-			#top = max(fit_score)
-			#fit_score = []
-		#else:
-			#top = 0
-			#fit_score = []
-		#if top > 0.5:
-			#print(pos_frame, ",", CENTERS[i][0][0], ",", CENTERS[i][1][0], ",", SIZE_LIST[i], ",", top, ",", str(score_speed_group), ",", str(score_area_group))
-	score_speed_group = []
-	score_area_group = []
-	#if pos_frame > 14999:
-		#quit()
+	#score_speed_group = []
+	#score_area_group = []
+	if pos_frame > 14999:
+		quit()
 		#print(top)
 		#except ValueError:
 			#print("ValueError")
