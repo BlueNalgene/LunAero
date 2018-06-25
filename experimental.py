@@ -1,13 +1,11 @@
 #!/bin/usr/python3
 
 '''This is the frontend for an experimental version of the analysis
-Run on a normal computer, not the RasPi
+Run on a normal computer, not the RasPi.  If you choose to run this
+on the RasPi, make sure that USEGUI in ./__init__.py is False.
 '''
 
 from __future__ import print_function
-
-# Declare if you want to use the GUI.
-USEGUI = False
 
 import csv
 import itertools
@@ -15,15 +13,16 @@ import math
 import os
 #from PIL import Image
 import numpy as np
-import cv2
 
-from LunCV import Manipulations
+from  __init__ import USEGUI
+
+import cv2
 
 if USEGUI:
 	import pygame
-
-if USEGUI:
-	from LunCV import Gui
+	from LunCV import Manipulations, Gui
+else:
+	from LunCV import Manipulations
 
 # Initialize these variables
 SIZE_LIST = []
@@ -108,12 +107,13 @@ def runner(pos_frame):
 		#CENTERS_OLD = CENTERS
 		SIZE_LIST, CENTERS = lcv.cntsize(contours)
 
-		use_file = ring_buffer(pos_frame)
+		#use_file = ring_buffer(pos_frame)
 
 		#fit_score, fit_score_2 = bird_velocity(pos_frame, contours)
 		#print(fit_score_2)
 
-		bird_correlation(use_file, pos_frame)
+		bird_correlation(pos_frame)
+		#bird_dependent_correlation(pos_frame)
 
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 	else:
@@ -127,7 +127,30 @@ def runner(pos_frame):
 
 	return frame, result
 
-def bird_correlation(use_file, pos_frame):
+def bird_dependent_correlation(pos_frame):
+	'''Text
+	'''
+
+	# We need to tell python to use the global declarations from the beginning
+	global CSVDETECT, CSVFILE
+
+	# Thresholds for "good" values of area and speed differences.
+	area_threshold = 30
+	speed_threshold = 120000
+
+	with open(CSVDETECT, 'ab') as fileout:
+		csvwriter = csv.writer(fileout, delimiter=',')
+		with open(CSVFILE) as filein:
+			csvreader = csv.reader(filein, delimiter=',')
+			for row in csvreader:
+				if int(row[0]) == pos_frame:
+					print(pos_frame)
+					if abs(float(row[10])) < speed_threshold:
+						if abs(float(row[11])) < area_threshold:
+							row[12] = int(row[12]) + 1
+							csvwriter.writerow(row)
+
+def bird_correlation(pos_frame):
 	'''This function checks over the list of contours collected in the CSVFILE,
 	and determines what relationship between the contours, if any, have to each
 	other.  The number of frames back to search can be modified with the FRAMEHIST
@@ -135,62 +158,95 @@ def bird_correlation(use_file, pos_frame):
 	'''
 
 	# We need to tell python to use the global declarations from the beginning
-	global TEMP0, TEMP1, CSVDETECT
+	global TEMP0, TEMP1, CSVFILE, CSVDETECT, CENTERS, SIZE_LIST
 
 	# The Area Velocity constants are calculated from the calibration relationship
 	av_slope = 1.04605
 	av_icept = 12.4457
 
-	# Pick which file we are going to run tests on.
-	if use_file:
-		thefile = TEMP1
-	else:
-		thefile = TEMP0
+	# Thresholds for "good" values of area and speed differences.
+	area_threshold = 30
+	speed_threshold = 120000
 
-	with open(thefile) as filein:
+	# This is the number of frames we want considered on a single file.  We can go back in time
+	# as much as we want (within reason for memory limitations), but this will take longer
+	# to calculate. A higher number here will yield better confidence in bird identification.
+	last = 3
+
+
+	# Bump up old file in list.
+	with open(TEMP0, 'wb') as fileout:
+		filewriter = csv.writer(fileout, delimiter=',')
+		with open(TEMP1) as filein:
+			csvreader = csv.reader(filein)
+			for row in csvreader:
+				try:
+					if int(row[0]) > pos_frame-last:
+						filewriter.writerow(row)
+				except IndexError:
+					pass
+			contour_counter = 0
+			for i in range(np.size(SIZE_LIST, 0)):
+				row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
+				filewriter.writerow(row)
+				contour_counter += 1
+
+	with open(TEMP0) as filein:
 		csvreader = csv.reader(filein, delimiter=',')
-		if csvreader:
-			# combines two of the CSV rows together, for each unique permutation (not combination)
-			combos = list(itertools.permutations(csvreader, 2))
-			# Each combo is a pair of CSV rows.
-			# The format is therefore:
-			# frame, contour, X, Y, area
-			# All seem to require int() to work.
-			for pair in combos:
-				# if the first part of the pair is from a newer frame
-				if int(pair[0][0]) > int(pair[1][0]):
-					# This equation is the difference between the predicted value of velocity and the observed.
-					# y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
-					# This is additionally adjusted for the number of frames away this is.
-					score_speed = float((((int(pair[1][0])-int(pair[0][0]))*av_slope*float(pair[1][4])) \
-						+ av_icept) - (math.sqrt((float(pair[0][2]) - float(pair[1][2]))**2) + \
-							((float(pair[0][3]) - float(pair[1][3]))**2)))
+		# combines two of the CSV rows together, for each unique permutation (not combination)
+		combos = list(itertools.permutations(csvreader, 2))
+		# Each combo is a pair of CSV rows.
+		# The format is therefore:
+		# frame, contour, X, Y, area
+		# All seem to require int() to work.
+		for pair in combos:
+			# if the first part of the pair is from a newer frame
+			if int(pair[0][0]) > int(pair[1][0]):
+				# This equation is the difference between the predicted value of velocity and the observed.
+				# y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
+				# This is additionally adjusted for the number of frames away this is.
+				score_speed = float((((int(pair[1][0])-int(pair[0][0]))*av_slope*float(pair[1][4])) \
+					+ av_icept) - (math.sqrt((float(pair[0][2]) - float(pair[1][2]))**2) + \
+						((float(pair[0][3]) - float(pair[1][3]))**2)))
 
-					# Area is simpler.  It is just the difference.
-					score_area = (float(pair[0][4]) - float(pair[1][4]))
+				# Area is simpler.  It is just the difference.
+				score_area = (float(pair[0][4]) - float(pair[1][4]))
 
-					with open(CSVDETECT, 'ab') as fileout:
-						csvwriter = csv.writer(fileout, delimiter=',')
-						outrow = (pair[0], pair[1], score_speed, score_area)
-						csvwriter.writerow(outrow)
-					#print(abs(score_speed), abs(score_area))
+				outrow = []
+				outrow.append(pair[0][0])
+				outrow.append(pair[0][1])
+				outrow.append(pair[0][2])
+				outrow.append(pair[0][3])
+				outrow.append(pair[0][4])
+				outrow.append(pair[1][0])
+				outrow.append(pair[1][1])
+				outrow.append(pair[1][2])
+				outrow.append(pair[1][3])
+				outrow.append(pair[1][4])
+				outrow.append(score_speed)
+				outrow.append(score_area)
+				if abs(score_speed) < speed_threshold:
+					if abs(score_area) < area_threshold:
+						outrow.append(1)
+						with open(CSVDETECT, 'ab') as fileout:
+							csvwriter = csv.writer(fileout, delimiter=',')
+							csvwriter.writerow(outrow)
+					else:
+						outrow.append(0)
+				else:
+					outrow.append(0)
 
-		#for rows in csvreader:
-			#print("hats")
+				with open(CSVFILE, 'ab') as fileout:
+					csvwriter = csv.writer(fileout, delimiter=',')
+					csvwriter.writerow(outrow)
 
-				#if len(x & y) >= 3:
-					#print(x, y)
-			#excluded = set(sum(((x, y) for x, y in itertools.combinations(rows, 2) if len(x & y) >= filterValue), ()))
-			#print(excluded)
-		#for row in csvreader:
-			#current_t = row[0]
-			#current_x = row[2]
-			#current_y = row[3]
-			#current_a = row[4]
-			#for singlerow in csvreader:
-				#if singlerow[0] != row[0]:
-					#print(singlerow, row, "hats")
-					##tdiff =
+	with open(TEMP0) as filein:
+		csvreader = csv.reader(filein, delimiter=',')
+		with open(TEMP1, 'wb') as fileout:
+			csvwriter = csv.writer(fileout, delimiter=',')
+			for row in csvreader:
+				csvwriter.writerow(row)
+
 		print("------------------------------", pos_frame, "------------------------------")
 	return
 
@@ -311,23 +367,6 @@ def ring_buffer(pos_frame):
 					contour_counter += 1
 		use_file = 1
 	return use_file
-
-
-#def bird_velocity_2(pos_frame, contours, fit_score):
-	#'''This function provides a set of tests for the frames.
-	#This test looks at the past frames by way of the fit_score
-	#established in bird_velocity, and compares that against the
-	#oldest frame on record (pos_frame - 2).
-	#'''
-
-	## We need to tell python to use the global declarations from the beginning
-	#global SIZE_LIST_OLD, CENTERS_OLD
-
-	## The Area Velocity constants are calculated from the calibration relationship
-	#av_slope = 1.04605
-	#av_icept = 12.4457
-
-
 
 if __name__ == '__main__':
 	try:
