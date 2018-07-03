@@ -16,6 +16,7 @@ import numpy as np
 
 from  __init__ import USEGUI
 
+import pandas
 import cv2
 
 if USEGUI:
@@ -113,7 +114,7 @@ def runner(pos_frame):
 		#print(fit_score_2)
 
 		bird_correlation(pos_frame)
-		#bird_dependent_correlation(pos_frame)
+		bird_dependent_correlation(pos_frame)
 
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 	else:
@@ -128,27 +129,20 @@ def runner(pos_frame):
 	return frame, result
 
 def bird_dependent_correlation(pos_frame):
-	'''Text
+	'''Numpy is used to check frames
 	'''
 
 	# We need to tell python to use the global declarations from the beginning
-	global CSVDETECT, CSVFILE
+	global CSVDETECT, CSVFILE, TEMP0, TEMP1, CENTERS, SIZE_LIST
 
 	# Thresholds for "good" values of area and speed differences.
 	area_threshold = 30
 	speed_threshold = 120000
 
-	with open(CSVDETECT, 'ab') as fileout:
-		csvwriter = csv.writer(fileout, delimiter=',')
-		with open(CSVFILE) as filein:
-			csvreader = csv.reader(filein, delimiter=',')
-			for row in csvreader:
-				if int(row[0]) == pos_frame:
-					print(pos_frame)
-					if abs(float(row[10])) < speed_threshold:
-						if abs(float(row[11])) < area_threshold:
-							row[12] = int(row[12]) + 1
-							csvwriter.writerow(row)
+	# The Area Velocity constants are calculated from the calibration relationship
+	av_slope = 1.04605
+	av_icept = 12.4457
+
 
 def bird_correlation(pos_frame):
 	'''This function checks over the list of contours collected in the CSVFILE,
@@ -173,6 +167,22 @@ def bird_correlation(pos_frame):
 	# to calculate. A higher number here will yield better confidence in bird identification.
 	last = 3
 
+	for i in range(last, 0, -1):
+		if i != 1:
+			# Save as name(i) from...the file that used to be name(i-1)
+			np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy'))
+		else:
+			np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_current.npy'))
+
+	frame_mat = []
+	row = []
+	contour_counter = 0
+	for i in range(np.size(SIZE_LIST, 0)):
+		row = [pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i]]
+		frame_mat.append(row)
+		contour_counter += 1
+
+##############################################################
 
 	# Bump up old file in list.
 	with open(TEMP0, 'wb') as fileout:
