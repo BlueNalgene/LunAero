@@ -126,11 +126,11 @@ def checkAndMove():
 			rtn = 0
 	return rtn
 
-def motStop(dir):
+def motStop(direct):
 	global dcA
 	global dcB
-	print("stopping", dir)
-	if dir == "B":
+	print("stopping", direct)
+	if direct == "B":
 		while (dcA > 0 or dcB > 0):
 			if dcA == 100: dcA = 10     #quickly stop motor going full speed
 			if dcB == 100: dcB = 10
@@ -143,14 +143,14 @@ def motStop(dir):
 		GPIO.output(APIN2, GPIO.LOW)
 		GPIO.output(BPIN1, GPIO.LOW)
 		GPIO.output(BPIN2, GPIO.LOW)
-	if dir == "Y":
+	if direct == "Y":
 		while dcA > 0:
 			dcA = dcA - 1
 			pwmA.ChangeDutyCycle(dcA)
 			time.sleep(.01)
 		GPIO.output(APIN1, GPIO.LOW)
 		GPIO.output(APIN2, GPIO.LOW)
-	if dir == "X":
+	if direct == "X":
 		while dcB > 0:
 			dcB = dcB - 1
 			pwmB.ChangeDutyCycle(dcB)
@@ -187,36 +187,36 @@ def motRight():
 	#GPIO.output(BPINP, GPIO.HIGH)
 	return
 
-def speedUp(dir):
+def speedUp(direct):
 ##    global pwmA
 ##    global pwmB
 	global dcA
 	global dcB
-	if dir == "Y":
+	if direct == "Y":
 		if dcA < 50:
 			dcA = dcA + 2
 			pwmA.ChangeDutyCycle(dcA)
-		print("speedup ", dir, dcA)
-	if dir == "X":
+		print("speedup ", direct, dcA)
+	if direct == "X":
 		if dcB < 50:
 			dcB = dcB + 2
 			pwmB.ChangeDutyCycle(dcB)
-		print("speedup", dir, dcB)
+		print("speedup", direct, dcB)
 	return
 
-##def slowDown(dir):
+##def slowDown(direct):
 ##    global dcA
 ##    global dcB
-##    if dir == "Y":
+##    if direct == "Y":
 ##        if dcA > 0:
 ##            dcA = dcA - 2
 ##            pwmA.ChangeDutyCycle(dcA)
-##        print("slowdown ", dir, dcA)
-##    if dir == "X":
+##        print("slowdown ", direct, dcA)
+##    if direct == "X":
 ##        if dcB > 0:
 ##            dcB = dcB - 2
 ##            pwmB.ChangeDutyCycle(dcB)
-##        print("slowdown ", dir, dcB)
+##        print("slowdown ", direct, dcB)
 ##    return
 
 
