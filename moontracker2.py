@@ -1,3 +1,4 @@
+#!/bin/usr/python3 -B
 
 import sys
 import subprocess
