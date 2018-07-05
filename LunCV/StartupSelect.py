@@ -1,3 +1,5 @@
+#!/bin/usr/python3 -B
+
 import Platform
 import StreamClient
 

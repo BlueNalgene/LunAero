@@ -1,4 +1,4 @@
-#!/bin/usr/python3
+#!/bin/usr/python3 -B
 
 '''This is the frontend for an experimental version of the analysis
 Run on a normal computer, not the RasPi.  If you choose to run this

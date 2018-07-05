@@ -1,4 +1,5 @@
-#!/bin/usr/python3
+#!/bin/usr/python3 -B
+
 
 '''
 # This is a test program for the LunAero project which is able to:

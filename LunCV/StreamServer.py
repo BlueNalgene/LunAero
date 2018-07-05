@@ -1,4 +1,5 @@
-### Server
+#!/bin/usr/python3 -B
+
 import socket
 from threading import *
 import pygame

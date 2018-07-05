@@ -1,3 +1,5 @@
+#!/bin/usr/python3 -B
+
 from PIL import Image as PImage
 
 from kivy.config import Config
