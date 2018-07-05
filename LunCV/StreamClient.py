@@ -32,12 +32,46 @@ main:
 		padding: root.width * 0.05, root.height * .05
 		spacing: '5dp'
 		BoxLayout:
-			size_hint: [1,.85]
+			size_hint: [1,0.50]
 			Image:
 				id: image_source
 				source: 'temp.jpg'
 		BoxLayout:
-			size_hint: [1,.15]
+			size_hint: [1,0.45]
+			AnchorLayout:
+				Button:
+					anchor_x: 'left'
+					anchor_y: 'center'
+					id: leftbutton
+					text: '<'
+					bold: True
+					size_hint: .15, .15
+			AnchorLayout:
+				Button:
+					anchor_x: 'right'
+					anchor_y: 'center'
+					id: rightbutton
+					text: '>'
+					bold: True
+					size_hint: .15, .15
+			AnchorLayout:
+				Button:
+					anchor_x: 'center'
+					anchor_y: 'top'
+					id: upbutton
+					text: '^'
+					bold: True
+					size_hint: .15, .15
+			AnchorLayout:
+				Button:
+					anchor_x: 'center'
+					anchor_y: 'bottom'
+					id: downbutton
+					text: 'v'
+					bold: True
+					size_hint: .15, .15
+		BoxLayout:
+			size_hint: [1,0.05]
 			GridLayout:
 				cols: 4
 				spacing: '10dp'
