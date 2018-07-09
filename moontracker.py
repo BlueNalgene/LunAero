@@ -7,6 +7,7 @@ Motor B is right and left
 
 from __future__ import print_function
 
+import argparse
 import io
 import os
 import os.path
@@ -26,12 +27,28 @@ from LunCV import MotorControl
 #import subprocess
 #from scipy import ndimage
 
+PARSER = argparse.ArgumentParser(\
+	description='This is the video recording file for use with LunAero')
+PARSER.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',\
+	help='display verbose output for debugging')
+PARSER.add_argument('-K', '--Kivy', dest='kivy', default=False, action='store_true',\
+	help='use the Kivy interface (requires external LunAero cell phone app)')
+ARGS = PARSER.parse_args()
+
+if ARGS.verbose:
+	print("Starting LunAero moon tracker and video recording platform")
+	if ARGS.kivy:
+		print("Starting LunAero using Kivy controls")
+		print("If you activated this accidentally, use ctrl+c to close")
+
+# Definitions used Globally
 MC = MotorControl()
 RPG = RasPiGPIO()
+CAMERA = picamera.PiCamera()
+STREAM = io.BytesIO()
 
-# Defines the pins being used for the GPIO pins.
-print("Defining GPIO pins")
-
+if ARGS.verbose:
+	print("Defining GPIO pins")
 # Setup GPIO and start them with 'off' values
 PINS = (RPG.APIN1, RPG.APIN2, RPG.APINP, RPG.BPIN1, RPG.BPIN2, RPG.BPINP)
 for i in PINS:
@@ -40,10 +57,6 @@ for i in PINS:
 		GPIO.output(i, GPIO.LOW)
 	else:
 		GPIO.output(i, GPIO.HIGH)
-
-# Global efinitions which are used everywhere, and must stay consistent
-CAMERA = picamera.PiCamera()
-STREAM = io.BytesIO()
 
 def get_img():
 	'''Capture an image and see how close it is to center
@@ -75,7 +88,8 @@ def get_img():
 	# For y: if positive, shift down; if negative, shift up
 	diffx = CENX - cmx
 	diffy = CENY - cmy
-	print(ratio, cmx, cmy, diffx, diffy)
+	if ARGS.verbose:
+		print(ratio, cmx, cmy, diffx, diffy)
 	return diffx, diffy, ratio
 
 def checkandmove():
@@ -116,12 +130,14 @@ def start_rec():
 	'''
 
 	start = time.time()
-	print(start)
-	print("Preparing outfile")
+	if ARGS.verbose:
+		print(start)
+		print("Preparing outfile")
 	outfile = int(time.time())
 	outfile = str(outfile) + 'outA.h264'
 	outfile = os.path.join('/media/pi/MOON1', outfile)
-	print(str(outfile))
+	if ARGS.verbose:
+		print(str(outfile))
 	CAMERA.start_recording(outfile)
 	time.sleep(1)
 	return start
@@ -179,23 +195,28 @@ def main():
 				MC.dcA = 100
 				MC.dcB = 100
 				if event.key == pygame.K_LEFT:
-					print("left")
+					if ARGS.verbose:
+						print("left")
 					MC.pwmB.ChangeDutyCycle(MC.dcA)
 					MC.mot_left()
 				if event.key == pygame.K_RIGHT:
-					print("right")
+					if ARGS.verbose:
+						print("right")
 					MC.pwmB.ChangeDutyCycle(MC.dcA)
 					MC.mot_right()
 				if event.key == pygame.K_UP:
-					print("up")
+					if ARGS.verbose:
+						print("up")
 					MC.pwmA.ChangeDutyCycle(MC.dcB)
 					MC.mot_up()
 				if event.key == pygame.K_DOWN:
-					print("down")
+					if ARGS.verbose:
+						print("down")
 					MC.pwmA.ChangeDutyCycle(MC.dcB)
 					MC.mot_down()
 				if event.key == pygame.K_SPACE:
-					print("stop")
+					if ARGS.verbose:
+						print("stop")
 					MC.mot_stop("B")
 				if event.key == pygame.K_i:
 					iso = CAMERA.iso()
@@ -220,14 +241,17 @@ def main():
 					CAMERA.stop_preview()
 					go_prev(prev)
 				if event.key == pygame.K_r:
-					print("run tracker")
+					if ARGS.verbose:
+						print("run tracker")
 					MC.mot_stop("B")
 					x = 100
 				if event.key == pygame.K_RETURN:
-					print("run tracker")
+					if ARGS.verbose:
+						print("run tracker")
 					MC.mot_stop("B")
 					x = 100
-	print("quitting manual control, switching to tracking")
+	if ARGS.verbose:
+		print("quitting manual control, switching to tracking")
 
 	screen.fill(BLACK)
 	pygame.display.update()
@@ -254,14 +278,17 @@ def main():
 				if event.key == pygame.K_z:
 					if IMGTHRESH > 10:
 						IMGTHRESH = (IMGTHRESH - 10)
-					print("decrease thresholding to ", IMGTHRESH)
+					if ARGS.verbose:
+						print("decrease thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_x:
 					if IMGTHRESH < 245:
 						IMGTHRESH = (IMGTHRESH + 10)
-					print("increase thresholding to ", IMGTHRESH)
+					if ARGS.verbose:
+						print("increase thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_q:
 					cnt = 100
-					print("quitting tracker")
+					if ARGS.verbose:
+						print("quitting tracker")
 				if event.key == pygame.K_i:
 					iso = CAMERA.iso()
 					if iso < 800:
@@ -290,18 +317,18 @@ def main():
 		time_count = now - start
 		CAMERA.annotate_text = ' ' * 100 + str(int(round(time_count))) + 'sec'
 		if time_count > 2*60*60:
-			print("restart video")
+			if ARGS.verbose:
+				print("restart video")
 			CAMERA.stop_recording()
 			start = start_rec()
 		diffx, diffy, ratio = get_img()
 		if (abs(diffy) > VERTTHRESHSTART or abs(diffx) > HORTHRESHSTART):
 			check = checkandmove()
 		if check == 1:       #Moon successfully centered
-			print("centered")
+			if ARGS.verbose:
+				print("centered")
 			lost_count = 0
 			img = Image.open(STREAM)
-			#img = img.convert('L')
-			#img = img.point(lambda x: 0 if x < 20 else 255, '1')
 			img.save("tmp.png")
 			os.system("xdg-open tmp.png") #display image - for debugging only
 			time.sleep(3)
@@ -310,10 +337,12 @@ def main():
 			time.sleep(.02)  #sleep for 20ms
 		if (check == 2 or ratio < LOSTRATIO):        #moon lost, theshold too low
 			lost_count = lost_count + 1
-			print("moon lost")
+			if ARGS.verbose:
+				print("moon lost")
 			time.sleep(1)
 			if lost_count > 30:
-				print("moon totally lost")
+				if ARGS.verbose:
+					print("moon totally lost")
 				#os.system("killall gpicview")
 				cnt = 100   #set count to 100 to exit the while loop
 
@@ -321,7 +350,8 @@ if __name__ == '__main__':
 	try:
 		main()
 	except KeyboardInterrupt:
-		print("keyboard task kill")
+		if ARGS.verbose:
+			print("keyboard task kill")
 	finally:
 		time.sleep(2)
 		MC.MC.mot_stop("B")
