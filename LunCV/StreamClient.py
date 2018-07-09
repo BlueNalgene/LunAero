@@ -32,48 +32,66 @@ main:
 		padding: root.width * 0.05, root.height * .05
 		spacing: '5dp'
 		BoxLayout:
-			size_hint: [1,0.50]
+			size_hint: [1,0.75]
 			Image:
 				id: image_source
 				source: 'temp.jpg'
+
 		BoxLayout:
-			size_hint: [1,0.45]
-			AnchorLayout:
-				Button:
-					anchor_x: 'left'
-					anchor_y: 'center'
-					id: leftbutton
-					text: '<'
-					bold: True
-					size_hint: .15, .15
-			AnchorLayout:
-				Button:
-					anchor_x: 'right'
-					anchor_y: 'center'
-					id: rightbutton
-					text: '>'
-					bold: True
-					size_hint: .15, .15
-			AnchorLayout:
-				Button:
-					anchor_x: 'center'
-					anchor_y: 'top'
-					id: upbutton
-					text: '^'
-					bold: True
-					size_hint: .15, .15
-			AnchorLayout:
-				Button:
-					anchor_x: 'center'
-					anchor_y: 'bottom'
-					id: downbutton
-					text: 'v'
-					bold: True
-					size_hint: .15, .15
-		BoxLayout:
-			size_hint: [1,0.05]
+			size_hint: [1,0.2]
 			GridLayout:
-				cols: 4
+				rows: 3
+				size_hint: [0.55, 1]
+				BoxLayout:
+					size_hint: [1, 0.33]
+					Button:
+						text: ''
+						background_color: 0, 0, 0, 0
+					Button:
+						id: upbutton
+						text: '^'
+						bold: True
+					Button:
+						text: ''
+						background_color: 0, 0, 0, 0
+				GridLayout:
+					cols: 3
+					size_hint: [1, 0.33]
+					Button:
+						id: leftbutton
+						text: '<'
+						bold: True
+					Button:
+						text: ''
+						background_color: 0, 0, 0, 0
+					Button:
+						id: rightbutton
+						text: '>'
+						bold: True
+				GridLayout:
+					cols: 3
+					size_hint: [1, 0.33]
+					Button:
+						text: ''
+						background_color: 0, 0, 0, 0
+					Button:
+						id: downbutton
+						text: 'v'
+						bold: True
+					Button:
+						text: ''
+						background_color: 0, 0, 0, 0
+
+			BoxLayout:
+				size_hint: [0.45, 1]
+				Button:
+					text: 'MOTOR STOP'
+				Button:
+					text: 'Record'
+		BoxLayout:
+			size_hint: [1, 0.05]
+			GridLayout:
+				cols: 3
 				spacing: '10dp'
 				Button:
 					id: status
@@ -85,13 +103,9 @@ main:
 					bold: True
 					on_press: root.close()
 				Button:
-					text: 'Setting'
+					text: 'Adv. Networking'
 					bold: True
 					on_press: root.setting()
-				Button:
-					text: 'Login'
-					bold: True
-					on_press: root.ssh_creds()
 
 '''
 class main(BoxLayout):
