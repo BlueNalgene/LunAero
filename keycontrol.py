@@ -1,3 +1,6 @@
+#!/usr/bin/python3 -B
+# -*- coding: utf-8 -*-
+
 import pygame, sys
 import RPi.GPIO as GPIO
 import time

@@ -1,13 +1,12 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
+'''This is a test program for the LunAero project which is able to:
+ - Locate a simplified moon
+ - Put a contour around the moon
+ - Track the motion of the moon from the center of the screen
 
-'''
-# This is a test program for the LunAero project which is able to:
-#  - Locate a simplified moon
-#  - Put a contour around the moon
-#  - Track the motion of the moon from the center of the screen
-
-#This particular file centers the moon and subtracks the background.
+This particular file centers the moon and subtracks the background.
 '''
 
 #import sys

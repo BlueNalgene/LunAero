@@ -1,4 +1,5 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
 '''MotorControl Module
 '''
@@ -17,7 +18,7 @@ class MotorControl():
 
 	freq = 1000
 	pwma = GPIO.PWM(RPG.APINP, freq)
-	pwmb = GPIO.PWM(RPG.RPG.BPINP, freq)
+	pwmb = GPIO.PWM(RPG.BPINP, freq)
 	dca = 0
 	dcb = 0
 

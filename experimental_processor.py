@@ -1,4 +1,5 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
 '''This is the frontend for an experimental version of the analysis
 Run on a normal computer, not the RasPi.  If you choose to run this

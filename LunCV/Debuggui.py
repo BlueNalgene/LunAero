@@ -1,4 +1,5 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
 '''This module provides the gui information for running the experimental.py file
 It is enabled there and called up to provide a gui for debugging and hunting bird contours.

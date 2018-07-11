@@ -1,4 +1,5 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
 '''Motor control and recording for Lunaero
 Motor A is up and down

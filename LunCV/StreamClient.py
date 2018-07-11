@@ -1,4 +1,5 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
 from PIL import Image as PImage
 

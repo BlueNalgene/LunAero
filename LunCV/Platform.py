@@ -1,4 +1,5 @@
 #!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Adafruit Industries
 # Author: Tony DiCola
