@@ -231,14 +231,14 @@ def main():
 	else:
 		prev, exp = pygame_tracking(prev, exp)
 
-def kivy_tracking(prev, exp):
-	'''Kivy version of the tracking gui
-	Takes screeshots from video stream
-	'''
+#def kivy_tracking(prev, exp):
+	#'''Kivy version of the tracking gui
+	#Takes screeshots from video stream
+	#'''
 
-	from __init__ import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+	#from __init__ import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
 
-	start = start_rec()
+	#start = start_rec()
 
 
 

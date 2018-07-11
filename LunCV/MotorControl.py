@@ -7,14 +7,17 @@ import time
 
 import RPi.GPIO as GPIO
 
-from RasPiGPIO import *
+import RasPiGPIO as RPG
 
 class MotorControl():
 	'''This class defines the different motions available to the LunAero hardware
 	'''
+
+	RPG = RPG.RasPiGPIO()
+
 	freq = 1000
-	pwma = GPIO.PWM(APINP, freq)
-	pwmb = GPIO.PWM(BPINP, freq)
+	pwma = GPIO.PWM(RPG.APINP, freq)
+	pwmb = GPIO.PWM(RPG.RPG.BPINP, freq)
 	dca = 0
 	dcb = 0
 
@@ -42,60 +45,60 @@ class MotorControl():
 				self.pwma.ChangeDutyCycle(self.dca)
 				self.pwmb.ChangeDutyCycle(self.dcb)
 				time.sleep(.005)
-			GPIO.output(APIN1, GPIO.LOW)
-			GPIO.output(APIN2, GPIO.LOW)
-			GPIO.output(BPIN1, GPIO.LOW)
-			GPIO.output(BPIN2, GPIO.LOW)
+			GPIO.output(RPG.APIN1, GPIO.LOW)
+			GPIO.output(RPG.APIN2, GPIO.LOW)
+			GPIO.output(RPG.BPIN1, GPIO.LOW)
+			GPIO.output(RPG.BPIN2, GPIO.LOW)
 		if direct == "Y":
 			while self.dca > 0:
 				self.dca = self.dca - 1
 				self.pwma.ChangeDutyCycle(self.dca)
 				time.sleep(.01)
-			GPIO.output(APIN1, GPIO.LOW)
-			GPIO.output(APIN2, GPIO.LOW)
+			GPIO.output(RPG.APIN1, GPIO.LOW)
+			GPIO.output(RPG.APIN2, GPIO.LOW)
 		if direct == "X":
 			while self.dcb > 0:
 				self.dcb = self.dcb - 1
 				self.pwmb.ChangeDutyCycle(self.dcb)
 				time.sleep(.01)
-			GPIO.output(BPIN1, GPIO.LOW)
-			GPIO.output(BPIN2, GPIO.LOW)
+			GPIO.output(RPG.BPIN1, GPIO.LOW)
+			GPIO.output(RPG.BPIN2, GPIO.LOW)
 		return
 
 	def mot_up(self):
 		'''Move up
 		'''
 		print("moving up")
-		GPIO.output(APIN1, GPIO.HIGH)
-		GPIO.output(APIN2, GPIO.LOW)
-		#GPIO.output(APINP, GPIO.HIGH)
+		GPIO.output(RPG.APIN1, GPIO.HIGH)
+		GPIO.output(RPG.APIN2, GPIO.LOW)
+		#GPIO.output(RPG.APINP, GPIO.HIGH)
 		return
 
 	def mot_down(self):
 		'''Move down
 		'''
 		print("moving down")
-		GPIO.output(APIN1, GPIO.LOW)
-		GPIO.output(APIN2, GPIO.HIGH)
-		#GPIO.output(APINP, GPIO.HIGH)
+		GPIO.output(RPG.APIN1, GPIO.LOW)
+		GPIO.output(RPG.APIN2, GPIO.HIGH)
+		#GPIO.output(RPG.APINP, GPIO.HIGH)
 		return
 
 	def mot_left(self):
 		'''Move left
 		'''
 		print("moving left")
-		GPIO.output(BPIN1, GPIO.HIGH)
-		GPIO.output(BPIN2, GPIO.LOW)
-		#GPIO.output(BPINP, GPIO.HIGH)
+		GPIO.output(RPG.BPIN1, GPIO.HIGH)
+		GPIO.output(RPG.BPIN2, GPIO.LOW)
+		#GPIO.output(RPG.BPINP, GPIO.HIGH)
 		return
 
 	def mot_right(self):
 		'''Move right
 		'''
 		print("moving right")
-		GPIO.output(BPIN1, GPIO.LOW)
-		GPIO.output(BPIN2, GPIO.HIGH)
-		#GPIO.output(BPINP, GPIO.HIGH)
+		GPIO.output(RPG.BPIN1, GPIO.LOW)
+		GPIO.output(RPG.BPIN2, GPIO.HIGH)
+		#GPIO.output(RPG.BPINP, GPIO.HIGH)
 		return
 
 	def speed_up(self, direct):
