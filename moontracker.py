@@ -17,7 +17,6 @@ import pygame
 from PIL import Image
 
 import picamera
-import RPi.GPIO as GPIO
 
 from LunCV import RasPiGPIO
 from LunCV import MotorControl
@@ -57,15 +56,6 @@ else:
 
 if ARGS.verbose:
 	print("Defining GPIO pins")
-# Setup GPIO and start them with 'off' values
-GPIO.setmode(GPIO.BCM)
-PINS = (RPG.APIN1, RPG.APIN2, RPG.APINP, RPG.BPIN1, RPG.BPIN2, RPG.BPINP)
-for i in PINS:
-	GPIO.setup(i, GPIO.OUT)
-	if i != RPG.APINP or RPG.BPINP:
-		GPIO.output(i, GPIO.LOW)
-	else:
-		GPIO.output(i, GPIO.HIGH)
 
 def get_img():
 	'''Capture an image and see how close it is to center
