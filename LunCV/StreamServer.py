@@ -25,9 +25,9 @@ def server():
 	servsock.bind((ip_address, port))
 	servsock.listen(5)
 	print("\nServer started at " + str(ip_address) + " at port " + str(port))
-	img = 'tennis.jpg'
+	pygame.camera.init()
 	while True:
-		img = Image.open('tennis.jpg')
+		img = Image.open('tmp.png')
 		img = img.resize(img)
 		imgbyte = img.tobytes() #len for 640x480 bytes is 921600
 		client_sock, address = servsock.accept()

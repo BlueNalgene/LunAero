@@ -33,6 +33,8 @@ PARSER.add_argument('-v', '--verbose', dest='verbose', default=False, action='st
 	help='display verbose output for debugging')
 PARSER.add_argument('-K', '--Kivy', dest='kivy', default=False, action='store_true',\
 	help='use the Kivy interface (requires external LunAero cell phone app)')
+PARSER.add_argument('-c', '--contrast', dest='contrast', default=False, action='store_true',\
+	help='brings up a high contrast image while auto-tracking')
 ARGS = PARSER.parse_args()
 
 if ARGS.verbose:
@@ -47,9 +49,16 @@ RPG = RasPiGPIO()
 CAMERA = picamera.PiCamera()
 STREAM = io.BytesIO()
 
+# Only turn on camera LED if we are in verbose mode.
+if ARGS.verbose:
+	pass
+else:
+	CAMERA.led = False
+
 if ARGS.verbose:
 	print("Defining GPIO pins")
 # Setup GPIO and start them with 'off' values
+GPIO.setmode(GPIO.BCM)
 PINS = (RPG.APIN1, RPG.APIN2, RPG.APINP, RPG.BPIN1, RPG.BPIN2, RPG.BPINP)
 for i in PINS:
 	GPIO.setup(i, GPIO.OUT)
@@ -99,7 +108,8 @@ def checkandmove():
 
 	diffx, diffy, ratio = get_img()
 	if ratio < LOSTRATIO:
-		rtn = 2                #returned value of 2 indicates moon is lost.
+		# Default to 'moon is lost'
+		rtn = 2
 	else:
 		if abs(diffx) > HORTHRESHSTOP:
 			if diffx > 0:
@@ -160,7 +170,7 @@ def go_prev(prev):
 def main():
 	'''Main
 	'''
-	from __init__ import VERTTHRESHSTART, HORTHRESHSTART, IMGTHRESH, LOSTRATIO, RED, BLACK
+	from __init__ import RED, BLACK
 
 	CAMERA.video_stabilization = True
 	CAMERA.resolution = (1920, 1080)
@@ -168,106 +178,75 @@ def main():
 	prev = 3
 	go_prev(prev)
 	time.sleep(2)
+
 	exp = CAMERA.exposure_speed
-	print("exposure speed ", exp)
-
-	pygame.init()
-	pygame.display.set_caption('Manual control')
-	size = [400, 240]
-	screen = pygame.display.set_mode(size)
-	font = pygame.font.SysFont('Arial', 25)
-	screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
-	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
-	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
-	screen.blit(font.render('moon tracker', True, RED), (25, 165))
-	pygame.display.update()
-	#clock = pygame.time.Clock()
-	x = 0
-
-	while x < 10:
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				MC.mot_stop("B")
-				x = 100
-			# check if key is pressed
-			# if you use event.key here it will give you error at runtime
-			if event.type == pygame.KEYDOWN:
-				MC.dcA = 100
-				MC.dcB = 100
-				if event.key == pygame.K_LEFT:
-					if ARGS.verbose:
-						print("left")
-					MC.pwmB.ChangeDutyCycle(MC.dcA)
-					MC.mot_left()
-				if event.key == pygame.K_RIGHT:
-					if ARGS.verbose:
-						print("right")
-					MC.pwmB.ChangeDutyCycle(MC.dcA)
-					MC.mot_right()
-				if event.key == pygame.K_UP:
-					if ARGS.verbose:
-						print("up")
-					MC.pwmA.ChangeDutyCycle(MC.dcB)
-					MC.mot_up()
-				if event.key == pygame.K_DOWN:
-					if ARGS.verbose:
-						print("down")
-					MC.pwmA.ChangeDutyCycle(MC.dcB)
-					MC.mot_down()
-				if event.key == pygame.K_SPACE:
-					if ARGS.verbose:
-						print("stop")
-					MC.mot_stop("B")
-				if event.key == pygame.K_i:
-					iso = CAMERA.iso()
-					if iso < 800:
-						iso = iso * 2
-					else:
-						iso = 100
-					CAMERA.iso = iso
-					print("iso set to ", iso)
-				if event.key == pygame.K_d:
-					exp = exp - 1000
-					CAMERA.shutter_speed = exp
-					print("exposure time set to ", exp)
-				if event.key == pygame.K_b:
-					exp = exp + 1000
-					CAMERA.shutter_speed = exp
-					print("exposure time set to ", exp)
-				if event.key == pygame.K_v:
-					prev = prev + 1
-					if prev > 5:
-						prev = 1
-					CAMERA.stop_preview()
-					go_prev(prev)
-				if event.key == pygame.K_r:
-					if ARGS.verbose:
-						print("run tracker")
-					MC.mot_stop("B")
-					x = 100
-				if event.key == pygame.K_RETURN:
-					if ARGS.verbose:
-						print("run tracker")
-					MC.mot_stop("B")
-					x = 100
 	if ARGS.verbose:
-		print("quitting manual control, switching to tracking")
+		print("exposure speed ", exp)
 
-	screen.fill(BLACK)
-	pygame.display.update()
-	pygame.display.set_caption('Tracking Moon')
-	screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
-	screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
-	screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
-	screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
-	pygame.display.update()
+
+	if ARGS.kivy:
+		pass
+	else:
+		pygame.init()
+		pygame.display.set_caption('Manual control')
+		size = [400, 240]
+		screen = pygame.display.set_mode(size)
+		font = pygame.font.SysFont('Arial', 25)
+		screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
+		screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
+		screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
+		screen.blit(font.render('moon tracker', True, RED), (25, 165))
+		pygame.display.update()
+
+	if ARGS.kivy:
+		pass
+	else:
+		prev, exp = pygame_centering(prev, exp)
+
+	if ARGS.kivy:
+		pass
+	else:
+		screen.fill(BLACK)
+		pygame.display.update()
+		pygame.display.set_caption('Tracking Moon')
+		screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
+		screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
+		screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
+		screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
+		pygame.display.update()
 
 	MC.MC.mot_stop("B")
 	CAMERA.stop_recording()
-	os.system("killall gpicview")  #remove pics from screen if there are any
+	os.system("killall gpicview")
 	CAMERA.stop_preview()
-	pygame.quit()
 	GPIO.cleanup()
+
+	if ARGS.kivy:
+		pass
+	else:
+		pygame.quit()
+
+	if ARGS.kivy:
+		pass
+	else:
+		prev, exp = pygame_tracking(prev, exp)
+
+def kivy_tracking(prev, exp):
+	'''Kivy version of the tracking gui
+	Takes screeshots from video stream
+	'''
+
+	from __init__ import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+
+	start = start_rec()
+
+
+
+def pygame_tracking(prev, exp):
+	'''Pygame version of the tracking gui
+	'''
+
+	from __init__ import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
 
 	start = start_rec()
 
@@ -330,9 +309,12 @@ def main():
 			lost_count = 0
 			img = Image.open(STREAM)
 			img.save("tmp.png")
-			os.system("xdg-open tmp.png") #display image - for debugging only
-			time.sleep(3)
-			os.system("killall gpicview")
+			if ARGS.contrast:
+				os.system("xdg-open tmp.png") #display image - for debugging only
+				time.sleep(3)
+				os.system("killall gpicview")
+			else:
+				pass
 		if check == 0:       #centering in progress
 			time.sleep(.02)  #sleep for 20ms
 		if (check == 2 or ratio < LOSTRATIO):        #moon lost, theshold too low
@@ -343,8 +325,82 @@ def main():
 			if lost_count > 30:
 				if ARGS.verbose:
 					print("moon totally lost")
-				#os.system("killall gpicview")
 				cnt = 100   #set count to 100 to exit the while loop
+	return prev, exp
+
+def pygame_centering(prev, exp):
+	''' Pygame based interface for centering the moon
+	'''
+	cnt = 0
+	while cnt < 10:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				MC.mot_stop("B")
+				cnt = 100
+			# check if key is pressed
+			# if you use event.key here it will give you error at runtime
+			if event.type == pygame.KEYDOWN:
+				MC.dcA = 100
+				MC.dcB = 100
+				if event.key == pygame.K_LEFT:
+					if ARGS.verbose:
+						print("left")
+					MC.pwmB.ChangeDutyCycle(MC.dcA)
+					MC.mot_left()
+				if event.key == pygame.K_RIGHT:
+					if ARGS.verbose:
+						print("right")
+					MC.pwmB.ChangeDutyCycle(MC.dcA)
+					MC.mot_right()
+				if event.key == pygame.K_UP:
+					if ARGS.verbose:
+						print("up")
+					MC.pwmA.ChangeDutyCycle(MC.dcB)
+					MC.mot_up()
+				if event.key == pygame.K_DOWN:
+					if ARGS.verbose:
+						print("down")
+					MC.pwmA.ChangeDutyCycle(MC.dcB)
+					MC.mot_down()
+				if event.key == pygame.K_SPACE:
+					if ARGS.verbose:
+						print("stop")
+					MC.mot_stop("B")
+				if event.key == pygame.K_i:
+					iso = CAMERA.iso()
+					if iso < 800:
+						iso = iso * 2
+					else:
+						iso = 100
+					CAMERA.iso = iso
+					print("iso set to ", iso)
+				if event.key == pygame.K_d:
+					exp = exp - 1000
+					CAMERA.shutter_speed = exp
+					print("exposure time set to ", exp)
+				if event.key == pygame.K_b:
+					exp = exp + 1000
+					CAMERA.shutter_speed = exp
+					print("exposure time set to ", exp)
+				if event.key == pygame.K_v:
+					prev = prev + 1
+					if prev > 5:
+						prev = 1
+					CAMERA.stop_preview()
+					go_prev(prev)
+				if event.key == pygame.K_r:
+					if ARGS.verbose:
+						print("run tracker")
+					MC.mot_stop("B")
+					cnt = 100
+				if event.key == pygame.K_RETURN:
+					if ARGS.verbose:
+						print("run tracker")
+					MC.mot_stop("B")
+					cnt = 100
+	if ARGS.verbose:
+		print("quitting manual control, switching to tracking")
+	return prev, exp
 
 if __name__ == '__main__':
 	try:

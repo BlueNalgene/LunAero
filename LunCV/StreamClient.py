@@ -199,14 +199,11 @@ class main(BoxLayout):
 			if len(data) < 921600:
 				recvd_data = clientsocket.recv(buffsize) #need 921600
 				data += recvd_data
-				print(len(data))
 				pass
 			else:
-				print len(data)
-				#image = PImage.frombytes("RGB", (640, 480), data, "raw", 'RGB', 0, 1) #image from bytes
 				image = pygame.image.fromstring(data, (640, 480), 'RGB') #image from bytes
 				data = b''
-				pygame.image.save(image, "temp.jpg")
+				pygame.image.save(image, "tmp.png")
 				#self.ids.image_source.reload()
 				#print(self.ids.image_source)
 				#Image.reload(self.ids.image_source)
@@ -217,10 +214,6 @@ class main(BoxLayout):
 
 	def close(self):
 		App.get_running_app().stop()
-
-#[12:31] <tshirtman> Guest24702: hm, recv is blocking right? you should put it in a thread rather than in a clock event
-#[12:31] == kuzeyron [~kuzeyron@host-121-25.parnet.fi] has joined #kivy
-#[12:31] <tshirtman> you'll need to trigger the reload through a clock event though, to avoid opengl issues
 
 	def setting(self):
 		box = GridLayout(cols = 2)
