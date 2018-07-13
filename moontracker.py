@@ -37,26 +37,87 @@ PARSER.add_argument('-c', '--contrast', dest='contrast', default=False, action='
 	help='brings up a high contrast image while auto-tracking')
 ARGS = PARSER.parse_args()
 
-if ARGS.verbose:
-	print("Starting LunAero moon tracker and video recording platform")
-	if ARGS.kivy:
-		print("Starting LunAero using Kivy controls")
-		print("If you activated this accidentally, use ctrl+c to close")
-
 # Definitions used Globally
 MC = MotorControl()
 RPG = RasPiGPIO()
 CAMERA = picamera.PiCamera()
 STREAM = io.BytesIO()
+GPIO = RasPiGPIO.RasPiGPIO()
 
 # Only turn on camera LED if we are in verbose mode.
+# Otherwise, just print what you usually would.
 if ARGS.verbose:
-	pass
+	print("Starting LunAero moon tracker and video recording platform")
+	if ARGS.kivy:
+		print("Starting LunAero using Kivy controls")
+		print("If you activated this accidentally, use ctrl+c to close")
 else:
 	CAMERA.led = False
 
-if ARGS.verbose:
-	print("Defining GPIO pins")
+
+def main():
+	'''Main
+	'''
+	from __init__ import RED, BLACK
+
+	CAMERA.video_stabilization = True
+	CAMERA.resolution = (1920, 1080)
+	CAMERA.color_effects = (128, 128) # turn camera to black and white
+	prev = 3
+	go_prev(prev)
+	time.sleep(2)
+
+	exp = CAMERA.exposure_speed
+	if ARGS.verbose:
+		print("exposure speed ", exp)
+
+
+	if ARGS.kivy:
+		pass
+	else:
+		pygame.init()
+		pygame.display.set_caption('Manual control')
+		size = [400, 240]
+		screen = pygame.display.set_mode(size)
+		font = pygame.font.SysFont('Arial', 25)
+		screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
+		screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
+		screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
+		screen.blit(font.render('moon tracker', True, RED), (25, 165))
+		pygame.display.update()
+
+	if ARGS.kivy:
+		pass
+	else:
+		prev, exp = pygame_centering(prev, exp)
+
+	if ARGS.kivy:
+		pass
+	else:
+		screen.fill(BLACK)
+		pygame.display.update()
+		pygame.display.set_caption('Tracking Moon')
+		screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
+		screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
+		screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
+		screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
+		pygame.display.update()
+
+	MC.mot_stop("B")
+
+	if ARGS.kivy:
+		pass
+	else:
+		prev, exp = pygame_tracking(prev, exp)
+
+#def kivy_tracking(prev, exp):
+	#'''Kivy version of the tracking gui
+	#Takes screeshots from video stream
+	#'''
+
+	#from __init__ import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+
+	#start = start_rec()
 
 def get_img():
 	'''Capture an image and see how close it is to center
@@ -136,6 +197,13 @@ def start_rec():
 		print("Preparing outfile")
 	outfile = int(time.time())
 	outfile = str(outfile) + 'outA.h264'
+	if os.path.isdir('/media/pi/MOON1'):
+		pass
+	else:
+		print("----Error-----")
+		print("Check that the thumbdrive is plugged in and mounted")
+		print("You should see it at /media/pi/MOON1")
+		raise ValueError("The thumbdrive is not where I expected it to be!")
 	outfile = os.path.join('/media/pi/MOON1', outfile)
 	if ARGS.verbose:
 		print(str(outfile))
@@ -146,6 +214,7 @@ def start_rec():
 def go_prev(prev):
 	'''Preview size options
 	'''
+
 	if prev == 1:
 		CAMERA.start_preview(fullscreen=False, window=(1200, -20, 640, 480))
 	if prev == 2:
@@ -157,81 +226,6 @@ def go_prev(prev):
 	if prev == 5:
 		CAMERA.start_preview(fullscreen=True)
 	return
-
-def main():
-	'''Main
-	'''
-	from __init__ import RED, BLACK
-
-	CAMERA.video_stabilization = True
-	CAMERA.resolution = (1920, 1080)
-	CAMERA.color_effects = (128, 128) # turn camera to black and white
-	prev = 3
-	go_prev(prev)
-	time.sleep(2)
-
-	exp = CAMERA.exposure_speed
-	if ARGS.verbose:
-		print("exposure speed ", exp)
-
-
-	if ARGS.kivy:
-		pass
-	else:
-		pygame.init()
-		pygame.display.set_caption('Manual control')
-		size = [400, 240]
-		screen = pygame.display.set_mode(size)
-		font = pygame.font.SysFont('Arial', 25)
-		screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
-		screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
-		screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
-		screen.blit(font.render('moon tracker', True, RED), (25, 165))
-		pygame.display.update()
-
-	if ARGS.kivy:
-		pass
-	else:
-		prev, exp = pygame_centering(prev, exp)
-
-	if ARGS.kivy:
-		pass
-	else:
-		screen.fill(BLACK)
-		pygame.display.update()
-		pygame.display.set_caption('Tracking Moon')
-		screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
-		screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
-		screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
-		screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
-		pygame.display.update()
-
-	MC.mot_stop("B")
-	CAMERA.stop_recording()
-	os.system("killall gpicview")
-	CAMERA.stop_preview()
-	GPIO.cleanup()
-
-	if ARGS.kivy:
-		pass
-	else:
-		pygame.quit()
-
-	if ARGS.kivy:
-		pass
-	else:
-		prev, exp = pygame_tracking(prev, exp)
-
-#def kivy_tracking(prev, exp):
-	#'''Kivy version of the tracking gui
-	#Takes screeshots from video stream
-	#'''
-
-	#from __init__ import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
-
-	#start = start_rec()
-
-
 
 def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui
@@ -294,6 +288,7 @@ def pygame_tracking(prev, exp):
 		diffx, diffy, ratio = get_img()
 		if (abs(diffy) > VERTTHRESHSTART or abs(diffx) > HORTHRESHSTART):
 			check = checkandmove()
+		lost_count = 0
 		if check == 1:       #Moon successfully centered
 			if ARGS.verbose:
 				print("centered")
@@ -322,6 +317,9 @@ def pygame_tracking(prev, exp):
 def pygame_centering(prev, exp):
 	''' Pygame based interface for centering the moon
 	'''
+
+	global CAMERA
+
 	cnt = 0
 	while cnt < 10:
 		for event in pygame.event.get():
@@ -399,6 +397,10 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		if ARGS.verbose:
 			print("keyboard task kill")
+	except Exception as inst:
+		print type(inst)
+		print inst.args
+		print inst
 	finally:
 		time.sleep(2)
 		MC.mot_stop("B")
