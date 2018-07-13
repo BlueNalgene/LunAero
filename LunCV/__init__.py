@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __main__ import *
-from __init__ import USEGUI
+from Lconfig import USEGUI
 from .RasPiGPIO import RasPiGPIO
 from .MotorControl import MotorControl
 from .Platform import platform_detect
