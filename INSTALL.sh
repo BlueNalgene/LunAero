@@ -225,14 +225,6 @@ echo "imutils is installed"
 
 
 
-
-
-
-
-
-
-
-
 # # This installs a bunch of dependencies for opencv. 
 # # Note that it does not check for the packages,
 # # nor does it report their installation.
@@ -268,3 +260,63 @@ echo "imutils is installed"
 # sudo /etc/init.d/dphys-swapfile stop
 # sudo /etc/init.d/dphys-swapfile start
 # # 
+
+
+
+
+
+# Set Up WiFi Access Point on Raspberry Pi
+# First, download the required packages.
+sudo apt -y install hostapd dnsmasq
+# Ignore the wireless interface
+sudo cat >> /etc/dhcpcd.conf << EOF
+denyinterfaces wlan0
+EOF
+# Next, we set up a static IP for wlan0
+sudo cat >> /etc/network/interfaces << EOF
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+
+allow-hotplug wlan0
+iface wlan0 inet static
+    address 192.168.42.1
+    netmask 255.255.255.0
+    network 192.168.42.0
+    broadcast 192.168.42.255
+EOF
+# Now we set up hostapd to act like an access point
+sudo cat >> /etc/hostapd/hostapd.conf << EOF
+interface=wlan0
+driver=nl80211
+ssid=RPiAccessPoint
+hw_mode=g
+channel=5
+ieee80211n=1
+wmm_enabled=1
+ht_capab=[HT40][SHORT-GI-20][DSSS_CCK-40]
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_key_mgmt=WPA-PSK
+wpa_passphrase=raspberryBridge
+rsn_pairwise=CCMP
+EOF
+# Note here that the password needs to be changed. I used wifi channel=5 for a reason.
+# We tell hostapd to use the config we set up by uncommenting the DAEMON_CONF line and adding the path
+sudo sed -i -e 's/\#DAEMON_CONF\=\"\"/DAEMON_CONF\=\"\/etc\/hostapd\/hostapd.conf\"/g' /etc/default/hostapd
+# Let's now configure the dnsmasq program using:
+sudo cat >> /etc/dnsmasq.conf << EOF
+interface=wlan0 
+listen-address=192.168.42.1
+bind-interfaces 
+server=8.8.8.8
+domain-needed
+bogus-priv
+dhcp-range=192.168.42.100,192.168.42.200,24h
+EOF
+# Finish and reboot
+sudo reboot

@@ -8,13 +8,13 @@ import time
 
 import RPi.GPIO as GPIO
 
-import RasPiGPIO as RPG
+from . import RasPiGPIO
 
 class MotorControl():
 	'''This class defines the different motions available to the LunAero hardware
 	'''
 
-	RPG = RPG.RasPiGPIO()
+	RPG = RasPiGPIO()
 
 	freq = 1000
 	pwma = GPIO.PWM(RPG.APINP, freq)

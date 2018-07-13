@@ -13,7 +13,7 @@ class RasPiGPIO():
 	APIN2 = 22  #Motor control - high for down
 	BPIN1 = 10  #Motor control - high for left
 	BPIN2 = 9   #Motor control - high for right
-	BPINP = 11  #Pulse width pin for motor B (right and left) 
+	BPINP = 11  #Pulse width pin for motor B (right and left)
 
 	# Setup GPIO and start them with 'off' values
 	PINS = (APIN1, APIN2, APINP, BPIN1, BPIN2, BPINP)
