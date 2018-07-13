@@ -6,7 +6,7 @@ from Lconfig import USEGUI
 from .RasPiGPIO import RasPiGPIO
 from .MotorControl import MotorControl
 from .Platform import platform_detect
-from .Manipulations import Manipulations
+#from .Manipulations import Manipulations
 
 if USEGUI:
 	from .Debuggui import Gui

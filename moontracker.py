@@ -206,7 +206,7 @@ def main():
 		screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
 		pygame.display.update()
 
-	MC.MC.mot_stop("B")
+	MC.mot_stop("B")
 	CAMERA.stop_recording()
 	os.system("killall gpicview")
 	CAMERA.stop_preview()
@@ -401,7 +401,7 @@ if __name__ == '__main__':
 			print("keyboard task kill")
 	finally:
 		time.sleep(2)
-		MC.MC.mot_stop("B")
+		MC.mot_stop("B")
 		CAMERA.stop_recording()
 		os.system("killall gpicview")  #remove pics from screen if there are any
 		CAMERA.stop_preview()

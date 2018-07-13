@@ -33,6 +33,7 @@ class MotorControl():
 		'''Stops
 		'''
 		print("stopping", direct)
+		RPG = RasPiGPIO()
 		if direct == "B":
 			while (self.dca > 0 or self.dcb > 0):
 				if self.dca == 100:
@@ -70,6 +71,7 @@ class MotorControl():
 		'''Move up
 		'''
 		print("moving up")
+		RPG = RasPiGPIO()
 		GPIO.output(RPG.APIN1, GPIO.HIGH)
 		GPIO.output(RPG.APIN2, GPIO.LOW)
 		#GPIO.output(RPG.APINP, GPIO.HIGH)
@@ -79,6 +81,7 @@ class MotorControl():
 		'''Move down
 		'''
 		print("moving down")
+		RPG = RasPiGPIO()
 		GPIO.output(RPG.APIN1, GPIO.LOW)
 		GPIO.output(RPG.APIN2, GPIO.HIGH)
 		#GPIO.output(RPG.APINP, GPIO.HIGH)
@@ -88,6 +91,7 @@ class MotorControl():
 		'''Move left
 		'''
 		print("moving left")
+		RPG = RasPiGPIO()
 		GPIO.output(RPG.BPIN1, GPIO.HIGH)
 		GPIO.output(RPG.BPIN2, GPIO.LOW)
 		#GPIO.output(RPG.BPINP, GPIO.HIGH)
@@ -97,6 +101,7 @@ class MotorControl():
 		'''Move right
 		'''
 		print("moving right")
+		RPG = RasPiGPIO()
 		GPIO.output(RPG.BPIN1, GPIO.LOW)
 		GPIO.output(RPG.BPIN2, GPIO.HIGH)
 		#GPIO.output(RPG.BPINP, GPIO.HIGH)
