@@ -35,6 +35,8 @@ PARSER.add_argument('-K', '--Kivy', dest='kivy', default=False, action='store_tr
 	help='use the Kivy interface (requires external LunAero cell phone app)')
 PARSER.add_argument('-c', '--contrast', dest='contrast', default=False, action='store_true',\
 	help='brings up a high contrast image while auto-tracking')
+PARSER.add_argument('-F', '--force-save', dest='forcesave', default=False, action='store_true',\
+	help='forces the video to be saved to /home/pi/Documents for debugging purposes')
 ARGS = PARSER.parse_args()
 
 # Definitions used Globally
@@ -42,7 +44,7 @@ MC = MotorControl()
 RPG = RasPiGPIO()
 CAMERA = picamera.PiCamera()
 STREAM = io.BytesIO()
-GPIO = RasPiGPIO.RasPiGPIO()
+GPIO = RasPiGPIO()
 
 # Only turn on camera LED if we are in verbose mode.
 # Otherwise, just print what you usually would.
@@ -198,13 +200,15 @@ def start_rec():
 	outfile = int(time.time())
 	outfile = str(outfile) + 'outA.h264'
 	if os.path.isdir('/media/pi/MOON1'):
-		pass
+		outfile = os.path.join('/media/pi/MOON1', outfile)
 	else:
 		print("----Error-----")
 		print("Check that the thumbdrive is plugged in and mounted")
 		print("You should see it at /media/pi/MOON1")
-		raise ValueError("The thumbdrive is not where I expected it to be!")
-	outfile = os.path.join('/media/pi/MOON1', outfile)
+		if ARGS.forcesave:
+			outfile = os.path.join('/home/pi/Documents', outfile)
+		else:
+			raise ValueError("The thumbdrive is not where I expected it to be!")
 	if ARGS.verbose:
 		print(str(outfile))
 	CAMERA.start_recording(outfile)
