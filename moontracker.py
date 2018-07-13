@@ -41,10 +41,8 @@ ARGS = PARSER.parse_args()
 
 # Definitions used Globally
 MC = MotorControl()
-RPG = RasPiGPIO()
 CAMERA = picamera.PiCamera()
 STREAM = io.BytesIO()
-GPIO = RasPiGPIO()
 
 # Only turn on camera LED if we are in verbose mode.
 # Otherwise, just print what you usually would.
@@ -202,10 +200,10 @@ def start_rec():
 	if os.path.isdir('/media/pi/MOON1'):
 		outfile = os.path.join('/media/pi/MOON1', outfile)
 	else:
-		print("----Error-----")
 		print("Check that the thumbdrive is plugged in and mounted")
 		print("You should see it at /media/pi/MOON1")
 		if ARGS.forcesave:
+			print("Continuing with a new save location")
 			outfile = os.path.join('/home/pi/Documents', outfile)
 		else:
 			raise ValueError("The thumbdrive is not where I expected it to be!")
@@ -240,6 +238,7 @@ def pygame_tracking(prev, exp):
 	start = start_rec()
 
 	cnt = 0
+	check = 1
 	while cnt < 55:
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
@@ -402,9 +401,10 @@ if __name__ == '__main__':
 		if ARGS.verbose:
 			print("keyboard task kill")
 	except Exception as inst:
-		print(type(inst))
-		print(inst.args)
-		print(inst)
+		print("Exception Type: ", type(inst))
+		print("Exception Args: ", inst.args)
+		print("Exception     : ", inst)
+		traceback.print_exc()
 	finally:
 		time.sleep(2)
 		MC.mot_stop("B")
@@ -412,4 +412,4 @@ if __name__ == '__main__':
 		os.system("killall gpicview")  #remove pics from screen if there are any
 		CAMERA.stop_preview()
 		pygame.quit()
-		GPIO.cleanup()
+		RasPiGPIO.GPIO.cleanup()
