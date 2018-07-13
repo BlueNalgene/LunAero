@@ -398,9 +398,9 @@ if __name__ == '__main__':
 		if ARGS.verbose:
 			print("keyboard task kill")
 	except Exception as inst:
-		print type(inst)
-		print inst.args
-		print inst
+		print(type(inst))
+		print(inst.args)
+		print(inst)
 	finally:
 		time.sleep(2)
 		MC.mot_stop("B")

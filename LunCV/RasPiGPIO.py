@@ -5,8 +5,12 @@ class RasPiGPIO():
 	'''Just a container for the pin definitions
 	'''
 
-	import GPIOSimulator as GPIO
-	#import RPi.GPIO as GPIO
+	from Platform import *
+
+	if platform_detect() == 1:
+		import RPi.GPIO as GPIO
+	else:
+		import GPIOSimulator as GPIO
 
 	GPIO.setmode(GPIO.BCM)
 	APINP = 17  #Pulse width pin for motor A (up and down)
