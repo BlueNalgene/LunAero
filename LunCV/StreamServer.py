@@ -1,25 +1,31 @@
 #!/bin/usr/python3 -B
 # -*- coding: utf-8 -*-
 
-import socket
-from threading import *
-import pygame
-#import pygame.camera
-from pygame.locals import *
+'''Server socket program for LunAero.  Listens for events from Client.
+'''
+
 import fcntl
 import struct
+import socket
+#from io import BytesIO
+#from threading import *
+import pygame
+#import pygame.camera
+#from pygame.locals import *
 from PIL import Image
-from io import BytesIO
+
 
 def get_ip_address(ifname):
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	return socket.inet_ntoa(fcntl.ioctl(
-		s.fileno(),
-		0x8915,  # SIOCGIFADDR
-		struct.pack('256s', ifname[:15])
-	)[20:24])
+	'''Get the ip address for your device using the SIOCGIFADDR method
+	'''
+	servsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sio = socket.inet_ntoa(fcntl.ioctl(servsocket.fileno(), 0x8915,\
+		struct.pack('256s', ifname[:15]))[20:24])
+	return sio
 
 def server():
+	'''Defines how to initialize the server
+	'''
 	servsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	port = 90
 	ip_address = get_ip_address('wlan0')
@@ -30,8 +36,9 @@ def server():
 	while True:
 		img = Image.open('tmp.png')
 		img = img.resize(img)
-		imgbyte = img.tobytes() #len for 640x480 bytes is 921600
-		client_sock, address = servsock.accept()
+		imgbyte = img.tobytes()
+		#len for 640x480 bytes is 921600
+		client_sock, _ = servsock.accept()
 		client_sock.sendall(imgbyte)
 
 server()
@@ -39,7 +46,7 @@ server()
 
 #def server():
 	#try:
-		#print "\nServer started at " + str(socket.gethostbyname(socket.gethostname())) + " at port " + str(90)	
+		#print "Server started at" + str(socket.gethostbyname(socket.gethostname())) + "at port 90"
 		#port = 90
 		#serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		#serversocket.bind(("",port))
