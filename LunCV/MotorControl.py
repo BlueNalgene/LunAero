@@ -33,7 +33,6 @@ class MotorControl():
 		'''Stops
 		'''
 		print("stopping", direct)
-		RPG = RasPiGPIO()
 		if direct == "B":
 			while (self.dca > 0 or self.dcb > 0):
 				if self.dca == 100:
@@ -47,64 +46,60 @@ class MotorControl():
 				self.pwma.ChangeDutyCycle(self.dca)
 				self.pwmb.ChangeDutyCycle(self.dcb)
 				time.sleep(.005)
-			GPIO.output(RPG.APIN1, GPIO.LOW)
-			GPIO.output(RPG.APIN2, GPIO.LOW)
-			GPIO.output(RPG.BPIN1, GPIO.LOW)
-			GPIO.output(RPG.BPIN2, GPIO.LOW)
+			GPIO.output(self.RPG.APIN1, GPIO.LOW)
+			GPIO.output(self.RPG.APIN2, GPIO.LOW)
+			GPIO.output(self.RPG.BPIN1, GPIO.LOW)
+			GPIO.output(self.RPG.BPIN2, GPIO.LOW)
 		if direct == "Y":
 			while self.dca > 0:
 				self.dca = self.dca - 1
 				self.pwma.ChangeDutyCycle(self.dca)
 				time.sleep(.01)
-			GPIO.output(RPG.APIN1, GPIO.LOW)
-			GPIO.output(RPG.APIN2, GPIO.LOW)
+			GPIO.output(self.RPG.APIN1, GPIO.LOW)
+			GPIO.output(self.RPG.APIN2, GPIO.LOW)
 		if direct == "X":
 			while self.dcb > 0:
 				self.dcb = self.dcb - 1
 				self.pwmb.ChangeDutyCycle(self.dcb)
 				time.sleep(.01)
-			GPIO.output(RPG.BPIN1, GPIO.LOW)
-			GPIO.output(RPG.BPIN2, GPIO.LOW)
+			GPIO.output(self.RPG.BPIN1, GPIO.LOW)
+			GPIO.output(self.RPG.BPIN2, GPIO.LOW)
 		return
 
 	def mot_up(self):
 		'''Move up
 		'''
 		print("moving up")
-		RPG = RasPiGPIO()
-		GPIO.output(RPG.APIN1, GPIO.HIGH)
-		GPIO.output(RPG.APIN2, GPIO.LOW)
-		#GPIO.output(RPG.APINP, GPIO.HIGH)
+		self.pwma.ChangeDutyCycle(100)
+		GPIO.output(self.RPG.APIN1, GPIO.HIGH)
+		GPIO.output(self.RPG.APIN2, GPIO.LOW)
 		return
 
 	def mot_down(self):
 		'''Move down
 		'''
 		print("moving down")
-		RPG = RasPiGPIO()
-		GPIO.output(RPG.APIN1, GPIO.LOW)
-		GPIO.output(RPG.APIN2, GPIO.HIGH)
-		#GPIO.output(RPG.APINP, GPIO.HIGH)
+		self.pwma.ChangeDutyCycle(100)
+		GPIO.output(self.RPG.APIN1, GPIO.LOW)
+		GPIO.output(self.RPG.APIN2, GPIO.HIGH)
 		return
 
 	def mot_left(self):
 		'''Move left
 		'''
 		print("moving left")
-		RPG = RasPiGPIO()
-		GPIO.output(RPG.BPIN1, GPIO.HIGH)
-		GPIO.output(RPG.BPIN2, GPIO.LOW)
-		#GPIO.output(RPG.BPINP, GPIO.HIGH)
+		self.pwmb.ChangeDutyCycle(100)
+		GPIO.output(self.RPG.BPIN1, GPIO.HIGH)
+		GPIO.output(self.RPG.BPIN2, GPIO.LOW)
 		return
 
 	def mot_right(self):
 		'''Move right
 		'''
 		print("moving right")
-		RPG = RasPiGPIO()
-		GPIO.output(RPG.BPIN1, GPIO.LOW)
-		GPIO.output(RPG.BPIN2, GPIO.HIGH)
-		#GPIO.output(RPG.BPINP, GPIO.HIGH)
+		self.pwmb.ChangeDutyCycle(100)
+		GPIO.output(self.RPG.BPIN1, GPIO.LOW)
+		GPIO.output(self.RPG.BPIN2, GPIO.HIGH)
 		return
 
 	def speed_up(self, direct):
@@ -136,3 +131,9 @@ class MotorControl():
 				self.pwmb.ChangeDutyCycle(self.dcb)
 			print("slowdown ", direct, self.dcb)
 		return
+
+	def stream_cap(self):
+		'''Captures a snapshot from the current stream
+		'''
+		img = Image.open(STREAM)
+		return img

@@ -1,16 +1,19 @@
 #!/bin/usr/python3 -B
 # -*- coding: utf-8 -*-
 
+'''Just a container for the pin definitions
+'''
+
 class RasPiGPIO():
 	'''Just a container for the pin definitions
 	'''
 
-	from Platform import *
+	from LunCV import Platform
 
-	if platform_detect() == 1:
+	if Platform.platform_detect() == 1:
 		import RPi.GPIO as GPIO
 	else:
-		import GPIOSimulator as GPIO
+		raise Exception
 
 	GPIO.setmode(GPIO.BCM)
 	APINP = 17  #Pulse width pin for motor A (up and down)

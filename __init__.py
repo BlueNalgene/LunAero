@@ -1,3 +1,3 @@
 #!/bin/usr/python3 -B
 # -*- coding: utf-8 -*-
-from Lconfig import *
+from LunCV import Lconfig
