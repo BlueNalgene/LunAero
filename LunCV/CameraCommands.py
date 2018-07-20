@@ -9,7 +9,7 @@ import time
 import numpy as np
 from PIL import Image
 import picamera
-from LunCV import RasPiGPIO, MotorControl
+import RasPiGPIO, MotorControl
 
 class CameraCommands():
 	'''Commands for the Raspberry Pi Camera
@@ -18,10 +18,10 @@ class CameraCommands():
 
 	# Definitions used locally in this class
 	CAMERA = picamera.PiCamera()
-	MOC = MotorControl()
+	MOC = MotorControl.MotorControl()
 	STREAM = io.BytesIO()
 
-	from LunCV import Lconfig
+	import Lconfig
 
 	def __init__(self):
 		return

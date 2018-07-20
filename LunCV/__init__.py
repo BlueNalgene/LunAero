@@ -4,6 +4,9 @@
 from __main__ import *
 from Lconfig import USEGUI
 from .Platform import platform_detect
+from .Lclient import Lclient
+from .Lserver import Lserver
+from .CameraCommands import CameraCommands
 #from .Manipulations import Manipulations
 
 if USEGUI:

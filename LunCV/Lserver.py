@@ -12,8 +12,8 @@ import time
 import pygame
 
 from PIL import Image
-from LunCV import CameraCommands as CC
-from LunCV import MotorControl
+import CameraCommands as CC
+import MotorControl
 
 MC = MotorControl.MotorControl()
 

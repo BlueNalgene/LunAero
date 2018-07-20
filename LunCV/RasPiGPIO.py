@@ -8,7 +8,7 @@ class RasPiGPIO():
 	'''Just a container for the pin definitions
 	'''
 
-	from LunCV import Platform
+	import Platform
 
 	if Platform.platform_detect() == 1:
 		import RPi.GPIO as GPIO
