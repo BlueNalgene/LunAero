@@ -56,41 +56,42 @@ class Lserver():
 				imgbyte = img.tobytes()
 				#len for 640x480 bytes is 921600
 				client_sock.sendall(imgbyte)
-				break
+				#break
 			if data == 't':
 				CC.thresh_dec()
-				break
+				#break
 			if data == 'T':
 				CC.thresh_inc()
-				break
+				#break
 			if data == 'i':
 				CC.iso_cyc()
-				break
+				#break
 			if data == 'e':
 				CC.exp_dec()
-				break
+				#break
 			if data == 'E':
 				CC.exp_inc()
-				break
+				#break
 			if data == 'B':
 				MC.mot_stop("B")
-				break
+				#break
 			if data == 'w':
 				MC.pwmb.ChangeDutyCycle(100)
 				MC.mot_up()
-				break
+				#break
 			if data == 'a':
 				MC.pwma.ChangeDutyCycle(100)
 				MC.mot_left()
-				break
+				#break
 			if data == 's':
 				MC.pwmb.ChangeDutyCycle(100)
 				MC.mot_down()
-				break
+				#break
 			if data == 'd':
 				MC.pwma.ChangeDutyCycle(100)
 				MC.mot_right()
-				break
+				#break
+
 	def recv_robust(self, servsock, timeout):
 		'''A robust recv method which amalgamates timeout, and end of message checks.
 		It cannot do a message length check.

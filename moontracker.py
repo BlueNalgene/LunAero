@@ -69,8 +69,10 @@ def main():
 	time.sleep(2)
 	if ONRPI:
 		exp = CC.get_exp()
-	if ARGS.verbose:
-		print("exposure speed ", exp)
+	else:
+		exp = 30000
+		if ARGS.verbose:
+			print("exposure speed ", exp)
 
 
 
@@ -85,8 +87,7 @@ def main():
 	screen.blit(font.render('moon tracker', True, RED), (25, 165))
 	pygame.display.update()
 
-	if ONRPI:
-		prev, exp = pygame_centering(prev, exp)
+	prev, exp = pygame_centering(prev, exp)
 
 	screen.fill(BLACK)
 	pygame.display.update()
