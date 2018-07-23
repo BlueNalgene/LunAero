@@ -110,25 +110,10 @@ def start_rec():
 	'''
 
 	start = time.time()
+	LC.sendout(b'x')
 	if ARGS.verbose:
 		print(start)
 		print("Preparing outfile")
-	outfile = int(time.time())
-	outfile = str(outfile) + 'outA.h264'
-	if os.path.isdir('/media/pi/MOON1'):
-		outfile = os.path.join('/media/pi/MOON1', outfile)
-	else:
-		print("Check that the thumbdrive is plugged in and mounted")
-		print("You should see it at /media/pi/MOON1")
-		if ARGS.forcesave:
-			print("Continuing with a new save location")
-			outfile = os.path.join('/home/pi/Documents', outfile)
-		else:
-			raise ValueError("The thumbdrive is not where I expected it to be!")
-	if ARGS.verbose:
-		print(str(outfile))
-	CC.start_recording(outfile)
-	time.sleep(1)
 	return start
 
 def pygame_tracking(prev, exp):

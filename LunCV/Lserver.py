@@ -5,6 +5,7 @@
 '''
 
 import fcntl
+import os
 import struct
 import socket
 import time
@@ -48,49 +49,65 @@ class Lserver():
 			servsock.listen(5)
 			client_sock, _ = servsock.accept()
 			data = client_sock.recv(20)
-			if not data:
-				break
+			#if not data:
+				#break
 			if data == "a":
 				img = Image.open('tmp.png')
 				img = img.resize(img)
 				imgbyte = img.tobytes()
 				#len for 640x480 bytes is 921600
 				client_sock.sendall(imgbyte)
-				#break
+
 			if data == 't':
 				CC.thresh_dec()
-				#break
+
 			if data == 'T':
 				CC.thresh_inc()
-				#break
+
 			if data == 'i':
 				CC.iso_cyc()
-				#break
+
 			if data == 'e':
 				CC.exp_dec()
-				#break
+
 			if data == 'E':
 				CC.exp_inc()
-				#break
+
 			if data == 'B':
 				MC.mot_stop("B")
-				#break
+
 			if data == 'w':
 				MC.pwmb.ChangeDutyCycle(100)
 				MC.mot_up()
-				#break
+
 			if data == 'a':
 				MC.pwma.ChangeDutyCycle(100)
 				MC.mot_left()
-				#break
+
 			if data == 's':
 				MC.pwmb.ChangeDutyCycle(100)
 				MC.mot_down()
-				#break
+
 			if data == 'd':
 				MC.pwma.ChangeDutyCycle(100)
 				MC.mot_right()
-				#break
+
+			if data == 'x':
+				outfile = int(time.time())
+				outfile = str(outfile) + 'outA.h264'
+				if os.path.isdir('/media/pi/MOON1'):
+					outfile = os.path.join('/media/pi/MOON1', outfile)
+				else:
+					print("Check that the thumbdrive is plugged in and mounted")
+					print("You should see it at /media/pi/MOON1")
+					if True:
+						print("Continuing with a new save location")
+						outfile = os.path.join('/home/pi/Documents', outfile)
+					else:
+						raise ValueError("The thumbdrive is not where I expected it to be!")
+				print(str(outfile))
+				CC.start_recording(outfile)
+				time.sleep(1)
 
 	def recv_robust(self, servsock, timeout):
 		'''A robust recv method which amalgamates timeout, and end of message checks.
