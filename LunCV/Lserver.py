@@ -23,7 +23,6 @@ class Lserver():
 	'''
 
 	servsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	servsocket = self.servsocket
 
 	def get_ip_address(self, ifname):
 		'''Get the ip address for your device using the SIOCGIFADDR method
@@ -36,7 +35,7 @@ class Lserver():
 	def server(self):
 		'''Defines how to initialize the server
 		'''
-		servsocket = self.servsocket
+		servsock = self.servsock
 		port = 90
 		ip_address = self.get_ip_address('wlan0')
 		servsock.bind((ip_address, port))
@@ -138,4 +137,5 @@ class Lserver():
 				pass
 		return ''.join(total_data)
 
-Lserver.server()
+L = Lserver()
+L.server()
