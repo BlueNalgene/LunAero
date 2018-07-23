@@ -8,8 +8,10 @@ import io
 import time
 import numpy as np
 from PIL import Image
-import picamera
-import RasPiGPIO, MotorControl
+import Platform
+if Platform.platform_detect() == 1:
+	import picamera
+	import RasPiGPIO, MotorControl
 
 class CameraCommands():
 	'''Commands for the Raspberry Pi Camera

@@ -10,6 +10,7 @@ import socket
 import time
 
 import pygame
+from pygame import camera
 
 from PIL import Image
 import CameraCommands as CC

@@ -50,7 +50,7 @@ class Lclient():
 					pygame.image.save(image, "tmp.png")
 					break
 
-	def sendto(self, bytestring):
+	def sendout(self, bytestring):
 		'''Sends a string through the socket to the server to run a command on the remote Pi
 		Current Command List:
 		t = threshold down
