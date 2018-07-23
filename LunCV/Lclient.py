@@ -14,17 +14,27 @@ class Lclient():
 
 	ip_address = '192.168.42.1'
 	port = 90
+	clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 	def __init__(self):
 		'''intialize the class
 		'''
 		print("using Lclient")
+		clientsocket = self.clientsocket
+		clientsocket.settimeout(5)
+		try:
+			clientsocket.connect((self.ip_address, self.port))
+			#return True
+		except socket.error:
+			print("Connection failure, retry")
+			#return False
+
 
 	def cnx(self):
 		'''Connection handler with timeout reporting,
 		works in conjunction with connect_2_pi()
 		'''
-		clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		clientsocket = self.clientsocket
 		clientsocket.settimeout(5)
 		try:
 			clientsocket.connect((self.ip_address, self.port))
@@ -64,15 +74,16 @@ class Lclient():
 		s = down
 		d = right
 		'''
-		clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		ack = clientsocket.send(bytestring)
-		if not ack:
-			self.sendto(bytestring)
+		#clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		clientsocket = self.clientsocket
+		clientsocket.sendall(bytestring)
+		#if not ack:
+			#self.sendto(bytestring)
 
 	def connect_test(self):
 		'''A simple test to detect if the socket is still connected
 		'''
-		clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		#clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
 			clientsocket.sendall("testdata")
 			return True
