@@ -56,14 +56,14 @@ class Lserver():
 			data = client_sock.recv(1024)
 			if not data:
 				break
-			buffer += data
+			buffer += data.decode('UTF-8')
 			while True:
 				if length is None:
 					if ':' not in buffer:
 						break
 					length_str, ignored, buffer = buffer.partition(':')
-					length = int(length_str)
-				if len(buffer) < length:
+					length = int(len(length_str))
+				if len(buffer) > length:
 					break
 				message = buffer[:length]
 				buffer = buffer[length:]

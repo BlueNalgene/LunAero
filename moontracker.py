@@ -41,7 +41,7 @@ def main():
 	from LunCV.Lconfig import RED, BLACK
 	#TODO function to pull prev from the go function
 	prev = 3
-	prev = LC.sendrecv(b'p')
+	prev = LC.sendrecv(b'p:')
 	print(prev)
 	time.sleep(2)
 	exp = 30000
@@ -70,7 +70,7 @@ def main():
 	screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
 	pygame.display.update()
 
-	LC.sendout(b'B')
+	LC.sendout(b'B:')
 
 	prev, exp = pygame_tracking(prev, exp)
 
@@ -79,7 +79,7 @@ def start_rec():
 	'''
 
 	start = time.time()
-	LC.sendout(b'x')
+	LC.sendout(b'x:')
 	if ARGS.verbose:
 		print("Preparing outfile from time ", start)
 	return start
@@ -98,11 +98,11 @@ def pygame_tracking(prev, exp):
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_z:
-					LC.sendout(b't')
+					LC.sendout(b't:')
 					if ARGS.verbose:
 						print("decrease thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_x:
-					LC.sendout(b'T')
+					LC.sendout(b'T:')
 					if ARGS.verbose:
 						print("increase thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_q:
@@ -110,16 +110,16 @@ def pygame_tracking(prev, exp):
 					if ARGS.verbose:
 						print("quitting tracker")
 				if event.key == pygame.K_i:
-					LC.sendout(b'i')
+					LC.sendout(b'i:')
 					print("iso set to ", iso)
 				if event.key == pygame.K_d:
-					LC.sendout(b'e')
+					LC.sendout(b'e:')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_b:
-					LC.sendout(b'E')
+					LC.sendout(b'E:')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_v:
-					LC.sendout(b'P')
+					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
 				cnt = 100
 		start = CC.timed_restart(start)
@@ -166,7 +166,7 @@ def pygame_centering(prev, exp):
 	while cnt < 10:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				LC.sendout(b'B')
+				LC.sendout(b'B:')
 				cnt = 100
 			# check if key is pressed
 			# if you use event.key here it will give you error at runtime
@@ -174,43 +174,43 @@ def pygame_centering(prev, exp):
 				if event.key == pygame.K_LEFT:
 					if ARGS.verbose:
 						print("left")
-					LC.sendout(b'a')
+					LC.sendout(b'a:')
 				if event.key == pygame.K_RIGHT:
 					if ARGS.verbose:
 						print("right")
-					LC.sendout(b'd')
+					LC.sendout(b'd:')
 				if event.key == pygame.K_UP:
 					if ARGS.verbose:
 						print("up")
-					LC.sendout(b'w')
+					LC.sendout(b'w:')
 				if event.key == pygame.K_DOWN:
 					if ARGS.verbose:
 						print("down")
-					LC.sendout(b's')
+					LC.sendout(b's:')
 				if event.key == pygame.K_SPACE:
 					if ARGS.verbose:
 						print("stop")
-					LC.sendout(b'B')
+					LC.sendout(b'B:')
 				if event.key == pygame.K_i:
-					LC.sendout(b'i')
+					LC.sendout(b'i:')
 					print("iso set to ", iso)
 				if event.key == pygame.K_d:
-					LC.sendout(b'e')
+					LC.sendout(b'e:')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_b:
-					LC.sendout(b'E')
+					LC.sendout(b'E:')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_v:
-					LC.sendout(b'P')
+					LC.sendout(b'P:')
 				if event.key == pygame.K_r:
 					if ARGS.verbose:
 						print("run tracker")
-					LC.sendout(b'B')
+					LC.sendout(b'B:')
 					cnt = 100
 				if event.key == pygame.K_RETURN:
 					if ARGS.verbose:
 						print("run tracker")
-					LC.sendout(b'B')
+					LC.sendout(b'B:')
 					cnt = 100
 	if ARGS.verbose:
 		print("quitting manual control, switching to tracking")
