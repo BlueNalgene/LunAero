@@ -80,6 +80,16 @@ class Lclient():
 		#if not ack:
 			#self.sendto(bytestring)
 
+	def sendrecv(self, bytestring):
+		'''Sends a string through the socket to the server to run a command on the remote Pi
+		then waits for a response
+		'''
+		clientsocket = self.clientsocket
+		clientsocket.sendall(bytestring)
+		data = clientsocket.recv(4096)
+		print("socket recv: ", data)
+		return data
+
 	def connect_test(self):
 		'''A simple test to detect if the socket is still connected
 		'''

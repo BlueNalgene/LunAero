@@ -9,6 +9,7 @@ import os
 import struct
 import socket
 import time
+import traceback
 
 import pygame
 from pygame import camera
@@ -20,10 +21,11 @@ import MotorControl
 MC = MotorControl.MotorControl()
 
 class Lserver():
-	'''null
+	'''Server socket program for LunAero.  Listens for events from Client.
 	'''
 
 	servsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	prev = 3
 
 	def get_ip_address(self, ifname):
 		'''Get the ip address for your device using the SIOCGIFADDR method
@@ -109,6 +111,18 @@ class Lserver():
 				CC.start_recording(outfile)
 				time.sleep(1)
 
+			if data == 'p':
+				#TODO This function returns a value we might want
+				self.prev = CC.go_prev(self.prev)
+				client_sock.sendall((b'n', self.prev)
+
+			if data == 'P':
+				self.prev = self.prev + 1
+				if self.prev > 5:
+					self.prev = 1
+				CC.stop_preview()
+				CC.go_prev(self.prev)
+
 	def recv_robust(self, servsock, timeout):
 		'''A robust recv method which amalgamates timeout, and end of message checks.
 		It cannot do a message length check.
@@ -155,5 +169,15 @@ class Lserver():
 				pass
 		return ''.join(total_data)
 
+
 L = Lserver()
-L.server()
+try:
+	L.server()
+except Exception as inst:
+	print("Exception Type: ", type(inst))
+	print("Exception Args: ", inst.args)
+	print("Exception     : ", inst)
+	traceback.print_exc()
+finally:
+	CC.shutdown_camera()
+	os.system("killall gpicview")

@@ -14,30 +14,13 @@ import time
 import traceback
 import pygame
 
-from LunCV import Platform
-if Platform.platform_detect == 1:
-	print("You appear to be running this on a Raspberry Pi")
-	from LunCV import CameraCommands as CC
-	from LunCV import MotorControl
-	MC = MotorControl.MotorControl()
-	ONRPI = True
-else:
-	print("You are not running this on a Raspberry Pi")
-	ONRPI = False
-	from LunCV import Lclient
-	LC = Lclient()
-
-#import matplotlib.pyplot as plt
-#import sys
-#import subprocess
-#from scipy import ndimage
+from LunCV import Lclient
+LC = Lclient()
 
 PARSER = argparse.ArgumentParser(\
 	description='This is the video recording file for use with LunAero')
 PARSER.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',\
 	help='display verbose output for debugging')
-#PARSER.add_argument('-K', '--Kivy', dest='kivy', default=False, action='store_true',\
-	#help='use the Kivy interface (requires external LunAero cell phone app)')
 PARSER.add_argument('-c', '--contrast', dest='contrast', default=False, action='store_true',\
 	help='brings up a high contrast image while auto-tracking')
 PARSER.add_argument('-F', '--force-save', dest='forcesave', default=False, action='store_true',\
@@ -51,30 +34,19 @@ ARGS = PARSER.parse_args()
 # Otherwise, just print what you usually would.
 if ARGS.verbose:
 	print("Starting LunAero moon tracker and video recording platform")
-	#if ARGS.kivy:
-		#print("Starting LunAero using Kivy controls")
-		#print("If you activated this accidentally, use ctrl+c to close")
-else:
-	if ONRPI:
-		pass
-
 
 def main():
 	'''Main
 	'''
 	from LunCV.Lconfig import RED, BLACK
+	#TODO function to pull prev from the go function
 	prev = 3
-	if ONRPI:
-		CC.go_prev(prev)
+	prev = LC.sendout(b'p')
+	print(prev)
 	time.sleep(2)
-	if ONRPI:
-		exp = CC.get_exp()
-	else:
-		exp = 30000
-		if ARGS.verbose:
-			print("exposure speed ", exp)
-
-
+	exp = 30000
+	if ARGS.verbose:
+		print("exposure speed ", exp)
 
 	pygame.init()
 	pygame.display.set_caption('Manual control')
@@ -98,10 +70,7 @@ def main():
 	screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
 	pygame.display.update()
 
-	if ONRPI:
-		MC.mot_stop("B")
-	else:
-		LC.sendout(b'B')
+	LC.sendout(b'B')
 
 	prev, exp = pygame_tracking(prev, exp)
 
@@ -112,8 +81,7 @@ def start_rec():
 	start = time.time()
 	LC.sendout(b'x')
 	if ARGS.verbose:
-		print(start)
-		print("Preparing outfile")
+		print("Preparing outfile from time ", start)
 	return start
 
 def pygame_tracking(prev, exp):
@@ -130,17 +98,11 @@ def pygame_tracking(prev, exp):
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_z:
-					if ONRPI:
-						CC.thresh_dec()
-					else:
-						LC.sendout(b't')
+					LC.sendout(b't')
 					if ARGS.verbose:
 						print("decrease thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_x:
-					if ONRPI:
-						CC.thresh_inc()
-					else:
-						LC.sendout(b'T')
+					LC.sendout(b'T')
 					if ARGS.verbose:
 						print("increase thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_q:
@@ -148,29 +110,16 @@ def pygame_tracking(prev, exp):
 					if ARGS.verbose:
 						print("quitting tracker")
 				if event.key == pygame.K_i:
-					if ONRPI:
-						iso = CC.iso_cyc()
-					else:
-						LC.sendout(b'i')
+					LC.sendout(b'i')
 					print("iso set to ", iso)
 				if event.key == pygame.K_d:
-					if ONRPI:
-						CC.exp_dec()
-					else:
-						LC.sendout(b'e')
+					LC.sendout(b'e')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_b:
-					if ONRPI:
-						CC.exp_inc()
-					else:
-						LC.sendout(b'E')
+					LC.sendout(b'E')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_v:
-					prev = prev + 1
-					if prev > 5:
-						prev = 1
-						CC.stop_preview()
-					CC.go_prev(prev)
+					LC.sendout(b'P')
 			if event.type == pygame.QUIT:
 				cnt = 100
 		start = CC.timed_restart(start)
@@ -217,13 +166,7 @@ def pygame_centering(prev, exp):
 	while cnt < 10:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				if ONRPI:
-					if ONRPI:
-						MC.mot_stop("B")
-					else:
-						LC.sendout(b'B')
-				else:
-					LC.sendout(b'B')
+				LC.sendout(b'B')
 				cnt = 100
 			# check if key is pressed
 			# if you use event.key here it will give you error at runtime
@@ -231,77 +174,43 @@ def pygame_centering(prev, exp):
 				if event.key == pygame.K_LEFT:
 					if ARGS.verbose:
 						print("left")
-					if ONRPI:
-						MC.mot_left()
-					else:
-						LC.sendout(b'a')
+					LC.sendout(b'a')
 				if event.key == pygame.K_RIGHT:
 					if ARGS.verbose:
 						print("right")
-					if ONRPI:
-						MC.mot_right()
-					else:
-						LC.sendout(b'd')
+					LC.sendout(b'd')
 				if event.key == pygame.K_UP:
 					if ARGS.verbose:
 						print("up")
-					if ONRPI:
-						MC.mot_up()
-					else:
-						LC.sendout(b'w')
+					LC.sendout(b'w')
 				if event.key == pygame.K_DOWN:
 					if ARGS.verbose:
 						print("down")
-					if ONRPI:
-						MC.mot_down()
-					else:
-						LC.sendout(b's')
+					LC.sendout(b's')
 				if event.key == pygame.K_SPACE:
 					if ARGS.verbose:
 						print("stop")
-					if ONRPI:
-						MC.mot_stop("B")
-					else:
-						LC.sendout(b'B')
+					LC.sendout(b'B')
 				if event.key == pygame.K_i:
-					if ONRPI:
-						iso = CC.iso_cyc()
-					else:
-						LC.sendout(b'i')
+					LC.sendout(b'i')
 					print("iso set to ", iso)
 				if event.key == pygame.K_d:
-					if ONRPI:
-						CC.exp_dec()
-					else:
-						LC.sendout(b'e')
+					LC.sendout(b'e')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_b:
-					if ONRPI:
-						CC.exp_inc()
-					else:
-						LC.sendout(b'E')
+					LC.sendout(b'E')
 					print("exposure time set to ", exp)
 				if event.key == pygame.K_v:
-					prev = prev + 1
-					if prev > 5:
-						prev = 1
-					CC.stop_preview()
-					CC.go_prev(prev)
+					LC.sendout(b'P')
 				if event.key == pygame.K_r:
 					if ARGS.verbose:
 						print("run tracker")
-					if ONRPI:
-						MC.mot_stop("B")
-					else:
-						LC.sendout(b'B')
+					LC.sendout(b'B')
 					cnt = 100
 				if event.key == pygame.K_RETURN:
 					if ARGS.verbose:
 						print("run tracker")
-					if ONRPI:
-						MC.mot_stop("B")
-					else:
-						LC.sendout(b'B')
+					LC.sendout(b'B')
 					cnt = 100
 	if ARGS.verbose:
 		print("quitting manual control, switching to tracking")
@@ -320,7 +229,4 @@ if __name__ == '__main__':
 		traceback.print_exc()
 	finally:
 		time.sleep(2)
-		if ONRPI:
-			CC.shutdown_camera()
-		os.system("killall gpicview")  #remove pics from screen if there are any
 		pygame.quit()

@@ -56,7 +56,7 @@ class CameraCommands():
 			self.CAMERA.start_preview(fullscreen=False, window=(20, 200, 1280, 960))
 		if prev == 5:
 			self.CAMERA.start_preview(fullscreen=True)
-		return
+		return prev
 
 	def get_img(self):
 		'''Capture an image and see how close it is to center
