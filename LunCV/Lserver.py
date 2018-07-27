@@ -32,8 +32,10 @@ class Lserver():
 		'''Get the ip address for your device using the SIOCGIFADDR method
 		'''
 		servsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sio = socket.inet_ntoa(fcntl.ioctl(servsocket.fileno(), 0x8915,\
-			struct.pack('256s', ifname[:15]))[20:24])
+		ifname = bytes(ifname[:15], encoding='UTF-8')
+		ifreq = struct.pack('256s', ifname)
+		sio = socket.inet_ntoa(fcntl.ioctl(servsocket.fileno(), 0x8915, ifreq)[20:24])
+		print("SIO: ", sio)
 		return sio
 
 	def server(self):
@@ -115,7 +117,9 @@ class Lserver():
 			if data == 'p':
 				#TODO This function returns a value we might want
 				self.prev = CC.go_prev(self.prev)
+				print("self.prev", self.prev)
 				client_sock.sendall(b'n', self.prev)
+				print("I sent it")
 
 			if data == 'P':
 				self.prev = self.prev + 1
