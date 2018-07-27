@@ -114,7 +114,7 @@ class Lserver():
 			if data == 'p':
 				#TODO This function returns a value we might want
 				self.prev = CC.go_prev(self.prev)
-				client_sock.sendall((b'n', self.prev)
+				client_sock.sendall(b'n', self.prev)
 
 			if data == 'P':
 				self.prev = self.prev + 1
