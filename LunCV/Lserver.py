@@ -15,10 +15,11 @@ import pygame
 from pygame import camera
 
 from PIL import Image
-import CameraCommands as CC
+import CameraCommands
 import MotorControl
 
 MC = MotorControl.MotorControl()
+CC = CameraCommands.CameraCommands()
 
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
