@@ -50,6 +50,7 @@ class Lserver():
 		#pygame.camera.init()
 
 		length = None
+		message = None
 		buffer = ""
 
 		while True:
@@ -61,15 +62,10 @@ class Lserver():
 				if length is None:
 					if ':' not in buffer:
 						break
-					length_str, ignored, buffer = buffer.partition(':')
-					length = int(len(length_str))
+					message, ignored, buffer = buffer.partition(':')
+					length = len(message)
 				if len(buffer) > length:
 					break
-				message = buffer[:length]
-				buffer = buffer[length:]
-				length = None
-
-				print(message)
 
 				if message == "a":
 					img = Image.open('tmp.png')
@@ -142,6 +138,9 @@ class Lserver():
 						self.prev = 1
 					CC.stop_preview()
 					CC.go_prev(self.prev)
+
+				length = None
+				message = None
 
 	def recv_robust(self, servsock, timeout):
 		'''A robust recv method which amalgamates timeout, and end of message checks.

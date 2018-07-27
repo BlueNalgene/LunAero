@@ -30,18 +30,18 @@ class Lclient():
 			#return False
 
 
-	def cnx(self):
-		'''Connection handler with timeout reporting,
-		works in conjunction with connect_2_pi()
-		'''
-		clientsocket = self.clientsocket
-		clientsocket.settimeout(5)
-		try:
-			clientsocket.connect((self.ip_address, self.port))
-			return True
-		except socket.error:
-			print("Connection failure, retry")
-			return False
+	#def cnx(self):
+		#'''Connection handler with timeout reporting,
+		#works in conjunction with connect_2_pi()
+		#'''
+		#clientsocket = self.clientsocket
+		#clientsocket.settimeout(5)
+		#try:
+			#clientsocket.connect((self.ip_address, self.port))
+			#return True
+		#except socket.error:
+			#print("Connection failure, retry")
+			#return False
 
 	def recv(self, data):
 		'''Socket recieve function which processes images provided by the video stream
