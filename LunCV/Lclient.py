@@ -84,11 +84,17 @@ class Lclient():
 		'''Sends a string through the socket to the server to run a command on the remote Pi
 		then waits for a response
 		'''
+		data = b''
 		clientsocket = self.clientsocket
 		clientsocket.sendall(bytestring)
-		data = clientsocket.recv(4096)
-		print("socket recv: ", data)
-		return data
+		while True:
+			try:
+				data = clientsocket.recv(1024)
+				print("socket recv: ", data)
+				if data:
+					return data
+			except socket.timeout:
+				print("timeout")
 
 	def connect_test(self):
 		'''A simple test to detect if the socket is still connected

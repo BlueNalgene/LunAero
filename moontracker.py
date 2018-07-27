@@ -41,7 +41,7 @@ def main():
 	from LunCV.Lconfig import RED, BLACK
 	#TODO function to pull prev from the go function
 	prev = 3
-	prev = LC.sendout(b'p')
+	prev = LC.sendrecv(b'p')
 	print(prev)
 	time.sleep(2)
 	exp = 30000

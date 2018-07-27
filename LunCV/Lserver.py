@@ -31,11 +31,9 @@ class Lserver():
 	def get_ip_address(self, ifname):
 		'''Get the ip address for your device using the SIOCGIFADDR method
 		'''
-		servsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		ifname = bytes(ifname[:15], encoding='UTF-8')
 		ifreq = struct.pack('256s', ifname)
-		sio = socket.inet_ntoa(fcntl.ioctl(servsocket.fileno(), 0x8915, ifreq)[20:24])
-		print("SIO: ", sio)
+		sio = socket.inet_ntoa(fcntl.ioctl(self.servsock.fileno(), 0x8915, ifreq)[20:24])
 		return sio
 
 	def server(self):
@@ -47,86 +45,103 @@ class Lserver():
 		servsock.bind((ip_address, port))
 		servsock.listen(5)
 		print("\nServer started at " + str(ip_address) + " at port " + str(port))
+		client_sock, _ = servsock.accept()
 
-		pygame.camera.init()
+		#pygame.camera.init()
+
+		length = None
+		buffer = ""
 
 		while True:
-			servsock.listen(5)
-			client_sock, _ = servsock.accept()
-			data = client_sock.recv(20)
-			#if not data:
-				#break
-			if data == "a":
-				img = Image.open('tmp.png')
-				img = img.resize(img)
-				imgbyte = img.tobytes()
-				#len for 640x480 bytes is 921600
-				client_sock.sendall(imgbyte)
+			data = client_sock.recv(1024)
+			if not data:
+				break
+			buffer += data
+			while True:
+				if length is None:
+					if ':' not in buffer:
+						break
+					length_str, ignored, buffer = buffer.partition(':')
+					length = int(length_str)
+				if len(buffer) < length:
+					break
+				message = buffer[:length]
+				buffer = buffer[length:]
+				length = None
 
-			if data == 't':
-				CC.thresh_dec()
+				print(message)
 
-			if data == 'T':
-				CC.thresh_inc()
+				if message == "a":
+					img = Image.open('tmp.png')
+					img = img.resize(img)
+					imgbyte = img.tobytes()
+					#len for 640x480 bytes is 921600
+					client_sock.sendall(imgbyte)
 
-			if data == 'i':
-				CC.iso_cyc()
+				if message == 't':
+					CC.thresh_dec()
 
-			if data == 'e':
-				CC.exp_dec()
+				if message == 'T':
+					CC.thresh_inc()
 
-			if data == 'E':
-				CC.exp_inc()
+				if message == 'i':
+					CC.iso_cyc()
 
-			if data == 'B':
-				MC.mot_stop("B")
+				if message == 'e':
+					CC.exp_dec()
 
-			if data == 'w':
-				MC.pwmb.ChangeDutyCycle(100)
-				MC.mot_up()
+				if message == 'E':
+					CC.exp_inc()
 
-			if data == 'a':
-				MC.pwma.ChangeDutyCycle(100)
-				MC.mot_left()
+				if message == 'B':
+					MC.mot_stop("B")
 
-			if data == 's':
-				MC.pwmb.ChangeDutyCycle(100)
-				MC.mot_down()
+				if message == 'w':
+					MC.pwmb.ChangeDutyCycle(100)
+					MC.mot_up()
 
-			if data == 'd':
-				MC.pwma.ChangeDutyCycle(100)
-				MC.mot_right()
+				if message == 'a':
+					MC.pwma.ChangeDutyCycle(100)
+					MC.mot_left()
 
-			if data == 'x':
-				outfile = int(time.time())
-				outfile = str(outfile) + 'outA.h264'
-				if os.path.isdir('/media/pi/MOON1'):
-					outfile = os.path.join('/media/pi/MOON1', outfile)
-				else:
-					print("Check that the thumbdrive is plugged in and mounted")
-					print("You should see it at /media/pi/MOON1")
-					if True:
-						print("Continuing with a new save location")
-						outfile = os.path.join('/home/pi/Documents', outfile)
+				if message == 's':
+					MC.pwmb.ChangeDutyCycle(100)
+					MC.mot_down()
+
+				if message == 'd':
+					MC.pwma.ChangeDutyCycle(100)
+					MC.mot_right()
+
+				if message == 'x':
+					outfile = int(time.time())
+					outfile = str(outfile) + 'outA.h264'
+					if os.path.isdir('/media/pi/MOON1'):
+						outfile = os.path.join('/media/pi/MOON1', outfile)
 					else:
-						raise ValueError("The thumbdrive is not where I expected it to be!")
-				print(str(outfile))
-				CC.start_recording(outfile)
-				time.sleep(1)
+						print("Check that the thumbdrive is plugged in and mounted")
+						print("You should see it at /media/pi/MOON1")
+						if True:
+							print("Continuing with a new save location")
+							outfile = os.path.join('/home/pi/Documents', outfile)
+						else:
+							raise ValueError("The thumbdrive is not where I expected it to be!")
+					print(str(outfile))
+					CC.start_recording(outfile)
+					time.sleep(1)
 
-			if data == 'p':
-				#TODO This function returns a value we might want
-				self.prev = CC.go_prev(self.prev)
-				print("self.prev", self.prev)
-				client_sock.sendall(b'n', self.prev)
-				print("I sent it")
+				if message == 'p':
+					#TODO This function returns a value we might want
+					self.prev = CC.go_prev(self.prev)
+					print("self.prev", self.prev)
+					client_sock.sendall(b'n', self.prev)
+					print("I sent it")
 
-			if data == 'P':
-				self.prev = self.prev + 1
-				if self.prev > 5:
-					self.prev = 1
-				CC.stop_preview()
-				CC.go_prev(self.prev)
+				if message == 'P':
+					self.prev = self.prev + 1
+					if self.prev > 5:
+						self.prev = 1
+					CC.stop_preview()
+					CC.go_prev(self.prev)
 
 	def recv_robust(self, servsock, timeout):
 		'''A robust recv method which amalgamates timeout, and end of message checks.
