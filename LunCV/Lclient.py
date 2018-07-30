@@ -29,20 +29,6 @@ class Lclient():
 			print("Connection failure, retry")
 			#return False
 
-
-	#def cnx(self):
-		#'''Connection handler with timeout reporting,
-		#works in conjunction with connect_2_pi()
-		#'''
-		#clientsocket = self.clientsocket
-		#clientsocket.settimeout(5)
-		#try:
-			#clientsocket.connect((self.ip_address, self.port))
-			#return True
-		#except socket.error:
-			#print("Connection failure, retry")
-			#return False
-
 	def recv(self, data):
 		'''Socket recieve function which processes images provided by the video stream
 		'''
@@ -84,22 +70,36 @@ class Lclient():
 		'''Sends a string through the socket to the server to run a command on the remote Pi
 		then waits for a response
 		'''
-		data = b''
+		
 		clientsocket = self.clientsocket
 		clientsocket.sendall(bytestring)
+
+		length = None
+		message = None
+		buffer = ""
+
 		while True:
 			try:
 				data = clientsocket.recv(1024)
-				print("socket recv: ", data)
-				if data:
-					return data
+				if not data:
+					break
+				buffer += data.decode('UTF-8')
+				while True:
+					if length is None:
+						if ':' not in buffer:
+							break
+						message, ignored, buffer = buffer.partition(':')
+						length = len(message)
+					if len(buffer) > length:
+						break
+					return message
 			except socket.timeout:
 				print("timeout")
 
 	def connect_test(self):
 		'''A simple test to detect if the socket is still connected
 		'''
-		#clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
 			clientsocket.sendall("testdata")
 			return True

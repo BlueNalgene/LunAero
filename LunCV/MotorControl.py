@@ -131,9 +131,3 @@ class MotorControl():
 				self.pwmb.ChangeDutyCycle(self.dcb)
 			print("slowdown ", direct, self.dcb)
 		return
-
-	def stream_cap(self):
-		'''Captures a snapshot from the current stream
-		'''
-		img = Image.open(STREAM)
-		return img

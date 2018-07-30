@@ -8,10 +8,10 @@ import io
 import time
 import numpy as np
 from PIL import Image
-import Platform
-if Platform.platform_detect() == 1:
-	import picamera
-	import RasPiGPIO, MotorControl
+
+import picamera
+import RasPiGPIO
+import MotorControl
 
 class CameraCommands():
 	'''Commands for the Raspberry Pi Camera
@@ -23,7 +23,8 @@ class CameraCommands():
 	MOC = MotorControl.MotorControl()
 	STREAM = io.BytesIO()
 
-	import Lconfig
+	import LunCV.Lconfig
+
 
 	def __init__(self):
 		return
@@ -193,3 +194,9 @@ class CameraCommands():
 			self.CAMERA.stop_recording()
 			start = self.start_rec()
 		return start
+
+	def stream_cap(self):
+		'''Captures a snapshot from the current stream
+		'''
+		img = Image.open(self.STREAM)
+		return img

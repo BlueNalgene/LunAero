@@ -9,7 +9,6 @@ Motor B is right and left
 from __future__ import print_function
 
 import argparse
-import os.path
 import time
 import traceback
 import pygame
@@ -88,7 +87,7 @@ def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui
 	'''
 
-	from LunCV.Lconfig import IMGTHRESH, VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+	from LunCV.Lconfig import IMGTHRESH
 
 	start = start_rec()
 
@@ -110,7 +109,7 @@ def pygame_tracking(prev, exp):
 					if ARGS.verbose:
 						print("quitting tracker")
 				if event.key == pygame.K_i:
-					LC.sendout(b'i:')
+					iso = LC.sendrecv(b'i:')
 					print("iso set to ", iso)
 				if event.key == pygame.K_d:
 					LC.sendout(b'e:')
@@ -122,40 +121,12 @@ def pygame_tracking(prev, exp):
 					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
 				cnt = 100
-		start = CC.timed_restart(start)
+		start = str(start)
+		start = 'r' + start + ':'
+		start = bytes(start, encoding='UTF-8')
+		start = LC.sendrecv(start)
 
-		if ONRPI:
-			diffx, diffy, ratio, cmx, cmy = CC.get_img()
-			if ARGS.verbose:
-				print(ratio, cmx, cmy, diffx, diffy)
-
-			if (abs(diffy) > VERTTHRESHSTART or abs(diffx) > HORTHRESHSTART):
-				check = CC.checkandmove()
-
-			lost_count = 0
-			if check == 1:       #Moon successfully centered
-				if ARGS.verbose:
-					print("centered")
-				lost_count = 0
-				img = CC.stream_cap()
-				img.save("tmp.png")
-				if ARGS.contrast:
-					os.system("xdg-open tmp.png") #display image - for debugging only
-					time.sleep(3)
-					os.system("killall gpicview")
-				else:
-					pass
-			if check == 0:       #centering in progress
-				time.sleep(.02)  #sleep for 20ms
-			if (check == 2 or ratio < LOSTRATIO):        #moon lost, theshold too low
-				lost_count = lost_count + 1
-				if ARGS.verbose:
-					print("moon lost")
-				time.sleep(1)
-				if lost_count > 30:
-					if ARGS.verbose:
-						print("moon totally lost")
-					cnt = 100   #set count to 100 to exit the while loop
+		cnt = LC.sendrecv(b'R:')
 	return prev, exp
 
 def pygame_centering(prev, exp):
@@ -192,7 +163,7 @@ def pygame_centering(prev, exp):
 						print("stop")
 					LC.sendout(b'B:')
 				if event.key == pygame.K_i:
-					LC.sendout(b'i:')
+					iso = LC.sendrecv(b'i:')
 					print("iso set to ", iso)
 				if event.key == pygame.K_d:
 					LC.sendout(b'e:')

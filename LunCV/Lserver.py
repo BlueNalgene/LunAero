@@ -62,7 +62,7 @@ class Lserver():
 				if length is None:
 					if ':' not in buffer:
 						break
-					message, ignored, buffer = buffer.partition(':')
+					message, _, buffer = buffer.partition(':')
 					length = len(message)
 				if len(buffer) > length:
 					break
@@ -81,7 +81,11 @@ class Lserver():
 					CC.thresh_inc()
 
 				if message == 'i':
-					CC.iso_cyc()
+					iso = CC.iso_cyc()
+					iso = str(iso)
+					iso += ':'
+					iso = bytes(iso, encoding='UTF-8')
+					client_sock.sendall(iso)
 
 				if message == 'e':
 					CC.exp_dec()
@@ -126,11 +130,11 @@ class Lserver():
 					time.sleep(1)
 
 				if message == 'p':
-					#TODO This function returns a value we might want
-					self.prev = CC.go_prev(self.prev)
-					print("self.prev", self.prev)
-					client_sock.sendall(b'n', self.prev)
-					print("I sent it")
+					prev = CC.go_prev(self.prev)
+					prev = str(prev)
+					prev += ':'
+					prev = bytes(prev, encoding='UTF-8')
+					client_sock.sendall(prev)
 
 				if message == 'P':
 					self.prev = self.prev + 1
@@ -138,6 +142,46 @@ class Lserver():
 						self.prev = 1
 					CC.stop_preview()
 					CC.go_prev(self.prev)
+
+				if message == 'R':
+					from LunCV.Lconfig import VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+
+					diffx, diffy, ratio, cmx, cmy = CC.get_img()
+					print(ratio, cmx, cmy, diffx, diffy)
+
+					if (abs(diffy) > VERTTHRESHSTART or abs(diffx) > HORTHRESHSTART):
+						check = CC.checkandmove()
+
+					lost_count = 0
+					if check == 1:       #Moon successfully centered
+						print("centered")
+						lost_count = 0
+						img = CC.stream_cap()
+						img.save("tmp.png")
+
+						os.system("xdg-open tmp.png") #display image - for debugging only
+						time.sleep(3)
+						os.system("killall gpicview")
+
+					if check == 0:       #centering in progress
+						time.sleep(.02)  #sleep for 20ms
+					if (check == 2 or ratio < LOSTRATIO):        #moon lost, theshold too low
+						lost_count = lost_count + 1
+						print("moon lost")
+						time.sleep(1)
+						if lost_count > 30:
+							print("moon totally lost")
+							cnt = b'100:'
+							client_sock.sendall(cnt)
+
+				if message.startswith('r'):
+					start = int(message[1:])
+					start = CC.timed_restart(start)
+					start = str(start)
+					start += ':'
+					start = bytes(start, encoding='UTF-8')
+					client_sock.sendall(start)
+
 
 				length = None
 				message = None
