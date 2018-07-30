@@ -318,5 +318,18 @@ domain-needed
 bogus-priv
 dhcp-range=192.168.42.100,192.168.42.200,24h
 EOF
+
+
+# Set up TMPFS options to enable RAM recording that doesn't wreck SD cards
+sudo mkdir /var/tmp/LunAero
+echo "" | sudo tee -a /etc/fstab
+echo "#LunAero Temp folder" | sudo tee -a /etc/fstab
+echo "tmpfs   /var/tmp/LunAero    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0" | sudo tee -a /etc/fstab
+
+# Set up the server program to run automatically on startup.
+BASEDIR=$(dirname "$0")
+sudo cp $(echo $BASEDIR"/LunAeroServer/Lserver.py") /etc/Lserver.py
+sudo sed -i -e '$i \sudo python3 /etc/Lserver.py &\n' /etc/rc.local
+
 # Finish and reboot
 sudo reboot
