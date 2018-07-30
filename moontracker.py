@@ -13,8 +13,8 @@ import time
 import traceback
 import pygame
 
-from LunCV import Lclient
-LC = Lclient()
+from LunAeroClient import Lclient
+LC = Lclient.Lclient()
 
 PARSER = argparse.ArgumentParser(\
 	description='This is the video recording file for use with LunAero')
@@ -37,7 +37,7 @@ if ARGS.verbose:
 def main():
 	'''Main
 	'''
-	from LunCV.Lconfig import RED, BLACK
+	from LunAeroServer.Lconfig import RED, BLACK
 	#TODO function to pull prev from the go function
 	prev = 3
 	prev = LC.sendrecv(b'p:')
@@ -87,12 +87,12 @@ def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui
 	'''
 
-	from LunCV.Lconfig import IMGTHRESH
+	from LunAeroServer.Lconfig import IMGTHRESH
 
 	start = start_rec()
 
 	cnt = 0
-	check = 1
+	#check = 1
 	while cnt < 55:
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:

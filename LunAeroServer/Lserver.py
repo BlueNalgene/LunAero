@@ -120,11 +120,9 @@ class Lserver():
 					else:
 						print("Check that the thumbdrive is plugged in and mounted")
 						print("You should see it at /media/pi/MOON1")
-						if True:
-							print("Continuing with a new save location")
-							outfile = os.path.join('/home/pi/Documents', outfile)
-						else:
-							raise ValueError("The thumbdrive is not where I expected it to be!")
+						print("Continuing with a new save location")
+						outfile = os.path.join('/home/pi/Documents', outfile)
+						raise ValueError("The thumbdrive is not where I expected it to be!")
 					print(str(outfile))
 					CC.start_recording(outfile)
 					time.sleep(1)
@@ -144,7 +142,7 @@ class Lserver():
 					CC.go_prev(self.prev)
 
 				if message == 'R':
-					from LunCV.Lconfig import VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+					from Lconfig import VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
 
 					diffx, diffy, ratio, cmx, cmy = CC.get_img()
 					print(ratio, cmx, cmy, diffx, diffy)
@@ -182,56 +180,8 @@ class Lserver():
 					start = bytes(start, encoding='UTF-8')
 					client_sock.sendall(start)
 
-
 				length = None
 				message = None
-
-	def recv_robust(self, servsock, timeout):
-		'''A robust recv method which amalgamates timeout, and end of message checks.
-		It cannot do a message length check.
-		'''
-
-		# Empty variables
-		total_data = []
-		data = ''
-
-		# This is our end of message character.  Make sure it is a single character, so won't break up
-		endpoint = '\0'
-
-		# Declare that we are considering timeouts.
-		servsock.setblocking(False)
-
-		# Start counting the time
-		begin = time.time()
-
-		while True:
-			#if you got some data, then break after wait sec
-			if total_data and time.time()-begin > timeout:
-				break
-			#if you got no data at all, wait a little longer
-			elif time.time()-begin > timeout*2:
-				break
-			try:
-				data = servsock.recv(8192)
-				if data:
-					if endpoint in data:
-						total_data.append(data[:data.find(endpoint)])
-						break
-					total_data.append(data)
-					begin = time.time()
-					if len(total_data) > 1:
-						#check if end_of_data was split
-						last_pair = total_data[-2]+total_data[-1]
-						if endpoint in last_pair:
-							total_data[-2] = last_pair[:last_pair.find(endpoint)]
-							total_data.pop()
-							break
-						else:
-							time.sleep(0.1)
-			except socket.error:
-				pass
-		return ''.join(total_data)
-
 
 L = Lserver()
 try:

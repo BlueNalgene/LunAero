@@ -14,10 +14,10 @@ import math
 import os
 #from PIL import Image
 import numpy as np
+#import pandas
 
-from  __init__ import USEGUI
+from LunCV.LCVconfig import USEGUI
 
-import pandas
 import cv2
 
 if USEGUI:
@@ -93,7 +93,7 @@ def runner(pos_frame):
 	ret, frame = cap.read()
 
 	if ret:
-		lcv = Manipulations()
+		lcv = Manipulations.Manipulations()
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		gray = cv2.GaussianBlur(gray, (5, 5), 0)
 		lower_thresh, upper_thresh = lcv.magic_thresh(gray)
@@ -129,20 +129,20 @@ def runner(pos_frame):
 
 	return frame, result
 
-def bird_dependent_correlation(pos_frame):
-	'''Numpy is used to check frames
-	'''
+#def bird_dependent_correlation(pos_frame):
+	#'''Numpy is used to check frames
+	#'''
 
-	# We need to tell python to use the global declarations from the beginning
-	global CSVDETECT, CSVFILE, TEMP0, TEMP1, CENTERS, SIZE_LIST
+	## We need to tell python to use the global declarations from the beginning
+	#global CSVDETECT, CSVFILE, TEMP0, TEMP1, CENTERS, SIZE_LIST
 
-	# Thresholds for "good" values of area and speed differences.
-	area_threshold = 30
-	speed_threshold = 120000
+	## Thresholds for "good" values of area and speed differences.
+	#area_threshold = 30
+	#speed_threshold = 120000
 
-	# The Area Velocity constants are calculated from the calibration relationship
-	av_slope = 1.04605
-	av_icept = 12.4457
+	## The Area Velocity constants are calculated from the calibration relationship
+	#av_slope = 1.04605
+	#av_icept = 12.4457
 
 
 def bird_correlation(pos_frame):

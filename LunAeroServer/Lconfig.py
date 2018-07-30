@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 '''Contains the variables for:
--USEGUI
 -Movement factors
 -Frame loss
 -Thresholding
@@ -13,9 +12,6 @@
 '''
 
 import time
-
-# Declare if you want to use the GUI.
-USEGUI = False
 
 MOVEFACTORX = 0.0020
 MOVEFACTORY = 0.0015

@@ -32,7 +32,7 @@ class Lclient():
 	def recv(self, data):
 		'''Socket recieve function which processes images provided by the video stream
 		'''
-		clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		clientsocket = self.clientsocket
 		buffsize = 1024
 		data = b''
 		if self.connect_test:
@@ -70,7 +70,7 @@ class Lclient():
 		'''Sends a string through the socket to the server to run a command on the remote Pi
 		then waits for a response
 		'''
-		
+
 		clientsocket = self.clientsocket
 		clientsocket.sendall(bytestring)
 
@@ -88,7 +88,7 @@ class Lclient():
 					if length is None:
 						if ':' not in buffer:
 							break
-						message, ignored, buffer = buffer.partition(':')
+						message, _, buffer = buffer.partition(':')
 						length = len(message)
 					if len(buffer) > length:
 						break
@@ -99,7 +99,7 @@ class Lclient():
 	def connect_test(self):
 		'''A simple test to detect if the socket is still connected
 		'''
-		clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		clientsocket = self.clientsocket
 		try:
 			clientsocket.sendall("testdata")
 			return True

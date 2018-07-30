@@ -22,8 +22,9 @@ class CameraCommands():
 	CAMERA = picamera.PiCamera()
 	MOC = MotorControl.MotorControl()
 	STREAM = io.BytesIO()
+	IMGTHRESH = 125
 
-	import LunCV.Lconfig
+	import Lconfig
 
 
 	def __init__(self):
@@ -97,7 +98,7 @@ class CameraCommands():
 		'''
 		#from Lconfig import LOSTRATIO, HORTHRESHSTOP, VERTTHRESHSTOP
 
-		diffx, diffy, ratio = self.get_img()
+		diffx, diffy, ratio, _, _ = self.get_img()
 		if ratio < self.LOSTRATIO:
 			# Default to 'moon is lost'
 			rtn = 2
@@ -132,28 +133,33 @@ class CameraCommands():
 		self.CAMERA.stop_recording()
 		self.CAMERA.stop_preview()
 		RasPiGPIO.GPIO.cleanup()
+		return
 
 	def start_recording(self, outfile):
 		'''Function must be in this program to segregate imports
 		'''
 		self.CAMERA.start_recording(outfile)
+		return
 
 	def stop_preview(self):
 		'''Function must be in this program to segregate imports
 		'''
 		self.CAMERA.stop_preview()
+		return
 
 	def thresh_dec(self):
 		'''Decrease the black and white threshold
 		'''
 		if self.IMGTHRESH > 10:
-			self.IMGTHRESH = (self.IMGTHRESH - 10)
+			self.IMGTHRESH = self.IMGTHRESH - 10
+			return
 
 	def thresh_inc(self):
 		'''Increase the black and white threshold
 		'''
 		if self.IMGTHRESH < 245:
-			self.IMGTHRESH = (self.IMGTHRESH + 10)
+			self.IMGTHRESH = self.IMGTHRESH + 10
+			return
 
 	def iso_cyc(self):
 		'''Cycle to another ISO settings
@@ -173,6 +179,7 @@ class CameraCommands():
 		exp = self.get_exp()
 		exp = exp - 100
 		self.CAMERA.shutter_speed = exp
+		return
 
 	def exp_inc(self):
 		'''Increase the exposure value by 100 units
@@ -180,6 +187,7 @@ class CameraCommands():
 		exp = self.get_exp()
 		exp = exp + 100
 		self.CAMERA.shutter_speed = exp
+		return
 
 	def timed_restart(self, start):
 		'''This does a few things.
