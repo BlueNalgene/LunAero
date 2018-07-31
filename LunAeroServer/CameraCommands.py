@@ -33,7 +33,7 @@ class CameraCommands():
 		Set the interval parameter to change the number of seconds between each capture
 		'''
 		self.interval = interval
-		thread = threading.Thread(target=self.run, args=())
+		thread = threading.Thread(target=self.forever_cap, args=())
 		thread.daemon = True
 		thread.start()
 		return
@@ -222,5 +222,5 @@ class CameraCommands():
 		'''Runs the stream_cap method forever.  Use with care
 		'''
 		while True:
-			img = stream_cap()
+			img = self.stream_cap()
 			time.sleep(self.interval)
