@@ -29,7 +29,7 @@ class Lclient():
 			print("Connection failure, retry")
 			#return False
 
-	def recv(self, data):
+	def recv(self):
 		'''Socket recieve function which processes images provided by the video stream
 		'''
 		clientsocket = self.clientsocket
@@ -43,8 +43,8 @@ class Lclient():
 				else:
 					image = pygame.image.fromstring(data, (640, 480), 'RGB') #image from bytes
 					data = b''
-					pygame.image.save(image, "tmp.png")
-					break
+					pygame.image.save(image, "tmp.jpg")
+					return
 
 	def sendout(self, bytestring):
 		'''Sends a string through the socket to the server to run a command on the remote Pi
@@ -92,6 +92,8 @@ class Lclient():
 						length = len(message)
 					if len(buffer) > length:
 						break
+					if message == 'A':
+						self.recv()
 					return message
 			except socket.timeout:
 				print("timeout")
