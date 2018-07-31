@@ -9,6 +9,7 @@ Motor B is right and left
 from __future__ import print_function
 
 import argparse
+import threading
 import time
 import traceback
 import pygame
@@ -37,6 +38,7 @@ if ARGS.verbose:
 def main():
 	'''Main
 	'''
+	global IMG
 	from LunAeroClient.Lconfig import RED, BLACK
 	#TODO function to pull prev from the go function
 	prev = 3
@@ -48,14 +50,20 @@ def main():
 		print("exposure speed ", exp)
 
 	pygame.init()
+
+	thread = threading.Thread(target=read_tmpimg(), args=())
+	thread.daemon = True
+	thread.start()
+
 	pygame.display.set_caption('Manual control')
-	size = [400, 240]
+	size = [1080, 720]
 	screen = pygame.display.set_mode(size)
 	font = pygame.font.SysFont('Arial', 25)
 	screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
 	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
 	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
 	screen.blit(font.render('moon tracker', True, RED), (25, 165))
+	screen.blit(IMG, [50, 200])
 	pygame.display.update()
 
 	prev, exp = pygame_centering(prev, exp)
@@ -82,6 +90,14 @@ def start_rec():
 	if ARGS.verbose:
 		print("Preparing outfile from time ", start)
 	return start
+
+def read_tmpimg():
+	'''Reads the temporary image on a loop.
+	'''
+	global IMG
+	while True:
+		IMG = LC.sendrecv(b'A:')
+		#pygame.display.update()
 
 def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui

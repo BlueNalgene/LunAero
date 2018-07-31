@@ -68,7 +68,7 @@ class Lserver():
 					break
 
 				if message == "A":
-					img = Image.open('tmp.jpg')
+					img = Image.open('/var/tmp/LunAero/tmp.jpg')
 					img = img.resize(img)
 					imgbyte = img.tobytes()
 					#len for 640x480 bytes is 921600
