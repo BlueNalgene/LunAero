@@ -26,7 +26,14 @@ class CameraCommands():
 	IMGTHRESH = 125
 
 	import Lconfig
-
+	HORDIM = Lconfig.HORDIM
+	VERTDIM = Lconfig.VERTDIM
+	HORTHRESHSTOP = Lconfig.HORTHRESHSTOP
+	VERTTHRESHSTOP = Lconfig.VERTTHRESHSTOP
+	LOSTRATIO = Lconfig.LOSTRATIO
+	IMGTHRESH = Lconfig.IMGTHRESH
+	CENX = Lconfig.CENY
+	CENY = Lconfig.CENX
 
 	def __init__(self, interval=0.1):
 		'''This init starts the screen captures in background
@@ -218,11 +225,11 @@ class CameraCommands():
 			(self.HORDIM, self.VERTDIM), format='jpeg')
 		img = Image.open(self.STREAM)
 		img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
-		return img
+		return
 
 	def forever_cap(self):
 		'''Runs the stream_cap method forever.  Use with care
 		'''
 		while True:
-			img = self.stream_cap()
+			self.stream_cap()
 			time.sleep(self.interval)
