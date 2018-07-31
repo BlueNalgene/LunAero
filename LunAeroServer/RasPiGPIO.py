@@ -10,7 +10,9 @@ class RasPiGPIO():
 
 	import RPi.GPIO as GPIO
 
-	GPIO.setmode(GPIO.BCM)
+	def __init__(self):
+		GPIO.setmode(GPIO.BCM)
+
 	APINP = 17  #Pulse width pin for motor A (up and down)
 	APIN1 = 27  #Motor control - high for up
 	APIN2 = 22  #Motor control - high for down
@@ -26,3 +28,9 @@ class RasPiGPIO():
 			GPIO.output(i, GPIO.LOW)
 		else:
 			GPIO.output(i, GPIO.HIGH)
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		GPIO.cleanup()

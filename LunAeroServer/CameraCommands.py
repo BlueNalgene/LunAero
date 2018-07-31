@@ -147,7 +147,7 @@ class CameraCommands():
 		self.MOC.mot_stop("B")
 		self.CAMERA.stop_recording()
 		self.CAMERA.stop_preview()
-		RasPiGPIO.GPIO.cleanup()
+		#GPIO.GPIO.cleanup()
 		return
 
 	def start_recording(self, outfile):

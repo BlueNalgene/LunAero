@@ -17,10 +17,7 @@ from pygame import camera
 from PIL import Image
 import CameraCommands
 import MotorControl
-import RasPiGPIO as GPIO
 
-MC = MotorControl.MotorControl()
-CC = CameraCommands.CameraCommands()
 
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
@@ -71,7 +68,7 @@ class Lserver():
 				if message == "A":
 					img = Image.open('/var/tmp/LunAero/tmp.jpg')
 					print(img.size)
-					img = img.resize(img)
+					img = img.resize(img, [640, 480])
 					imgbyte = img.tobytes()
 					#len for 640x480 bytes is 921600
 					client_sock.sendall(imgbyte)
@@ -194,6 +191,5 @@ except Exception as inst:
 	print("Exception     : ", inst)
 	traceback.print_exc()
 finally:
-	GPIO.cleanup()
 	CC.shutdown_camera()
 	os.system("killall gpicview")
