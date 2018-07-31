@@ -207,4 +207,5 @@ class CameraCommands():
 		'''Captures a snapshot from the current stream
 		'''
 		img = Image.open(self.STREAM)
+		img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
 		return img

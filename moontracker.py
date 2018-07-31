@@ -37,7 +37,7 @@ if ARGS.verbose:
 def main():
 	'''Main
 	'''
-	from LunAeroServer.Lconfig import RED, BLACK
+	from LunAeroClient.Lconfig import RED, BLACK
 	#TODO function to pull prev from the go function
 	prev = 3
 	prev = LC.sendrecv(b'p:')
@@ -87,7 +87,7 @@ def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui
 	'''
 
-	from LunAeroServer.Lconfig import IMGTHRESH
+	from LunAeroClient.Lconfig import IMGTHRESH
 
 	start = start_rec()
 
