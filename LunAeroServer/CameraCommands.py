@@ -214,6 +214,8 @@ class CameraCommands():
 	def stream_cap(self):
 		'''Captures a snapshot from the current stream
 		'''
+		self.CAMERA.capture(self.STREAM, use_video_port=True, resize=\
+			(self.HORDIM, self.VERTDIM), format='jpeg')
 		img = Image.open(self.STREAM)
 		img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
 		return img
