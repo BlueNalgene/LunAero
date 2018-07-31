@@ -67,7 +67,7 @@ class Lserver():
 				if len(buffer) > length:
 					break
 
-				if message == "a":
+				if message == "A":
 					img = Image.open('tmp.jpg')
 					img = img.resize(img)
 					imgbyte = img.tobytes()

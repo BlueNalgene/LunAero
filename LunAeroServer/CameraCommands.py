@@ -28,7 +28,14 @@ class CameraCommands():
 	import Lconfig
 
 
-	def __init__(self):
+	def __init__(self, interval=0.1):
+		'''This init starts the screen captures in background
+		Set the interval parameter to change the number of seconds between each capture
+		'''
+		self.interval = interval
+		thread = threading.Thread(target=self.run, args=())
+		thread.daemon = True
+		thread.start()
 		return
 
 	def startup_camera(self):
@@ -140,9 +147,6 @@ class CameraCommands():
 		'''Function must be in this program to segregate imports
 		'''
 		self.CAMERA.start_recording(outfile)
-		thread = threading.Thread(target=self.run, args=())
-		thread.daemon = True
-		thread.start()
 		return
 
 	def stop_preview(self):
@@ -219,3 +223,4 @@ class CameraCommands():
 		'''
 		while True:
 			img = stream_cap()
+			time.sleep(self.interval)
