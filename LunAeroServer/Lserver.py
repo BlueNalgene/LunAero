@@ -67,9 +67,14 @@ class Lserver():
 					break
 
 				if message == "A":
-					img = Image.open('/var/tmp/LunAero/tmp.jpg')
-					print(img.size)
-					img.resize((640, 480))
+					client_sock.sendall(b'A:')
+					while True:
+						try:
+							img = Image.open('/var/tmp/LunAero/tmp.jpg')
+						except OSError:
+							continue
+						break
+					img = img.resize([640, 480])
 					imgbyte = img.tobytes()
 					#len for 640x480 bytes is 921600
 					client_sock.sendall(imgbyte)
