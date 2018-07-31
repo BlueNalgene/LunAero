@@ -140,7 +140,9 @@ class CameraCommands():
 		'''Function must be in this program to segregate imports
 		'''
 		self.CAMERA.start_recording(outfile)
-		
+		thread = threading.Thread(target=self.run, args=())
+		thread.daemon = True
+        thread.start()
 		return
 
 	def stop_preview(self):
