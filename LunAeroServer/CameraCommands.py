@@ -142,7 +142,7 @@ class CameraCommands():
 		self.CAMERA.start_recording(outfile)
 		thread = threading.Thread(target=self.run, args=())
 		thread.daemon = True
-        thread.start()
+		thread.start()
 		return
 
 	def stop_preview(self):
