@@ -68,9 +68,6 @@ class Lserver():
 
 				if message == "A":
 					client_sock.sendall(b'A:')
-					img = Image.open('/var/tmp/LunAero/tmp.jpg')
-					print(img.size)
-					img.resize((640, 480))
 					while True:
 						try:
 							img = Image.open('/var/tmp/LunAero/tmp.jpg')

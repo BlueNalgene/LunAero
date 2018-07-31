@@ -51,9 +51,7 @@ def main():
 
 	pygame.init()
 
-	thread = threading.Thread(target=read_tmpimg(), args=())
-	thread.daemon = True
-	thread.start()
+	rec_thread()
 
 	pygame.display.set_caption('Manual control')
 	size = [1080, 720]
@@ -90,6 +88,12 @@ def start_rec():
 	if ARGS.verbose:
 		print("Preparing outfile from time ", start)
 	return start
+
+def rec_thread():
+	thread = threading.Thread(target=read_tmpimg(), args=())
+	thread.daemon = True
+	thread.start()
+	return
 
 def read_tmpimg():
 	'''Reads the temporary image on a loop.
