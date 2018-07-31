@@ -91,9 +91,9 @@ def pygame_tracking(prev, exp):
 
 	start = start_rec()
 
-	cnt = 0
+	cnt = False
 	#check = 1
-	while cnt < 55:
+	while cnt == False:
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_z:
@@ -105,7 +105,7 @@ def pygame_tracking(prev, exp):
 					if ARGS.verbose:
 						print("increase thresholding to ", IMGTHRESH)
 				if event.key == pygame.K_q:
-					cnt = 100
+					cnt = True
 					if ARGS.verbose:
 						print("quitting tracker")
 				if event.key == pygame.K_i:
@@ -120,7 +120,7 @@ def pygame_tracking(prev, exp):
 				if event.key == pygame.K_v:
 					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
-				cnt = 100
+				cnt = True
 		start = str(start)
 		start = 'r' + start + ':'
 		start = bytes(start, encoding='UTF-8')
@@ -133,12 +133,12 @@ def pygame_centering(prev, exp):
 	''' Pygame based interface for centering the moon
 	'''
 
-	cnt = 0
-	while cnt < 10:
+	cnt = False
+	while cnt == False:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				LC.sendout(b'B:')
-				cnt = 100
+				cnt = True
 			# check if key is pressed
 			# if you use event.key here it will give you error at runtime
 			if event.type == pygame.KEYDOWN:
@@ -177,12 +177,12 @@ def pygame_centering(prev, exp):
 					if ARGS.verbose:
 						print("run tracker")
 					LC.sendout(b'B:')
-					cnt = 100
+					cnt = True
 				if event.key == pygame.K_RETURN:
 					if ARGS.verbose:
 						print("run tracker")
 					LC.sendout(b'B:')
-					cnt = 100
+					cnt = True
 	if ARGS.verbose:
 		print("quitting manual control, switching to tracking")
 	return prev, exp

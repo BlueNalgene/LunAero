@@ -5,6 +5,7 @@
 To be activated from the moontracker.py base file
 '''
 import io
+import threading
 import time
 import numpy as np
 from PIL import Image
@@ -139,6 +140,7 @@ class CameraCommands():
 		'''Function must be in this program to segregate imports
 		'''
 		self.CAMERA.start_recording(outfile)
+		
 		return
 
 	def stop_preview(self):
@@ -209,3 +211,9 @@ class CameraCommands():
 		img = Image.open(self.STREAM)
 		img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
 		return img
+
+	def forever_cap(self):
+		'''Runs the stream_cap method forever.  Use with care
+		'''
+		while True:
+			img = stream_cap()
