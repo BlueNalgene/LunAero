@@ -6,16 +6,15 @@
 
 import time
 
-import RPi.GPIO as GPIO
-
 import RasPiGPIO
 
 class MotorControl():
 	'''This class defines the different motions available to the LunAero hardware
 	'''
+	import RPi.GPIO as GPIO
+	global GPIO
 
-	with RasPiGPIO() as RPG:
-
+	with RasPiGPIO.RasPiGPIO() as RPG:
 		freq = 1000
 		pwma = GPIO.PWM(RPG.APINP, freq)
 		pwmb = GPIO.PWM(RPG.BPINP, freq)
@@ -32,6 +31,7 @@ class MotorControl():
 		def mot_stop(self, direct):
 			'''Stops
 			'''
+			global GPIO
 			print("stopping", direct)
 			if direct == "B":
 				while (self.dca > 0 or self.dcb > 0):
@@ -69,6 +69,7 @@ class MotorControl():
 		def mot_up(self):
 			'''Move up
 			'''
+			global GPIO
 			print("moving up")
 			self.pwma.ChangeDutyCycle(100)
 			GPIO.output(self.RPG.APIN1, GPIO.HIGH)
@@ -78,6 +79,7 @@ class MotorControl():
 		def mot_down(self):
 			'''Move down
 			'''
+			global GPIO
 			print("moving down")
 			self.pwma.ChangeDutyCycle(100)
 			GPIO.output(self.RPG.APIN1, GPIO.LOW)
@@ -87,6 +89,7 @@ class MotorControl():
 		def mot_left(self):
 			'''Move left
 			'''
+			global GPIO
 			print("moving left")
 			self.pwmb.ChangeDutyCycle(100)
 			GPIO.output(self.RPG.BPIN1, GPIO.HIGH)
@@ -96,6 +99,7 @@ class MotorControl():
 		def mot_right(self):
 			'''Move right
 			'''
+			global GPIO
 			print("moving right")
 			self.pwmb.ChangeDutyCycle(100)
 			GPIO.output(self.RPG.BPIN1, GPIO.LOW)
