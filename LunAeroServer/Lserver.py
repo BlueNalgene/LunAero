@@ -48,7 +48,7 @@ class Lserver():
 		print("\nServer started at " + str(ip_address) + " at port " + str(port))
 		client_sock, _ = servsock.accept()
 
-		capthread = threading.Thread(target=CC.stream_cap())
+		capthread = threading.Thread(target=CC.stream_cap)
 		capthread.start()
 
 		length = None
@@ -149,8 +149,36 @@ class Lserver():
 					CC.stop_preview()
 					CC.go_prev(self.prev)
 
+
+				#if message == "A":
+					#client_sock.sendall(b'A:')
+					#while True:
+						#try:
+							#img = Image.open('/var/tmp/LunAero/tmp.jpg')
+						#except OSError:
+							#continue
+						#break
+					#img = img.resize([640, 480])
+					#imgbyte = img.tobytes()
+					##len for 640x480 bytes is 921600
+					#client_sock.sendall(imgbyte)
+
 				if message == 'R':
 					from Lconfig import VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
+
+					#client_sock.sendall(b'A:')
+					#while True:
+						#try:
+							#img = Image.open('/var/tmp/LunAero/tmp.jpg')
+						#except OSError:
+							#continue
+						#break
+					cnt = False
+
+					#img = img.resize([640, 480])
+					#imgbyte = img.tobytes()
+					##len for 640x480 bytes is 921600
+					#client_sock.sendall(imgbyte)
 
 					diffx, diffy, ratio, cmx, cmy = CC.get_img()
 					print(ratio, cmx, cmy, diffx, diffy)
@@ -162,10 +190,8 @@ class Lserver():
 					if check == 1:       #Moon successfully centered
 						print("centered")
 						lost_count = 0
-						img = CC.stream_cap()
-						img.save("tmp.png")
 
-						os.system("xdg-open tmp.png") #display image - for debugging only
+						os.system("xdg-open tmp.jpg") #display image - for debugging only
 						time.sleep(3)
 						os.system("killall gpicview")
 
@@ -177,8 +203,11 @@ class Lserver():
 						time.sleep(1)
 						if lost_count > 30:
 							print("moon totally lost")
-							cnt = b'100:'
+							cnt = True
 							client_sock.sendall(cnt)
+							return
+					client_sock.sendall(cnt)
+					return
 
 				if message.startswith('r'):
 					start = int(message[1:])

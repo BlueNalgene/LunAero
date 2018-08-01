@@ -11,7 +11,6 @@ import numpy as np
 from PIL import Image
 
 import picamera
-import RasPiGPIO
 import MotorControl
 
 class CameraCommands():
@@ -151,9 +150,7 @@ class CameraCommands():
 		'''Shuts down the camera and motor
 		'''
 		self.MOC.mot_stop("B")
-		self.CAMERA.stop_recording()
-		self.CAMERA.stop_preview()
-		#GPIO.GPIO.cleanup()
+		self.CAMERA.close()
 		return
 
 	def start_recording(self, outfile):
@@ -235,20 +232,3 @@ class CameraCommands():
 			img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
 			time.sleep(0.05)
 		return
-
-	#def forever_cap(self):
-		#'''Runs the stream_cap method forever.  Use with care
-		#'''
-		#while not self.terminated:
-			#if self.event.wait(1):
-				#try:
-					#with conn_lock:
-						#self.stream_cap()
-				#finally:
-					#self.STREAM.seek(0)
-					#self.STREAM.truncate(0)
-					#self.event.clear()
-					#with pool_lock:
-						#pool.append(self)
-					#print(pool)
-			#time.sleep(self.interval)

@@ -68,7 +68,10 @@ def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui
 	'''
 
-	from LunAeroClient.Lconfig import IMGTHRESH
+	size = [1080, 720]
+	screen = pygame.display.set_mode(size)
+	tracker_info()
+	pygame.display.update()
 
 	start = start_rec()
 
@@ -108,12 +111,19 @@ def pygame_tracking(prev, exp):
 		start = LC.sendrecv(start)
 
 		cnt = LC.sendrecv(b'R:')
+
+		LC.sendrecv(b'A:')
+		img = pygame.image.load('tmp.jpg').convert()
+		rect = pygame.Rect(50, 200, 640, 480)
+		screen.blit(img, rect)
+		pygame.display.update(rect)
+
 	return prev, exp
 
 def pygame_centering(prev, exp):
 	''' Pygame based interface for centering the moon
 	'''
-	#from LunAeroClient.Lconfig import RED, BLACK
+
 	cnt = False
 	size = [1080, 720]
 	screen = pygame.display.set_mode(size)
@@ -193,14 +203,15 @@ def center_info():
 def tracker_info():
 	from LunAeroClient.Lconfig import RED, BLACK
 
+	pygame.display.set_caption('Automatic Tracking')
+	size = [1080, 720]
+	screen = pygame.display.set_mode(size)
 	screen.fill(BLACK)
-	pygame.display.update()
 	pygame.display.set_caption('Tracking Moon')
 	screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
 	screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
 	screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
 	screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
-	pygame.display.update()
 	return
 
 if __name__ == '__main__':
