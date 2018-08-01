@@ -63,24 +63,24 @@ class MotorControl():
 				self.pwma.ChangeDutyCycle(self.dca)
 				self.pwmb.ChangeDutyCycle(self.dcb)
 				time.sleep(.005)
-			self.GPIO.output(self.RPG.APIN1, self.GPIO.LOW)
-			self.GPIO.output(self.RPG.APIN2, self.GPIO.LOW)
-			self.GPIO.output(self.RPG.BPIN1, self.GPIO.LOW)
-			self.GPIO.output(self.RPG.BPIN2, self.GPIO.LOW)
+			self.GPIO.output(self.APIN1, self.GPIO.LOW)
+			self.GPIO.output(self.APIN2, self.GPIO.LOW)
+			self.GPIO.output(self.BPIN1, self.GPIO.LOW)
+			self.GPIO.output(self.BPIN2, self.GPIO.LOW)
 		if direct == "Y":
 			while self.dca > 0:
 				self.dca = self.dca - 1
 				self.pwma.ChangeDutyCycle(self.dca)
 				time.sleep(.01)
-			self.GPIO.output(self.RPG.APIN1, self.GPIO.LOW)
-			self.GPIO.output(self.RPG.APIN2, self.GPIO.LOW)
+			self.GPIO.output(self.APIN1, self.GPIO.LOW)
+			self.GPIO.output(self.APIN2, self.GPIO.LOW)
 		if direct == "X":
 			while self.dcb > 0:
 				self.dcb = self.dcb - 1
 				self.pwmb.ChangeDutyCycle(self.dcb)
 				time.sleep(.01)
-			self.GPIO.output(self.RPG.BPIN1, self.GPIO.LOW)
-			self.GPIO.output(self.RPG.BPIN2, self.GPIO.LOW)
+			self.GPIO.output(self.BPIN1, self.GPIO.LOW)
+			self.GPIO.output(self.BPIN2, self.GPIO.LOW)
 		return
 
 	def mot_up(self):
@@ -88,8 +88,8 @@ class MotorControl():
 		'''
 		print("moving up")
 		self.pwma.ChangeDutyCycle(100)
-		self.GPIO.output(self.RPG.APIN1, self.GPIO.HIGH)
-		self.GPIO.output(self.RPG.APIN2, self.GPIO.LOW)
+		self.GPIO.output(self.APIN1, self.GPIO.HIGH)
+		self.GPIO.output(self.APIN2, self.GPIO.LOW)
 		return
 
 	def mot_down(self):
@@ -97,8 +97,8 @@ class MotorControl():
 		'''
 		print("moving down")
 		self.pwma.ChangeDutyCycle(100)
-		self.GPIO.output(self.RPG.APIN1, self.GPIO.LOW)
-		self.GPIO.output(self.RPG.APIN2, self.GPIO.HIGH)
+		self.GPIO.output(self.APIN1, self.GPIO.LOW)
+		self.GPIO.output(self.APIN2, self.GPIO.HIGH)
 		return
 
 	def mot_left(self):
@@ -106,8 +106,8 @@ class MotorControl():
 		'''
 		print("moving left")
 		self.pwmb.ChangeDutyCycle(100)
-		self.GPIO.output(self.RPG.BPIN1, self.GPIO.HIGH)
-		self.GPIO.output(self.RPG.BPIN2, self.GPIO.LOW)
+		self.GPIO.output(self.BPIN1, self.GPIO.HIGH)
+		self.GPIO.output(self.BPIN2, self.GPIO.LOW)
 		return
 
 	def mot_right(self):
@@ -115,8 +115,8 @@ class MotorControl():
 		'''
 		print("moving right")
 		self.pwmb.ChangeDutyCycle(100)
-		self.GPIO.output(self.RPG.BPIN1, self.GPIO.LOW)
-		self.GPIO.output(self.RPG.BPIN2, self.GPIO.HIGH)
+		self.GPIO.output(self.BPIN1, self.GPIO.LOW)
+		self.GPIO.output(self.BPIN2, self.GPIO.HIGH)
 		return
 
 	def speed_up(self, direct):

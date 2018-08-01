@@ -35,11 +35,11 @@ class CameraCommands():
 	CENX = Lconfig.CENY
 	CENY = Lconfig.CENX
 
-	thread = threading.Thread(target=self.forever_cap, args=())
-	event = threading.Event()
-	conn_lock = threading.Lock()
-	pool_lock = threading.Lock()
-	pool = []
+	#thread = threading.Thread(target=self.forever_cap, args=())
+	#event = threading.Event()
+	#conn_lock = threading.Lock()
+	#pool_lock = threading.Lock()
+	#pool = []
 
 	def __init__(self, interval=0.1):
 		'''This init starts the screen captures in background

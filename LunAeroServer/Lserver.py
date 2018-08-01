@@ -21,7 +21,6 @@ import MotorControl
 
 CC = CameraCommands.CameraCommands()
 MC = MotorControl.MotorControl()
-CT = CameraCommands.CameraThread()
 
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
@@ -55,9 +54,6 @@ class Lserver():
 		length = None
 		message = None
 		buffer = ""
-
-		capthread = threading.Thread(target=CC.stream_cap())
-		capthread.start()
 
 		while True:
 			data = client_sock.recv(1024)
