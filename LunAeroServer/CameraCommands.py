@@ -35,6 +35,8 @@ class CameraCommands():
 	CENX = Lconfig.CENY
 	CENY = Lconfig.CENX
 
+	thread = threading.Thread(target=self.forever_cap, args=())
+	event = threading.Event()
 	conn_lock = threading.Lock()
 	pool_lock = threading.Lock()
 	pool = []
@@ -44,14 +46,9 @@ class CameraCommands():
 		Set the interval parameter to change the number of seconds between each capture
 		'''
 		self.interval = interval
-		
-		self.STREAM = io.BytesIO()
-		self.event = threading.Event()
 		self.terminated = False
 		self.startup_camera()
-		thread = threading.Thread(target=self.forever_cap, args=())
-		thread.daemon = True
-		thread.start()
+		#thread.start()
 		return
 
 	def startup_camera(self):
@@ -230,25 +227,28 @@ class CameraCommands():
 	def stream_cap(self):
 		'''Captures a snapshot from the current stream
 		'''
-		self.STREAM.seek(0)
-		self.CAMERA.capture(self.STREAM, use_video_port=True, resize=\
-			(self.HORDIM, self.VERTDIM), format='jpeg')
-		img = Image.open(self.STREAM)
-		img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
+		while True:
+			self.STREAM.seek(0)
+			self.CAMERA.capture(self.STREAM, use_video_port=True, resize=\
+				(self.HORDIM, self.VERTDIM), format='jpeg')
+			img = Image.open(self.STREAM)
+			img.save('/var/tmp/LunAero/tmp.jpg', 'jpeg')
+			time.sleep(0.05)
 		return
 
-	def forever_cap(self):
-		'''Runs the stream_cap method forever.  Use with care
-		'''
-		while not self.terminated:
-			if self.event.wait(1):
-				try:
-					with conn_lock:
-						self.stream_cap()
-				finally:
-					self.STREAM.seek(0)
-					self.STREAM.truncate(0)
-					self.event.clear()
-					with pool_lock:
-						pool.append(self)
-			time.sleep(self.interval)
+	#def forever_cap(self):
+		#'''Runs the stream_cap method forever.  Use with care
+		#'''
+		#while not self.terminated:
+			#if self.event.wait(1):
+				#try:
+					#with conn_lock:
+						#self.stream_cap()
+				#finally:
+					#self.STREAM.seek(0)
+					#self.STREAM.truncate(0)
+					#self.event.clear()
+					#with pool_lock:
+						#pool.append(self)
+					#print(pool)
+			#time.sleep(self.interval)

@@ -8,6 +8,7 @@ import fcntl
 import os
 import struct
 import socket
+import threading
 import time
 import traceback
 
@@ -20,6 +21,7 @@ import MotorControl
 
 CC = CameraCommands.CameraCommands()
 MC = MotorControl.MotorControl()
+CT = CameraCommands.CameraThread()
 
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
@@ -47,11 +49,15 @@ class Lserver():
 		print("\nServer started at " + str(ip_address) + " at port " + str(port))
 		client_sock, _ = servsock.accept()
 
-		#pygame.camera.init()
+		capthread = threading.Thread(target=CC.stream_cap())
+		capthread.start()
 
 		length = None
 		message = None
 		buffer = ""
+
+		capthread = threading.Thread(target=CC.stream_cap())
+		capthread.start()
 
 		while True:
 			data = client_sock.recv(1024)
