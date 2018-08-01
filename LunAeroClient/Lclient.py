@@ -44,7 +44,7 @@ class Lclient():
 					image = pygame.image.fromstring(data, (640, 480), 'RGB') #image from bytes
 					data = b''
 					pygame.image.save(image, "tmp.jpg")
-					return
+					return image
 
 	def sendout(self, bytestring):
 		'''Sends a string through the socket to the server to run a command on the remote Pi

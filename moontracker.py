@@ -38,8 +38,6 @@ if ARGS.verbose:
 def main():
 	'''Main
 	'''
-	global IMG
-	from LunAeroClient.Lconfig import RED, BLACK
 	#TODO function to pull prev from the go function
 	prev = 3
 	prev = LC.sendrecv(b'p:')
@@ -51,33 +49,10 @@ def main():
 
 	pygame.init()
 
-	rec_thread()
-
-	pygame.display.set_caption('Manual control')
-	size = [1080, 720]
-	screen = pygame.display.set_mode(size)
-	font = pygame.font.SysFont('Arial', 25)
-	screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
-	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
-	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
-	screen.blit(font.render('moon tracker', True, RED), (25, 165))
-	screen.blit(IMG, [50, 200])
-	pygame.display.update()
-
 	prev, exp = pygame_centering(prev, exp)
-
-	screen.fill(BLACK)
-	pygame.display.update()
-	pygame.display.set_caption('Tracking Moon')
-	screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
-	screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
-	screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
-	screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
-	pygame.display.update()
-
 	LC.sendout(b'B:')
-
 	prev, exp = pygame_tracking(prev, exp)
+
 
 def start_rec():
 	'''Starts recording, and starts timer
@@ -88,20 +63,6 @@ def start_rec():
 	if ARGS.verbose:
 		print("Preparing outfile from time ", start)
 	return start
-
-def rec_thread():
-	thread = threading.Thread(target=read_tmpimg(), args=())
-	thread.daemon = True
-	thread.start()
-	return
-
-def read_tmpimg():
-	'''Reads the temporary image on a loop.
-	'''
-	global IMG
-	while True:
-		IMG = LC.sendrecv(b'A:')
-		#pygame.display.update()
 
 def pygame_tracking(prev, exp):
 	'''Pygame version of the tracking gui
@@ -152,8 +113,12 @@ def pygame_tracking(prev, exp):
 def pygame_centering(prev, exp):
 	''' Pygame based interface for centering the moon
 	'''
-
+	#from LunAeroClient.Lconfig import RED, BLACK
 	cnt = False
+	size = [1080, 720]
+	screen = pygame.display.set_mode(size)
+	center_info()
+	pygame.display.update()
 	while cnt == False:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -203,9 +168,40 @@ def pygame_centering(prev, exp):
 						print("run tracker")
 					LC.sendout(b'B:')
 					cnt = True
+		LC.sendrecv(b'A:')
+		img = pygame.image.load('tmp.jpg').convert()
+		rect = pygame.Rect(50, 200, 640, 480)
+		screen.blit(img, rect)
+		pygame.display.update(rect)
 	if ARGS.verbose:
 		print("quitting manual control, switching to tracking")
 	return prev, exp
+
+def center_info():
+	from LunAeroClient.Lconfig import RED, BLACK
+
+	pygame.display.set_caption('Manual control')
+	size = [1080, 720]
+	screen = pygame.display.set_mode(size)
+	font = pygame.font.SysFont('Arial', 25)
+	screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
+	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
+	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
+	screen.blit(font.render('moon tracker', True, RED), (25, 165))
+	return
+
+def tracker_info():
+	from LunAeroClient.Lconfig import RED, BLACK
+
+	screen.fill(BLACK)
+	pygame.display.update()
+	pygame.display.set_caption('Tracking Moon')
+	screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
+	screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))
+	screen.blit(font.render('Or just close this window to to quit.', True, RED), (25, 125))
+	screen.blit(font.render('(it might take a few seconds)', True, RED), (25, 175))
+	pygame.display.update()
+	return
 
 if __name__ == '__main__':
 	try:

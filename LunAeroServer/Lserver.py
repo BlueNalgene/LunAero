@@ -19,6 +19,7 @@ import CameraCommands
 import MotorControl
 
 CC = CameraCommands.CameraCommands()
+MC = MotorControl.MotorControl()
 
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
