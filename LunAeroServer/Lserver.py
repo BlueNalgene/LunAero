@@ -70,7 +70,6 @@ class Lserver():
 				if message == "A":
 					client_sock.sendall(b'A:')
 					while True:
-						CC.stream_cap()
 						try:
 							img = Image.open('/var/tmp/LunAero/tmp.jpg')
 						except OSError:

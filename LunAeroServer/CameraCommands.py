@@ -35,11 +35,20 @@ class CameraCommands():
 	CENX = Lconfig.CENY
 	CENY = Lconfig.CENX
 
+	conn_lock = threading.Lock()
+	pool_lock = threading.Lock()
+	pool = []
+
 	def __init__(self, interval=0.1):
 		'''This init starts the screen captures in background
 		Set the interval parameter to change the number of seconds between each capture
 		'''
 		self.interval = interval
+		
+		self.STREAM = io.BytesIO()
+		self.event = threading.Event()
+		self.terminated = False
+		self.startup_camera()
 		thread = threading.Thread(target=self.forever_cap, args=())
 		thread.daemon = True
 		thread.start()
@@ -221,6 +230,7 @@ class CameraCommands():
 	def stream_cap(self):
 		'''Captures a snapshot from the current stream
 		'''
+		self.STREAM.seek(0)
 		self.CAMERA.capture(self.STREAM, use_video_port=True, resize=\
 			(self.HORDIM, self.VERTDIM), format='jpeg')
 		img = Image.open(self.STREAM)
@@ -230,6 +240,15 @@ class CameraCommands():
 	def forever_cap(self):
 		'''Runs the stream_cap method forever.  Use with care
 		'''
-		while True:
-			self.stream_cap()
+		while not self.terminated:
+			if self.event.wait(1):
+				try:
+					with conn_lock:
+						self.stream_cap()
+				finally:
+					self.STREAM.seek(0)
+					self.STREAM.truncate(0)
+					self.event.clear()
+					with pool_lock:
+						pool.append(self)
 			time.sleep(self.interval)
