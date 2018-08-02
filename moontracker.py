@@ -110,13 +110,13 @@ def pygame_tracking(prev, exp):
 		start = bytes(start, encoding='UTF-8')
 		start = LC.sendrecv(start)
 
-		cnt = LC.sendrecv(b'R:')
-
 		LC.sendrecv(b'A:')
 		img = pygame.image.load('tmp.jpg').convert()
 		rect = pygame.Rect(50, 200, 640, 480)
 		screen.blit(img, rect)
 		pygame.display.update(rect)
+
+		cnt = LC.sendrecv(b'R:')
 
 	return prev, exp
 
@@ -206,6 +206,7 @@ def tracker_info():
 	pygame.display.set_caption('Automatic Tracking')
 	size = [1080, 720]
 	screen = pygame.display.set_mode(size)
+	font = pygame.font.SysFont('Arial', 25)
 	screen.fill(BLACK)
 	pygame.display.set_caption('Tracking Moon')
 	screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))

@@ -206,7 +206,7 @@ class Lserver():
 							cnt = True
 							client_sock.sendall(cnt)
 							return
-					client_sock.sendall(cnt)
+					client_sock.sendall(str(cnt) + ':')
 					return
 
 				if message.startswith('r'):
