@@ -105,9 +105,7 @@ def pygame_tracking(prev, exp):
 					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
 				cnt = True
-		print("pre r")
 		conf = LC.sendrecv(b'r:')
-		print(conf)
 		if conf == '1':
 			start = str(start)
 			start = 'z' + start + ':'
@@ -122,7 +120,9 @@ def pygame_tracking(prev, exp):
 		pygame.display.update(rect)
 		print("A frame")
 
-		cnt = LC.sendrecv(b'R:')
+		conf = LC.sendrecv(b'R:')
+		if conf == 1:
+			print("confirmed")
 
 	return prev, exp
 

@@ -25,9 +25,32 @@ MC = MotorControl.MotorControl()
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
 	'''
-
+	ip_address = ''
+	port = 90
+	altport = 91
 	servsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	prev = 3
+
+	def __init__(self):
+		'''intialize the class
+		'''
+		print("using Lserver")
+		servsock = self.servsock
+		port = self.port
+		ip_address = self.get_ip_address('wlan0')
+		self.ip_address = ip_address
+		servsock.bind((ip_address, port))
+		servsock.listen(5)
+		print("\nServer started at " + str(ip_address) + " at port " + str(port))
+		client_sock, _ = servsock.accept()
+		self.client_sock = client_sock
+		servsock.settimeout(5)
+		try:
+			servsock.connect((self.ip_address, self.altport))
+			#return True
+		except socket.error:
+			print("Connection failure, retry")
+			#return False
 
 	def get_ip_address(self, ifname):
 		'''Get the ip address for your device using the SIOCGIFADDR method
@@ -38,15 +61,9 @@ class Lserver():
 		return sio
 
 	def server(self):
-		'''Defines how to initialize the server
+		'''Defines how to use the server
 		'''
 		servsock = self.servsock
-		port = 90
-		ip_address = self.get_ip_address('wlan0')
-		servsock.bind((ip_address, port))
-		servsock.listen(5)
-		print("\nServer started at " + str(ip_address) + " at port " + str(port))
-		client_sock, _ = servsock.accept()
 
 		capthread = threading.Thread(target=CC.stream_cap)
 		capthread.start()
@@ -186,6 +203,7 @@ class Lserver():
 						return
 
 					if message == 'r':
+						client_sock.close()
 						conf = '1:'
 						conf = bytes(conf, encoding='UTF-8')
 						client_sock.sendall(conf)
