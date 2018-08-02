@@ -105,10 +105,12 @@ def pygame_tracking(prev, exp):
 					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
 				cnt = True
-		start = str(start)
-		start = 'r' + start + ':'
-		start = bytes(start, encoding='UTF-8')
-		start = LC.sendrecv(start)
+		conf = LC.sendrecv('r:')
+		if conf == '1':
+			start = str(start)
+			start = 'z' + start + ':'
+			start = bytes(start, encoding='UTF-8')
+			start = LC.sendrecv(start)
 
 		LC.sendrecv(b'A:')
 		img = pygame.image.load('tmp.jpg').convert()

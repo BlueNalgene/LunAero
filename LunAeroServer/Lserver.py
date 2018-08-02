@@ -209,13 +209,29 @@ class Lserver():
 					client_sock.sendall(str(cnt) + ':')
 					return
 
-				if message.startswith('r'):
-					start = int(message[1:])
-					start = CC.timed_restart(start)
-					start = str(start)
-					start += ':'
-					start = bytes(start, encoding='UTF-8')
-					client_sock.sendall(start)
+				if message == 'r':
+					conf = '1:'
+					client_sock.sendall(conf)
+					while True:
+						data = client_sock.recv(4096)
+						if not data:
+							break
+						buffer += data.decode('UTF-8')
+						while True:
+							if length is None:
+								if ':' not in buffer:
+									break
+								message, _, buffer = buffer.partition(':')
+								length = len(message)
+							if len(buffer) > length:
+								break
+							start = float(message[1:])
+							start = CC.timed_restart(start)
+							start = str(start)
+							start += ':'
+							start = bytes(start, encoding='UTF-8')
+							client_sock.sendall(start)
+							return
 
 				length = None
 				message = None
