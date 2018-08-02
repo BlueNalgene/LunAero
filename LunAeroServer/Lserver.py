@@ -63,7 +63,6 @@ class Lserver():
 	def server(self):
 		'''Defines how to use the server
 		'''
-		servsock = self.servsock
 
 		capthread = threading.Thread(target=CC.stream_cap)
 		capthread.start()
@@ -73,7 +72,7 @@ class Lserver():
 		buffer = ""
 
 		while True:
-			data = client_sock.recv(1024)
+			data = self.client_sock.recv(1024)
 			if not data:
 				break
 			buffer += data.decode('UTF-8')
@@ -87,7 +86,7 @@ class Lserver():
 					# Message Tree
 
 					if message == "A":
-						client_sock.sendall(b'A:')
+						self.client_sock.sendall(b'A:')
 						while True:
 							try:
 								img = Image.open('/var/tmp/LunAero/tmp.jpg')
@@ -97,7 +96,7 @@ class Lserver():
 						img = img.resize([640, 480])
 						imgbyte = img.tobytes()
 						#len for 640x480 bytes is 921600
-						client_sock.sendall(imgbyte)
+						self.client_sock.sendall(imgbyte)
 
 					if message == 't':
 						CC.thresh_dec()
@@ -110,7 +109,7 @@ class Lserver():
 						iso = str(iso)
 						iso += ':'
 						iso = bytes(iso, encoding='UTF-8')
-						client_sock.sendall(iso)
+						self.client_sock.sendall(iso)
 
 					if message == 'e':
 						CC.exp_dec()
@@ -156,7 +155,7 @@ class Lserver():
 						prev = str(prev)
 						prev += ':'
 						prev = bytes(prev, encoding='UTF-8')
-						client_sock.sendall(prev)
+						self.client_sock.sendall(prev)
 
 					if message == 'P':
 						self.prev = self.prev + 1
@@ -170,7 +169,7 @@ class Lserver():
 
 						conf = '1:'
 						conf = bytes(conf, encoding='UTF-8')
-						client_sock.sendall(conf)
+						self.client_sock.sendall(conf)
 
 						cnt = False
 						diffx, diffy, ratio, cmx, cmy = CC.get_img()
@@ -197,18 +196,18 @@ class Lserver():
 							if lost_count > 30:
 								print("moon totally lost")
 								cnt = True
-								client_sock.sendall(cnt)
+								self.client_sock.sendall(cnt)
 								return
-						client_sock.sendall(str(cnt) + ':')
+						self.client_sock.sendall(str(cnt) + ':')
 						return
 
 					if message == 'r':
-						client_sock.close()
+						self.client_sock.close()
 						conf = '1:'
 						conf = bytes(conf, encoding='UTF-8')
-						client_sock.sendall(conf)
+						self.client_sock.sendall(conf)
 						while True:
-							data = client_sock.recv(4096)
+							data = self.client_sock.recv(4096)
 							if not data:
 								break
 							buffer += data.decode('UTF-8')
@@ -225,7 +224,7 @@ class Lserver():
 								start = str(start)
 								start += ':'
 								start = bytes(start, encoding='UTF-8')
-								client_sock.sendall(start)
+								self.client_sock.sendall(start)
 								return
 
 				length = None
