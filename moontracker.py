@@ -105,18 +105,22 @@ def pygame_tracking(prev, exp):
 					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
 				cnt = True
-		conf = LC.sendrecv('r:')
+		print("pre r")
+		conf = LC.sendrecv(b'r:')
+		print(conf)
 		if conf == '1':
 			start = str(start)
 			start = 'z' + start + ':'
 			start = bytes(start, encoding='UTF-8')
 			start = LC.sendrecv(start)
+			print(start)
 
 		LC.sendrecv(b'A:')
 		img = pygame.image.load('tmp.jpg').convert()
 		rect = pygame.Rect(50, 200, 640, 480)
 		screen.blit(img, rect)
 		pygame.display.update(rect)
+		print("A frame")
 
 		cnt = LC.sendrecv(b'R:')
 
@@ -197,9 +201,10 @@ def center_info():
 	screen = pygame.display.set_mode(size)
 	font = pygame.font.SysFont('Arial', 25)
 	screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
-	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 75))
-	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 125))
-	screen.blit(font.render('moon tracker', True, RED), (25, 165))
+	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 65))
+	screen.blit(font.render('Options: (i)so, (e)xposure down, (E)xposure up, (p).', True, RED), (25, 105))
+	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 145))
+	screen.blit(font.render('moon tracker', True, RED), (25, 185))
 	return
 
 def tracker_info():
