@@ -151,11 +151,6 @@ class Lserver():
 					if message == 'R':
 						from Lconfig import VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
 
-						conf = '1:'
-						conf = bytes(conf, encoding='UTF-8')
-						client_sock.sendall(conf)
-
-						cnt = False
 						diffx, diffy, ratio, cmx, cmy = CC.get_img()
 						print(ratio, cmx, cmy, diffx, diffy)
 
@@ -179,23 +174,28 @@ class Lserver():
 							time.sleep(1)
 							if lost_count > 30:
 								print("moon totally lost")
-								cnt = True
+								cnt = '1:'
+								cnt = bytes(cnt, encoding='UTF-8')
 								client_sock.sendall(cnt)
 								return
-						client_sock.sendall(str(cnt) + ':')
+						cnt = '0:'
+						cnt = bytes(cnt, encoding='UTF-8')
+						client_sock.sendall(bytestring)
 						return
 
 					if message == 'r':
 						conf = '1:'
 						conf = bytes(conf, encoding='UTF-8')
-						client_sock.write(conf)
+						client_sock.sendall(conf)
 						while True:
 							data = client_sock.recv(4096)
 							if not data:
+								print("nothing yet boss")
 								break
 							buffer += data.decode('UTF-8')
+							print("I got ", buffer)
 							while True:
-								if length is None:
+								if length is not None:
 									if ':' not in buffer:
 										break
 									message, _, buffer = buffer.partition(':')

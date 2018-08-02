@@ -111,18 +111,19 @@ def pygame_tracking(prev, exp):
 			start = 'z' + start + ':'
 			start = bytes(start, encoding='UTF-8')
 			start = LC.sendrecv(start)
-			print(start)
 
 		LC.sendrecv(b'A:')
 		img = pygame.image.load('tmp.jpg').convert()
 		rect = pygame.Rect(50, 200, 640, 480)
 		screen.blit(img, rect)
 		pygame.display.update(rect)
-		print("A frame")
 
 		conf = LC.sendrecv(b'R:')
 		if conf == 1:
-			print("confirmed")
+			print("close loop")
+			cnt = True
+		else:
+			print("again!")
 
 	return prev, exp
 

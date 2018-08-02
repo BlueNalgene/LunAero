@@ -73,6 +73,7 @@ class Lclient():
 
 		clientsocket = self.clientsocket
 		clientsocket.sendall(bytestring)
+		print("I sent ", bytestring)
 
 		length = None
 		message = None
@@ -80,8 +81,9 @@ class Lclient():
 
 		while True:
 			try:
-				data = clientsocket.recv(1024)
+				data = clientsocket.recv(4096)
 				if not data:
+					print("nothing yet boss")
 					break
 				buffer += data.decode('UTF-8')
 				while True:
@@ -94,6 +96,7 @@ class Lclient():
 						break
 					if message == 'A':
 						self.recv()
+					print("I read ", message)
 					return message
 			except socket.timeout:
 				print("timeout")
