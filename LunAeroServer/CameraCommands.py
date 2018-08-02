@@ -86,9 +86,10 @@ class CameraCommands():
 		#from Lconfig import IMGTHRESH, HORDIM, VERTDIM, self.CENX, CENY
 
 		# Capture image and convert to monochrome np array
-		self.CAMERA.capture(self.STREAM, use_video_port=True, resize=\
-			(self.HORDIM, self.VERTDIM), format='jpeg')
-		img = Image.open(self.STREAM)
+		#self.CAMERA.capture(self.STREAM, use_video_port=True, resize=\
+			#(self.HORDIM, self.VERTDIM), format='jpeg')
+		#img = Image.open(self.STREAM)
+		img = Image.open('/var/tmp/LunAero/tmp.jpg')
 		img = img.convert('L')
 		img = img.point(lambda x: 0 if x < self.IMGTHRESH else 255, '1')
 		img = np.asarray(img)

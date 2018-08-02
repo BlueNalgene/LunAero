@@ -151,8 +151,11 @@ class Lserver():
 					if message == 'R':
 						from Lconfig import VERTTHRESHSTART, HORTHRESHSTART, LOSTRATIO
 
-						cnt = False
+						conf = '1:'
+						conf = bytes(conf, encoding='UTF-8')
+						client_sock.sendall(conf)
 
+						cnt = False
 						diffx, diffy, ratio, cmx, cmy = CC.get_img()
 						print(ratio, cmx, cmy, diffx, diffy)
 
@@ -209,8 +212,6 @@ class Lserver():
 
 				length = None
 				message = None
-				if len(buffer) > length:
-					break
 
 L = Lserver()
 try:
