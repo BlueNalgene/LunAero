@@ -14,7 +14,6 @@ class Lclient():
 
 	ip_address = '192.168.42.1'
 	port = 90
-	altport = 91
 	clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 	def __init__(self):
@@ -29,10 +28,6 @@ class Lclient():
 		except socket.error:
 			print("Connection failure, retry")
 			#return False
-		servsock = self.clientsocket
-		servsock.bind((self.ip_address, self.altport))
-		servsock.listen(5)
-		servehole, _ = servsock.accept()
 
 	def recv(self):
 		'''Socket recieve function which processes images provided by the video stream
@@ -85,8 +80,6 @@ class Lclient():
 
 		while True:
 			try:
-				clientsocket.bind((self.ip_address, self.port))
-				clientsocket.listen(5)
 				data = clientsocket.recv(1024)
 				if not data:
 					break

@@ -25,32 +25,9 @@ MC = MotorControl.MotorControl()
 class Lserver():
 	'''Server socket program for LunAero.  Listens for events from Client.
 	'''
-	ip_address = ''
-	port = 90
-	altport = 91
+
 	servsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	prev = 3
-
-	def __init__(self):
-		'''intialize the class
-		'''
-		print("using Lserver")
-		servsock = self.servsock
-		port = self.port
-		ip_address = self.get_ip_address('wlan0')
-		self.ip_address = ip_address
-		servsock.bind((ip_address, port))
-		servsock.listen(5)
-		print("\nServer started at " + str(ip_address) + " at port " + str(port))
-		client_sock, _ = servsock.accept()
-		self.client_sock = client_sock
-		servsock.settimeout(5)
-		try:
-			servsock.connect((self.ip_address, self.altport))
-			#return True
-		except socket.error:
-			print("Connection failure, retry")
-			#return False
 
 	def get_ip_address(self, ifname):
 		'''Get the ip address for your device using the SIOCGIFADDR method
@@ -61,8 +38,15 @@ class Lserver():
 		return sio
 
 	def server(self):
-		'''Defines how to use the server
+		'''Defines how to initialize the server
 		'''
+		servsock = self.servsock
+		port = 90
+		ip_address = self.get_ip_address('wlan0')
+		servsock.bind((ip_address, port))
+		servsock.listen(5)
+		print("\nServer started at " + str(ip_address) + " at port " + str(port))
+		client_sock, _ = servsock.accept()
 
 		capthread = threading.Thread(target=CC.stream_cap)
 		capthread.start()
@@ -72,7 +56,7 @@ class Lserver():
 		buffer = ""
 
 		while True:
-			data = self.client_sock.recv(1024)
+			data = client_sock.recv(1024)
 			if not data:
 				break
 			buffer += data.decode('UTF-8')
@@ -86,7 +70,7 @@ class Lserver():
 					# Message Tree
 
 					if message == "A":
-						self.client_sock.sendall(b'A:')
+						client_sock.sendall(b'A:')
 						while True:
 							try:
 								img = Image.open('/var/tmp/LunAero/tmp.jpg')
@@ -96,7 +80,7 @@ class Lserver():
 						img = img.resize([640, 480])
 						imgbyte = img.tobytes()
 						#len for 640x480 bytes is 921600
-						self.client_sock.sendall(imgbyte)
+						client_sock.sendall(imgbyte)
 
 					if message == 't':
 						CC.thresh_dec()
@@ -109,7 +93,7 @@ class Lserver():
 						iso = str(iso)
 						iso += ':'
 						iso = bytes(iso, encoding='UTF-8')
-						self.client_sock.sendall(iso)
+						client_sock.sendall(iso)
 
 					if message == 'e':
 						CC.exp_dec()
@@ -155,7 +139,7 @@ class Lserver():
 						prev = str(prev)
 						prev += ':'
 						prev = bytes(prev, encoding='UTF-8')
-						self.client_sock.sendall(prev)
+						client_sock.sendall(prev)
 
 					if message == 'P':
 						self.prev = self.prev + 1
@@ -169,7 +153,7 @@ class Lserver():
 
 						conf = '1:'
 						conf = bytes(conf, encoding='UTF-8')
-						self.client_sock.sendall(conf)
+						client_sock.sendall(conf)
 
 						cnt = False
 						diffx, diffy, ratio, cmx, cmy = CC.get_img()
@@ -196,18 +180,17 @@ class Lserver():
 							if lost_count > 30:
 								print("moon totally lost")
 								cnt = True
-								self.client_sock.sendall(cnt)
+								client_sock.sendall(cnt)
 								return
-						self.client_sock.sendall(str(cnt) + ':')
+						client_sock.sendall(str(cnt) + ':')
 						return
 
 					if message == 'r':
-						self.client_sock.close()
 						conf = '1:'
 						conf = bytes(conf, encoding='UTF-8')
-						self.client_sock.sendall(conf)
+						client_sock.write(conf)
 						while True:
-							data = self.client_sock.recv(4096)
+							data = client_sock.recv(4096)
 							if not data:
 								break
 							buffer += data.decode('UTF-8')
@@ -224,7 +207,7 @@ class Lserver():
 								start = str(start)
 								start += ':'
 								start = bytes(start, encoding='UTF-8')
-								self.client_sock.sendall(start)
+								client_sock.sendall(start)
 								return
 
 				length = None
