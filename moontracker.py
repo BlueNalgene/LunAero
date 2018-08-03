@@ -102,6 +102,7 @@ def pygame_tracking(prev):
 				cnt = True
 
 		LC.sendrecv(b'A:')
+
 		img = pygame.image.load('tmp.jpg').convert()
 		rect = pygame.Rect(50, 200, 640, 480)
 		screen.blit(img, rect)
@@ -119,6 +120,7 @@ def pygame_tracking(prev):
 			print("close loop")
 			cnt = True
 		else:
+			cnt = False
 			print("again!")
 
 	return prev

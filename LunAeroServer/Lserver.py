@@ -71,12 +71,7 @@ class Lserver():
 
 					if message == "A":
 						client_sock.sendall(b'A:')
-						while True:
-							try:
-								img = Image.open('/var/tmp/LunAero/tmp.jpg')
-							except OSError:
-								continue
-							break
+						img = Image.open('/var/tmp/LunAero/tmp.jpg')
 						img = img.resize([640, 480])
 						imgbyte = img.tobytes()
 						#len for 640x480 bytes is 921600
@@ -216,11 +211,15 @@ class Lserver():
 L = Lserver()
 try:
 	L.server()
+except OSError:
+	print("had an OSError, FYI")
+	pass
 except Exception as inst:
 	print("Exception Type: ", type(inst))
 	print("Exception Args: ", inst.args)
 	print("Exception     : ", inst)
 	traceback.print_exc()
 finally:
+	L.server().capthread.join()
 	CC.shutdown_camera()
 	os.system("killall gpicview")
