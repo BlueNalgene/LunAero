@@ -34,6 +34,8 @@ class CameraCommands():
 	CENX = Lconfig.CENY
 	CENY = Lconfig.CENX
 
+	iso = 400
+
 	#thread = threading.Thread(target=self.forever_cap, args=())
 	#event = threading.Event()
 	#conn_lock = threading.Lock()
@@ -183,20 +185,20 @@ class CameraCommands():
 	def iso_cyc(self):
 		'''Cycle to another ISO settings
 		'''
-		iso = self.CAMERA.iso()
+		iso = self.iso
 		if iso < 800:
 			iso = iso * 2
 		else:
 			iso = 100
+		self.iso = iso
 		self.CAMERA.iso = iso
-		iso = self.CAMERA.iso()
 		return iso
 
 	def exp_dec(self):
 		'''Decrease the exposure value by 100 units
 		'''
 		exp = self.get_exp()
-		exp = exp - 100
+		exp = exp - 1000
 		self.CAMERA.shutter_speed = exp
 		return
 
@@ -204,7 +206,7 @@ class CameraCommands():
 		'''Increase the exposure value by 100 units
 		'''
 		exp = self.get_exp()
-		exp = exp + 100
+		exp = exp + 1000
 		self.CAMERA.shutter_speed = exp
 		return
 

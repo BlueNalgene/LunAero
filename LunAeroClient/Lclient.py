@@ -100,6 +100,7 @@ class Lclient():
 					return message
 			except socket.timeout:
 				print("timeout")
+				return
 
 	def connect_test(self):
 		'''A simple test to detect if the socket is still connected

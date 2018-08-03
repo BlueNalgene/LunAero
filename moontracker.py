@@ -43,15 +43,12 @@ def main():
 	prev = LC.sendrecv(b'p:')
 	print(prev)
 	time.sleep(2)
-	exp = 30000
-	if ARGS.verbose:
-		print("exposure speed ", exp)
 
 	pygame.init()
 
-	prev, exp = pygame_centering(prev, exp)
+	prev = pygame_centering(prev)
 	LC.sendout(b'B:')
-	prev, exp = pygame_tracking(prev, exp)
+	prev = pygame_tracking(prev)
 
 
 def start_rec():
@@ -64,7 +61,7 @@ def start_rec():
 		print("Preparing outfile from time ", start)
 	return start
 
-def pygame_tracking(prev, exp):
+def pygame_tracking(prev):
 	'''Pygame version of the tracking gui
 	'''
 
@@ -76,7 +73,6 @@ def pygame_tracking(prev, exp):
 	start = start_rec()
 
 	cnt = False
-	#check = 1
 	while cnt == False:
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
@@ -95,28 +91,28 @@ def pygame_tracking(prev, exp):
 				if event.key == pygame.K_i:
 					iso = LC.sendrecv(b'i:')
 					print("iso set to ", iso)
-				if event.key == pygame.K_d:
-					LC.sendout(b'e:')
-					print("exposure time set to ", exp)
-				if event.key == pygame.K_b:
-					LC.sendout(b'E:')
-					print("exposure time set to ", exp)
-				if event.key == pygame.K_v:
+				if event.key == pygame.K_e:
+					if pygame.key.get_mods() & pygame.KMOD_LSHIFT:
+						LC.sendout(b'E:')
+					else:
+						LC.sendout(b'e:')
+				if event.key == pygame.K_p:
 					LC.sendout(b'P:')
 			if event.type == pygame.QUIT:
 				cnt = True
-		conf = LC.sendrecv(b'r:')
-		if conf == '1':
-			start = str(start)
-			start = 'z' + start + ':'
-			start = bytes(start, encoding='UTF-8')
-			start = LC.sendrecv(start)
 
 		LC.sendrecv(b'A:')
 		img = pygame.image.load('tmp.jpg').convert()
 		rect = pygame.Rect(50, 200, 640, 480)
 		screen.blit(img, rect)
 		pygame.display.update(rect)
+
+		conf = LC.sendrecv(b'r:')
+		if conf == '1':
+			start = str(start)
+			start = 'z' + start + ':'
+			start = bytes(start, encoding='UTF-8')
+			start = LC.sendrecv(start)
 
 		conf = LC.sendrecv(b'R:')
 		if conf == 1:
@@ -125,9 +121,9 @@ def pygame_tracking(prev, exp):
 		else:
 			print("again!")
 
-	return prev, exp
+	return prev
 
-def pygame_centering(prev, exp):
+def pygame_centering(prev):
 	''' Pygame based interface for centering the moon
 	'''
 
@@ -167,13 +163,12 @@ def pygame_centering(prev, exp):
 				if event.key == pygame.K_i:
 					iso = LC.sendrecv(b'i:')
 					print("iso set to ", iso)
-				if event.key == pygame.K_d:
-					LC.sendout(b'e:')
-					print("exposure time set to ", exp)
-				if event.key == pygame.K_b:
-					LC.sendout(b'E:')
-					print("exposure time set to ", exp)
-				if event.key == pygame.K_v:
+				if event.key == pygame.K_e:
+					if pygame.key.get_mods() & pygame.KMOD_LSHIFT:
+						LC.sendout(b'E:')
+					else:
+						LC.sendout(b'e:')
+				if event.key == pygame.K_p:
 					LC.sendout(b'P:')
 				if event.key == pygame.K_r:
 					if ARGS.verbose:
@@ -192,7 +187,7 @@ def pygame_centering(prev, exp):
 		pygame.display.update(rect)
 	if ARGS.verbose:
 		print("quitting manual control, switching to tracking")
-	return prev, exp
+	return prev
 
 def center_info():
 	from LunAeroClient.Lconfig import RED, BLACK
@@ -202,10 +197,10 @@ def center_info():
 	screen = pygame.display.set_mode(size)
 	font = pygame.font.SysFont('Arial', 25)
 	screen.blit(font.render('Use arrow keys to move.', True, RED), (25, 25))
-	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 65))
-	screen.blit(font.render('Options: (i)so, (e)xposure down, (E)xposure up, (p).', True, RED), (25, 105))
-	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 145))
-	screen.blit(font.render('moon tracker', True, RED), (25, 185))
+	screen.blit(font.render('Hit the space bar to stop.', True, RED), (25, 60))
+	screen.blit(font.render('Options: (i)so, (e)xposure down, (E)xposure up, (p).', True, RED), (25, 95))
+	screen.blit(font.render('Press ENTER or r to run the', True, RED), (25, 130))
+	screen.blit(font.render('moon tracker', True, RED), (25, 165))
 	return
 
 def tracker_info():
