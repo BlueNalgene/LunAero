@@ -149,6 +149,10 @@ class MotorControl():
 			print("slowdown ", direct, self.dcb)
 		return
 
+	def cleanup(self):
+		self.GPIO.cleanup()
+		return
+
 	def __enter__(self):
 		return self
 

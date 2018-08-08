@@ -128,6 +128,7 @@ def pygame_tracking(prev):
 def pygame_centering(prev):
 	''' Pygame based interface for centering the moon
 	'''
+	from LunAeroClient.Lconfig import BLACK
 
 	cnt = False
 	size = [1080, 720]
@@ -187,6 +188,7 @@ def pygame_centering(prev):
 		rect = pygame.Rect(50, 200, 640, 480)
 		screen.blit(img, rect)
 		pygame.display.update(rect)
+	screen.fill(BLACK)
 	if ARGS.verbose:
 		print("quitting manual control, switching to tracking")
 	return prev
@@ -212,7 +214,6 @@ def tracker_info():
 	size = [1080, 720]
 	screen = pygame.display.set_mode(size)
 	font = pygame.font.SysFont('Arial', 25)
-	screen.fill(BLACK)
 	pygame.display.set_caption('Tracking Moon')
 	screen.blit(font.render('TRACKING MOON.', True, RED), (25, 25))
 	screen.blit(font.render('Click this window and type "q" to quit', True, RED), (25, 75))

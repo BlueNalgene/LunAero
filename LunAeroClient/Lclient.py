@@ -85,7 +85,10 @@ class Lclient():
 				if not data:
 					print("nothing yet boss")
 					break
-				buffer += data.decode('UTF-8')
+				try:
+					buffer += data.decode('UTF-8')
+				except:
+					break
 				while True:
 					if length is None:
 						if ':' not in buffer:
