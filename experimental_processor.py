@@ -114,8 +114,8 @@ def runner(pos_frame):
 		#fit_score, fit_score_2 = bird_velocity(pos_frame, contours)
 		#print(fit_score_2)
 
-		bird_correlation(pos_frame)
-		bird_dependent_correlation(pos_frame)
+		bird_correlation(pos_frame, frame)
+		#bird_dependent_correlation(pos_frame)
 
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 	else:
@@ -145,7 +145,7 @@ def runner(pos_frame):
 	#av_icept = 12.4457
 
 
-def bird_correlation(pos_frame):
+def bird_correlation(pos_frame, frame):
 	'''This function checks over the list of contours collected in the CSVFILE,
 	and determines what relationship between the contours, if any, have to each
 	other.  The number of frames back to search can be modified with the FRAMEHIST
@@ -163,17 +163,24 @@ def bird_correlation(pos_frame):
 	area_threshold = 30
 	speed_threshold = 120000
 
+	# Save our current frame as an npy file
+	np.save('/tmp/Frame_current.npy', frame)
+
 	# This is the number of frames we want considered on a single file.  We can go back in time
 	# as much as we want (within reason for memory limitations), but this will take longer
 	# to calculate. A higher number here will yield better confidence in bird identification.
 	last = 3
 
-	for i in range(last, 0, -1):
-		if i != 1:
-			# Save as name(i) from...the file that used to be name(i-1)
-			np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy'))
-		else:
-			np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_current.npy'))
+	if pos_frame >= last:
+		for i in range(last, 0, -1):
+			if i != 1:
+				# Save as name(i) from...the file that used to be name(i-1)
+				np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy'))
+			else:
+				np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_current.npy'))
+	else:
+		last = last - pos_frame
+		np.save('/tmp/Frame_minus_{0}'.format(last)+'.npy', np.load('/tmp/Frame_current.npy'))
 
 	frame_mat = []
 	row = []
