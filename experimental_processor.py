@@ -51,11 +51,11 @@ def main():
 		gui = Gui()
 		status_flag = gui.initialize_gui(status_flag)
 
-	# Check to see if our files exist.  If not, create them.
-	open(TEMP0, 'w').close()
-	open(TEMP1, 'w').close()
-	open(CSVFILE, 'w').close()
-	open(CSVDETECT, 'w').close()
+	## Check to see if our files exist.  If not, create them.
+	#open(TEMP0, 'w').close()
+	#open(TEMP1, 'w').close()
+	#open(CSVFILE, 'w').close()
+	#open(CSVDETECT, 'w').close()
 
 	# Manually declare that we are at frame 0.
 	pos_frame = 0
@@ -74,6 +74,7 @@ def main():
 		if USEGUI:
 			gui.frame_number(pos_frame)
 		frame, result = runner(pos_frame)
+		bird_correlation(pos_frame, frame)
 		if USEGUI:
 			pos_frame, status_flag = gui.frame_display(pos_frame, frame, result)
 
@@ -103,10 +104,6 @@ def runner(pos_frame):
 		result = lcv.halo_noise(ellipse, result)
 		contours = lcv.cv_contour(result, 0, 255)
 
-		#SIZE_LIST_OLD_OLD = SIZE_LIST_OLD
-		#CENTERS_OLD_OLD = CENTERS_OLD
-		#SIZE_LIST_OLD = SIZE_LIST
-		#CENTERS_OLD = CENTERS
 		SIZE_LIST, CENTERS = lcv.cntsize(contours)
 
 		#use_file = ring_buffer(pos_frame)
@@ -114,7 +111,7 @@ def runner(pos_frame):
 		#fit_score, fit_score_2 = bird_velocity(pos_frame, contours)
 		#print(fit_score_2)
 
-		bird_correlation(pos_frame, frame)
+
 		#bird_dependent_correlation(pos_frame)
 
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
@@ -128,21 +125,6 @@ def runner(pos_frame):
 		quit()
 
 	return frame, result
-
-#def bird_dependent_correlation(pos_frame):
-	#'''Numpy is used to check frames
-	#'''
-
-	## We need to tell python to use the global declarations from the beginning
-	#global CSVDETECT, CSVFILE, TEMP0, TEMP1, CENTERS, SIZE_LIST
-
-	## Thresholds for "good" values of area and speed differences.
-	#area_threshold = 30
-	#speed_threshold = 120000
-
-	## The Area Velocity constants are calculated from the calibration relationship
-	#av_slope = 1.04605
-	#av_icept = 12.4457
 
 
 def bird_correlation(pos_frame, frame):
@@ -164,23 +146,23 @@ def bird_correlation(pos_frame, frame):
 	speed_threshold = 120000
 
 	# Save our current frame as an npy file
-	np.save('/tmp/Frame_current.npy', frame)
+	np.save('/tmp/Frame_minus_0.npy', frame)
 
 	# This is the number of frames we want considered on a single file.  We can go back in time
 	# as much as we want (within reason for memory limitations), but this will take longer
 	# to calculate. A higher number here will yield better confidence in bird identification.
 	last = 3
 
-	if pos_frame >= last:
+	try:
 		for i in range(last, 0, -1):
 			if i != 1:
 				# Save as name(i) from...the file that used to be name(i-1)
-				np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy'))
-			else:
-				np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy', np.load('/tmp/Frame_current.npy'))
-	else:
-		last = last - pos_frame
-		np.save('/tmp/Frame_minus_{0}'.format(last)+'.npy', np.load('/tmp/Frame_current.npy'))
+				np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy',\
+					np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy'))
+	except FileNotFoundError:
+		pass
+
+	#linger_killer(pos_frame, last)
 
 	frame_mat = []
 	row = []
@@ -189,85 +171,104 @@ def bird_correlation(pos_frame, frame):
 		row = [pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i]]
 		frame_mat.append(row)
 		contour_counter += 1
+		print(row)
 
-##############################################################
+###############################################################
 
-	# Bump up old file in list.
-	with open(TEMP0, 'wb') as fileout:
-		filewriter = csv.writer(fileout, delimiter=',')
-		with open(TEMP1) as filein:
-			csvreader = csv.reader(filein)
-			for row in csvreader:
-				try:
-					if int(row[0]) > pos_frame-last:
-						filewriter.writerow(row)
-				except IndexError:
-					pass
-			contour_counter = 0
-			for i in range(np.size(SIZE_LIST, 0)):
-				row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
-				filewriter.writerow(row)
-				contour_counter += 1
+	## Bump up old file in list.
+	#with open(TEMP0, 'wb') as fileout:
+		#filewriter = csv.writer(fileout, delimiter=',')
+		#with open(TEMP1) as filein:
+			#csvreader = csv.reader(filein)
+			#for row in csvreader:
+				#try:
+					#if int(row[0]) > pos_frame-last:
+						#filewriter.writerow(row)
+				#except IndexError:
+					#pass
+			#contour_counter = 0
+			#for i in range(np.size(SIZE_LIST, 0)):
+				#row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
+				#filewriter.writerow(row)
+				#contour_counter += 1
 
-	with open(TEMP0) as filein:
-		csvreader = csv.reader(filein, delimiter=',')
-		# combines two of the CSV rows together, for each unique permutation (not combination)
-		combos = list(itertools.permutations(csvreader, 2))
-		# Each combo is a pair of CSV rows.
-		# The format is therefore:
-		# frame, contour, X, Y, area
-		# All seem to require int() to work.
-		for pair in combos:
-			# if the first part of the pair is from a newer frame
-			if int(pair[0][0]) > int(pair[1][0]):
-				# This equation is the difference between the predicted value of velocity and the observed.
-				# y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
-				# This is additionally adjusted for the number of frames away this is.
-				score_speed = float((((int(pair[1][0])-int(pair[0][0]))*av_slope*float(pair[1][4])) \
-					+ av_icept) - (math.sqrt((float(pair[0][2]) - float(pair[1][2]))**2) + \
-						((float(pair[0][3]) - float(pair[1][3]))**2)))
+	#with open(TEMP0) as filein:
+		#csvreader = csv.reader(filein, delimiter=',')
+		## combines two of the CSV rows together, for each unique permutation (not combination)
+		#combos = list(itertools.permutations(csvreader, 2))
+		## Each combo is a pair of CSV rows.
+		## The format is therefore:
+		## frame, contour, X, Y, area
+		## All seem to require int() to work.
+		#for pair in combos:
+			## if the first part of the pair is from a newer frame
+			#if int(pair[0][0]) > int(pair[1][0]):
+				## This equation is the difference between the predicted value of velocity and the observed.
+				## y = m*x+b - sqrt((x1-x2)**2+(y1-y2)**2)
+				## This is additionally adjusted for the number of frames away this is.
+				#score_speed = float((((int(pair[1][0])-int(pair[0][0]))*av_slope*float(pair[1][4])) \
+					#+ av_icept) - (math.sqrt((float(pair[0][2]) - float(pair[1][2]))**2) + \
+						#((float(pair[0][3]) - float(pair[1][3]))**2)))
 
-				# Area is simpler.  It is just the difference.
-				score_area = (float(pair[0][4]) - float(pair[1][4]))
+				## Area is simpler.  It is just the difference.
+				#score_area = (float(pair[0][4]) - float(pair[1][4]))
 
-				outrow = []
-				outrow.append(pair[0][0])
-				outrow.append(pair[0][1])
-				outrow.append(pair[0][2])
-				outrow.append(pair[0][3])
-				outrow.append(pair[0][4])
-				outrow.append(pair[1][0])
-				outrow.append(pair[1][1])
-				outrow.append(pair[1][2])
-				outrow.append(pair[1][3])
-				outrow.append(pair[1][4])
-				outrow.append(score_speed)
-				outrow.append(score_area)
-				if abs(score_speed) < speed_threshold:
-					if abs(score_area) < area_threshold:
-						outrow.append(1)
-						with open(CSVDETECT, 'ab') as fileout:
-							csvwriter = csv.writer(fileout, delimiter=',')
-							csvwriter.writerow(outrow)
-					else:
-						outrow.append(0)
-				else:
-					outrow.append(0)
+				#outrow = []
+				#outrow.append(pair[0][0])
+				#outrow.append(pair[0][1])
+				#outrow.append(pair[0][2])
+				#outrow.append(pair[0][3])
+				#outrow.append(pair[0][4])
+				#outrow.append(pair[1][0])
+				#outrow.append(pair[1][1])
+				#outrow.append(pair[1][2])
+				#outrow.append(pair[1][3])
+				#outrow.append(pair[1][4])
+				#outrow.append(score_speed)
+				#outrow.append(score_area)
+				#if abs(score_speed) < speed_threshold:
+					#if abs(score_area) < area_threshold:
+						#outrow.append(1)
+						#with open(CSVDETECT, 'ab') as fileout:
+							#csvwriter = csv.writer(fileout, delimiter=',')
+							#csvwriter.writerow(outrow)
+					#else:
+						#outrow.append(0)
+				#else:
+					#outrow.append(0)
 
-				with open(CSVFILE, 'ab') as fileout:
-					csvwriter = csv.writer(fileout, delimiter=',')
-					csvwriter.writerow(outrow)
+				#with open(CSVFILE, 'ab') as fileout:
+					#csvwriter = csv.writer(fileout, delimiter=',')
+					#csvwriter.writerow(outrow)
 
-	with open(TEMP0) as filein:
-		csvreader = csv.reader(filein, delimiter=',')
-		with open(TEMP1, 'wb') as fileout:
-			csvwriter = csv.writer(fileout, delimiter=',')
-			for row in csvreader:
-				csvwriter.writerow(row)
+	#with open(TEMP0) as filein:
+		#csvreader = csv.reader(filein, delimiter=',')
+		#with open(TEMP1, 'wb') as fileout:
+			#csvwriter = csv.writer(fileout, delimiter=',')
+			#for row in csvreader:
+				#csvwriter.writerow(row)
 
-		print("------------------------------", pos_frame, "------------------------------")
+	print("------------------------------", pos_frame, "------------------------------")
 	return
 
+def linger_killer(pos_frame, last):
+	'''This function sums the stored arrays and removes anything with a value that was summed.
+	The function of the removal is to eliminate static features from the noise.
+	Activate by calling this function after the ring buffer /tmp/ part in bird_correlation.
+	MUST BE CALLED WITHIN bird_correlation
+	'''
+
+	try:
+		for i in range(last, 1, -1):
+			if i != 1:
+				a = '/tmp/Frame_minus_{0}'.format(i)+'.npy'
+				b = '/tmp/Frame_minus_{0}'.format(i-1)+'.npy'
+				b = np.add(a, b)
+				np.place(b, b>1, 0)
+			
+				np.load('/tmp/Frame_current.npy')
+	except TypeError:
+		pass
 
 #def bird_velocity(pos_frame, contours):
 	#'''This function will detect birds based on area and velocity of the contour.
@@ -332,59 +333,59 @@ def bird_correlation(pos_frame, frame):
 
 	#return fit_score, fit_score_2
 
-def ring_buffer(pos_frame):
-	'''This function provides records the information of the previous frames.
-	This must be done via two separate CSV files.  Due to the nature of CSV files,
-	it is difficult to insert and remove things like a ring buffer.  So we are using
-	a dual file buffer which acts as a ring buffer.  We read from one file while
-	writing to another.  The returned use_file tells us which temp file we should
-	read from for the most recent info.
-	'''
-	global TEMP0, TEMP1, SIZE_LIST, CENTERS
+#def ring_buffer(pos_frame):
+	#'''This function provides records the information of the previous frames.
+	#This must be done via two separate CSV files.  Due to the nature of CSV files,
+	#it is difficult to insert and remove things like a ring buffer.  So we are using
+	#a dual file buffer which acts as a ring buffer.  We read from one file while
+	#writing to another.  The returned use_file tells us which temp file we should
+	#read from for the most recent info.
+	#'''
+	#global TEMP0, TEMP1, SIZE_LIST, CENTERS
 
-	# This is the number of frames we want considered on a single file.  We can go back in time
-	# as much as we want (within reason for memory limitations), but this will take longer
-	# to calculate. A higher number here will yield better confidence in bird identification.
-	last = 3
+	## This is the number of frames we want considered on a single file.  We can go back in time
+	## as much as we want (within reason for memory limitations), but this will take longer
+	## to calculate. A higher number here will yield better confidence in bird identification.
+	#last = 3
 
 
-	if pos_frame % 2: #e.g. odd numbered frames
-		with open(TEMP0, 'wb') as fileout:
-			filewriter = csv.writer(fileout, delimiter=',')
-			with open(TEMP1) as filein:
-				csvreader = csv.reader(filein)
-				for row in csvreader:
-					try:
-						if int(row[0]) > pos_frame-last:
-							filewriter.writerow(row)
-					except IndexError:
-						pass
-				contour_counter = 0
-				for i in range(np.size(SIZE_LIST, 0)):
-					row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
-					filewriter.writerow(row)
-					contour_counter += 1
-		use_file = 0
+	#if pos_frame % 2: #e.g. odd numbered frames
+		#with open(TEMP0, 'wb') as fileout:
+			#filewriter = csv.writer(fileout, delimiter=',')
+			#with open(TEMP1) as filein:
+				#csvreader = csv.reader(filein)
+				#for row in csvreader:
+					#try:
+						#if int(row[0]) > pos_frame-last:
+							#filewriter.writerow(row)
+					#except IndexError:
+						#pass
+				#contour_counter = 0
+				#for i in range(np.size(SIZE_LIST, 0)):
+					#row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
+					#filewriter.writerow(row)
+					#contour_counter += 1
+		#use_file = 0
 
-	else: #e.g. even numbered frames
-		with open(TEMP1, 'wb') as fileout:
-			filewriter = csv.writer(fileout, delimiter=',')
-			with open(TEMP0) as filein:
-				csvreader = csv.reader(filein)
-				for row in csvreader:
+	#else: #e.g. even numbered frames
+		#with open(TEMP1, 'wb') as fileout:
+			#filewriter = csv.writer(fileout, delimiter=',')
+			#with open(TEMP0) as filein:
+				#csvreader = csv.reader(filein)
+				#for row in csvreader:
 
-					try:
-						if int(row[0]) > pos_frame-last:
-							filewriter.writerow(row)
-					except IndexError:
-						pass
-				contour_counter = 0
-				for i in range(np.size(SIZE_LIST, 0)):
-					row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
-					filewriter.writerow(row)
-					contour_counter += 1
-		use_file = 1
-	return use_file
+					#try:
+						#if int(row[0]) > pos_frame-last:
+							#filewriter.writerow(row)
+					#except IndexError:
+						#pass
+				#contour_counter = 0
+				#for i in range(np.size(SIZE_LIST, 0)):
+					#row = (pos_frame, contour_counter, CENTERS[i][0][0], CENTERS[i][1][0], SIZE_LIST[i])
+					#filewriter.writerow(row)
+					#contour_counter += 1
+		#use_file = 1
+	#return use_file
 
 if __name__ == '__main__':
 	try:
@@ -394,5 +395,12 @@ if __name__ == '__main__':
 	finally:
 		if USEGUI:
 			pygame.quit()
-		os.remove(TEMP0)
-		os.remove(TEMP1)
+		# Wipe the old numpy junk from tmp.
+		try:
+			files = os.listdir('/tmp/')
+			for file in files:
+				if file.endswith(".npy"):
+					os.remove(os.path.join('/tmp/',file))
+			os.remove('/tmp/Frame_current.npy')
+		except FileNotFoundError:
+			pass
