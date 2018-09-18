@@ -121,7 +121,7 @@ def runner(pos_frame):
 
 	# This function lets me quit after my test sequence.
 	# TODO: remove in final
-	if pos_frame > 14999:
+	if pos_frame > 149:
 		quit()
 
 	return frame, result
@@ -146,23 +146,29 @@ def bird_correlation(pos_frame, frame):
 	speed_threshold = 120000
 
 	# Save our current frame as an npy file
+	frame[frame > 0] = 1
 	np.save('/tmp/Frame_minus_0.npy', frame)
 
 	# This is the number of frames we want considered on a single file.  We can go back in time
 	# as much as we want (within reason for memory limitations), but this will take longer
 	# to calculate. A higher number here will yield better confidence in bird identification.
-	last = 3
+	last = 5
 
-	try:
-		for i in range(last, 0, -1):
-			if i != 1:
+	for i in range(last, 0, -1):
+		if pos_frame == 0:
+			continue
+		elif (pos_frame - i + 1) >= 0:
+			try:
 				# Save as name(i) from...the file that used to be name(i-1)
-				np.save('/tmp/Frame_minus_{0}'.format(i)+'.npy',\
-					np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy'))
-	except FileNotFoundError:
-		pass
+				aaa = '/tmp/Frame_minus_{0}'.format(i-2)+'.npy'
+				bbb = '/tmp/Frame_minus_{0}'.format(i-1)+'.npy'
+				oldone = np.load(aaa)
+				np.save(bbb, oldone)
+			except FileNotFoundError:
+				pass
 
-	#linger_killer(pos_frame, last)
+	linger_killer(pos_frame, last)
+	#linger_longer(pos_frame, last)
 
 	frame_mat = []
 	row = []
@@ -258,17 +264,46 @@ def linger_killer(pos_frame, last):
 	MUST BE CALLED WITHIN bird_correlation
 	'''
 
-	try:
+	if pos_frame < 2:
+		return
+	else:
+		try:
+			aaa = np.load('/tmp/Frame_minus_2.npy')
+			aaa = aaa * 2
+			bbb = np.load('/tmp/Frame_minus_1.npy')
+			bbb = np.add(aaa, bbb)
+			bbb[bbb > 1] = 0
+			print(np.unique(bbb))
+			np.save('/tmp/Frame_minus_0.npy', bbb)
+		except TypeError:
+			print("bailing on error")
+	return
+
+def linger_longer(pos_frame, last):
+	'''Same as linger_killer, with a longer memory.  No dupes for each frame in buffer
+	'''
+
+	bbb = '/tmp/Frame_minus_0.npy'
+	bbb = np.load(bbb)
+	if pos_frame == 0:
+		return
+	elif pos_frame >= last:
 		for i in range(last, 1, -1):
 			if i != 1:
-				a = '/tmp/Frame_minus_{0}'.format(i)+'.npy'
-				b = '/tmp/Frame_minus_{0}'.format(i-1)+'.npy'
-				b = np.add(a, b)
-				np.place(b, b>1, 0)
-			
-				np.load('/tmp/Frame_current.npy')
-	except TypeError:
-		pass
+				try:
+					aaa = '/tmp/Frame_minus_{0}'.format(i-1)+'.npy'
+					aaa = np.load(aaa)
+					aaa = aaa * 2
+					bbb = np.add(aaa, bbb)
+					#print(np.unique(bbb))
+					#aaa = np.load('/tmp/Frame_minus_0.npy')
+					np.save('/tmp/Frame_minus_0.npy', bbb)
+				except TypeError:
+					print("bailing on error")
+		bbb[bbb > 1] = 0
+		print(np.unique(bbb))
+	return
+
 
 #def bird_velocity(pos_frame, contours):
 	#'''This function will detect birds based on area and velocity of the contour.
