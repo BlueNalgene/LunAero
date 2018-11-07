@@ -9,16 +9,16 @@ on the RasPi, make sure that USEGUI in ./__init__.py is False.
 from __future__ import print_function
 
 #import csv
-from datetime import datetime
+#from datetime import datetime
 #import itertools
-import math
-import os
-import pickle
+#import math
+#import os
+#import pickle
 #import time
-import numpy as np
+#import numpy as np
 
-import ephem
-from scipy import stats
+#import ephem
+#from scipy import stats
 
 import cv2
 from LunCV import Manipulations, RingBuffer
@@ -39,9 +39,6 @@ def main():
 	'''
 
 	pos_frame = 0
-
-	aaa = []
-	bbb = []
 
 	lcv = Manipulations.Manipulations()
 	rbf = RingBuffer.RingBufferClass()
@@ -72,6 +69,8 @@ def main():
 		if ret:
 			#print(pos_frame)
 			if True:#placeholder for another switch
+				#Necessary cleanup of rbf class
+				rbf.re_init()
 
 				# Make image img
 				img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -97,6 +96,9 @@ def main():
 				# Get Contours Again
 				contours = lcv.cv_contour(img, 0, 255)
 
+				if contours:
+					print(len(contours[0]))
+
 				##Info for debugging
 				#with open('/scratch/whoneyc/contours_minus_cont_0.p', 'wb') as fff:
 					#pickle.dump(contours, fff)
@@ -112,41 +114,6 @@ def main():
 				cv2.waitKey(1)
 
 		pos_frame += 1
-
-
-def mixed_centers(contours):
-	'''Get the contours and centers of them should they exist.
-	'''
-	centers = []
-	cnt = contours[0]
-	for cnt in contours:
-		perimeter = cv2.arcLength(cnt, True)
-		if perimeter > 8 and perimeter < 200:
-			(xxx, yyy), _ = cv2.minEnclosingCircle(cnt)
-			#(xxx, yyy), radius = cv2.minEnclosingCircle(cnt)
-			centroid = (int(xxx), int(yyy))
-			centers.append(np.round(centroid))
-	return centers
-
-def centers_proc(pos_frame, centers, img):
-	'''Process centers that exist for lines
-	'''
-	xxx = []
-	yyy = []
-	for i in centers:
-		xxx.append(i[0])
-		yyy.append(i[1])
-	slope, intercept, _, _, _ = stats.linregress(xxx, yyy)
-	if math.isnan(slope) or math.isnan(intercept):
-		pass
-	else:
-		img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-		cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
-			(0, 0, 255), 2)
-		with open('/scratch/whoneyc/outputslopes.csv', 'a') as fff:
-			thestring = str(pos_frame) + ',' + str(slope) + ',' + str(intercept) +'\n'
-			fff.write(thestring)
-	return img
 
 #def ephreport(pos_frame):
 	#'''Uses the ephem class to get values for moon locations based on time.
