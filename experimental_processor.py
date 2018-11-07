@@ -12,6 +12,7 @@ import csv
 import itertools
 import math
 import os
+import pickle
 #from PIL import Image
 import numpy as np
 #import pandas
@@ -57,8 +58,24 @@ def main():
 	#open(CSVFILE, 'w').close()
 	#open(CSVDETECT, 'w').close()
 
-	# Manually declare that we are at frame 0.
+	# Our frames start at 0
 	pos_frame = 0
+
+	# This is the number of frames we want considered on a single file.  We can go back in time
+	# as much as we want (within reason for memory limitations), but this will take longer
+	# to calculate. A higher number here will yield better confidence in bird identification.
+	last = 5
+
+	# We need to make a dictionary of all of the possible variables we will use for contours
+	# later in the program.  This list of variables is based on the value of "last", so it must
+	# be dynamic.  We use this method so that we don't commit the cardinal sin of global variables.
+	aaa = []
+	bbb = []
+	for i in range(0, last):
+		aaa.append(i)
+		ccc = 'cont_{0}'.format(i)
+		bbb.append(ccc)
+	var_dict = {key:value for key, value in zip(aaa, bbb)}
 
 	# Initialize the CSVFILE by clearing out the old one.
 	#with open (CSVFILE, 'wb') as fileout:
@@ -73,8 +90,23 @@ def main():
 	while status_flag:
 		if USEGUI:
 			gui.frame_number(pos_frame)
-		frame, result = runner(pos_frame)
-		bird_correlation(pos_frame, frame)
+		frame, result = runner(pos_frame, last)
+		bird_correlation(pos_frame, result, last)
+		if pos_frame > 5:
+			result = np.load('/tmp/Frame_mixed.npy')
+
+			edges = cv2.Canny(result,50,150,apertureSize = 3)
+			minLineLength = 10
+			maxLineGap = 10
+			lines = cv2.HoughLinesP(edges,1,np.pi/180,100,minLineLength,maxLineGap)
+			if lines:
+				print("THERE WAS A LINE AT", lines)
+				for x1,y1,x2,y2 in lines[0]:
+					cv2.line(result,(x1,y1),(x2,y2),255,2)
+
+		bird_vector(pos_frame, last, var_dict)
+
+
 		if USEGUI:
 			pos_frame, status_flag = gui.frame_display(pos_frame, frame, result)
 
@@ -83,7 +115,7 @@ def main():
 
 	print("Program ended on frame ", str(pos_frame))
 
-def runner(pos_frame):
+def runner(pos_frame, last):
 	'''Runs the script with appropriate manipulation
 	'''
 	# We need to tell python to use the global declarations from the beginning
@@ -92,6 +124,13 @@ def runner(pos_frame):
 	cap = cv2.VideoCapture('/media/wes/ExtraDrive1/1524943548outA.mp4')
 	cap.set(cv2.CAP_PROP_POS_FRAMES, pos_frame)
 	ret, frame = cap.read()
+
+	# cycle the contour lists based on "last"
+	for i in range(last, 1, -1):
+		if i <= pos_frame:
+			aaa = '/tmp/contours_minus_{0}'.format(i-2)+'.p'
+			bbb = '/tmp/contours_minus_{0}'.format(i-1)+'.p'
+			os.rename(aaa, bbb)
 
 	if ret:
 		lcv = Manipulations.Manipulations()
@@ -106,13 +145,8 @@ def runner(pos_frame):
 
 		SIZE_LIST, CENTERS = lcv.cntsize(contours)
 
-		#use_file = ring_buffer(pos_frame)
-
-		#fit_score, fit_score_2 = bird_velocity(pos_frame, contours)
-		#print(fit_score_2)
-
-
-		#bird_dependent_correlation(pos_frame)
+		with open('/tmp/contours_minus_0.p', 'wb') as fp:
+			pickle.dump(contours, fp)
 
 		result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 	else:
@@ -127,7 +161,7 @@ def runner(pos_frame):
 	return frame, result
 
 
-def bird_correlation(pos_frame, frame):
+def bird_correlation(pos_frame, frame, last):
 	'''This function checks over the list of contours collected in the CSVFILE,
 	and determines what relationship between the contours, if any, have to each
 	other.  The number of frames back to search can be modified with the FRAMEHIST
@@ -149,10 +183,6 @@ def bird_correlation(pos_frame, frame):
 	frame[frame > 0] = 1
 	np.save('/tmp/Frame_minus_0.npy', frame)
 
-	# This is the number of frames we want considered on a single file.  We can go back in time
-	# as much as we want (within reason for memory limitations), but this will take longer
-	# to calculate. A higher number here will yield better confidence in bird identification.
-	last = 5
 
 	for i in range(last, 0, -1):
 		if pos_frame == 0:
@@ -167,8 +197,8 @@ def bird_correlation(pos_frame, frame):
 			except FileNotFoundError:
 				pass
 
-	linger_killer(pos_frame, last)
-	#linger_longer(pos_frame, last)
+	linger_stack(pos_frame, last)
+
 
 	frame_mat = []
 	row = []
@@ -257,30 +287,11 @@ def bird_correlation(pos_frame, frame):
 	print("------------------------------", pos_frame, "------------------------------")
 	return
 
-def linger_killer(pos_frame, last):
+def linger_stack(pos_frame, last):
 	'''This function sums the stored arrays and removes anything with a value that was summed.
 	The function of the removal is to eliminate static features from the noise.
 	Activate by calling this function after the ring buffer /tmp/ part in bird_correlation.
 	MUST BE CALLED WITHIN bird_correlation
-	'''
-
-	if pos_frame < 2:
-		return
-	else:
-		try:
-			aaa = np.load('/tmp/Frame_minus_2.npy')
-			aaa = aaa * 2
-			bbb = np.load('/tmp/Frame_minus_1.npy')
-			bbb = np.add(aaa, bbb)
-			bbb[bbb > 1] = 0
-			print(np.unique(bbb))
-			np.save('/tmp/Frame_minus_0.npy', bbb)
-		except TypeError:
-			print("bailing on error")
-	return
-
-def linger_longer(pos_frame, last):
-	'''Same as linger_killer, with a longer memory.  No dupes for each frame in buffer
 	'''
 
 	bbb = '/tmp/Frame_minus_0.npy'
@@ -289,20 +300,49 @@ def linger_longer(pos_frame, last):
 		return
 	elif pos_frame >= last:
 		for i in range(last, 1, -1):
-			if i != 1:
-				try:
-					aaa = '/tmp/Frame_minus_{0}'.format(i-1)+'.npy'
-					aaa = np.load(aaa)
-					aaa = aaa * 2
-					bbb = np.add(aaa, bbb)
-					#print(np.unique(bbb))
-					#aaa = np.load('/tmp/Frame_minus_0.npy')
-					np.save('/tmp/Frame_minus_0.npy', bbb)
-				except TypeError:
-					print("bailing on error")
+			try:
+				aaa = '/tmp/Frame_minus_{0}'.format(i-1)+'.npy'
+				aaa = np.load(aaa)
+				bbb = np.add(aaa, bbb)
+				np.save('/tmp/Frame_minus_0.npy', bbb)
+			except TypeError:
+				print("bailing on error")
+		bbb = np.load('/tmp/Frame_minus_0.npy')
 		bbb[bbb > 1] = 0
-		print(np.unique(bbb))
+		bbb[bbb == 1] = 255
+		np.save('/tmp/Frame_mixed.npy', bbb)
+	return 
+
+def bird_vector(pos_frame, last, var_dict):
+	'''This function detects contours moving along a vector.
+	This function looks at the oldest frame stored in the "last" Frame lineup.
+	For each contour on that lineup, it draws a vector to each contour on the latest frame.
+	Then it looks at the intermediate frames.  If there are contours along that vector in the intermediate
+	frames, it increases a score.  If the score is high enough, we have detected movement.
+	'''
+
+	lcv = Manipulations.Manipulations()
+
+	for i in range(last, 1, -1):
+		if i <= pos_frame:
+			for key, val in var_dict.items():
+				if key == i:
+					with open('/tmp/contours_minus_{0}'.format(i-1)+'.p', 'rb') as fp:
+						var_dict[i] = pickle.load(fp)
+			size_list, centers = lcv.cntsize(var_dict[i])
+			print(size_list)
+
+	#elif pos_frame < last:
+		#for i in range(pos_frame, 1, -1):
+			#working_frame = np.load('/tmp/Frame_minus_{0}'.format(i-1)+'.npy')
+			#contours = lcv.cv_contour(working_frame, 0, 255)
+			#print(type(contours))
+	#else:
+		#for i in range(last, 1, -1):
+			#pass
 	return
+
+
 
 
 #def bird_velocity(pos_frame, contours):

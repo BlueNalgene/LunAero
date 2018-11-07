@@ -18,6 +18,9 @@ import cv2
 class Manipulations():
 	'''Begin class
 	'''
+	# Background removal based on 
+	# An improved adaptive background mixture model for real-time tracking with shadow detection"
+	# by P. KadewTraKuPong and R. Bowden in 2001.
 	FGBG = cv2.bgsegm.createBackgroundSubtractorMOG(100, 7, 0.5, 5)
 	MAT = np.ones((3, 3), np.uint8)
 
@@ -33,6 +36,9 @@ class Manipulations():
 			ellipse = max(contours, key=cv2.contourArea)
 
 			# We treat it as an ellipse to account for irregularities in shape.
+			# Based on Andrew W Fitzgibbon and Robert B Fisher. A buyer's guide to conic fitting. 
+			# In Proceedings of the 6th British conference on Machine vision (Vol. 2), 
+			# pages 513–522. BMVA Press, 1995.
 			ellipse = cv2.fitEllipse(ellipse)
 
 			# This makes an 'image' of all nothing with the same size as the original

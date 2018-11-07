@@ -1,0 +1,291 @@
+#!/bin/usr/python3 -B
+# -*- coding: utf-8 -*-
+
+'''This is the frontend for an experimental version of the analysis
+Run on a normal computer, not the RasPi.  If you choose to run this
+on the RasPi, make sure that USEGUI in ./__init__.py is False.
+'''
+
+from __future__ import print_function
+
+#import csv
+from datetime import datetime
+#import itertools
+import math
+import os
+import pickle
+#import time
+import numpy as np
+
+import ephem
+from scipy import stats
+
+import cv2
+from LunCV import Manipulations
+
+#kalman = cv2.KalmanFilter(2, 1, 0)
+#state = 0.1 * np.random.randn(2, 1)
+#kalman.transitionMatrix = np.array([[1., 1.], [0., 1.]])
+#kalman.measurementMatrix = 1. * np.ones((1, 2))
+#kalman.processNoiseCov = 1e-5 * np.eye(2)
+#kalman.measurementNoiseCov = 1e-1 * np.ones((1, 1))
+#kalman.errorCovPost = 1. * np.ones((2, 2))
+#kalman.statePost = 0.1 * np.random.randn(2, 1)
+
+LAST = 5
+
+def main():
+	'''main function
+	'''
+
+	pos_frame = 0
+
+	aaa = []
+	bbb = []
+
+	lcv = Manipulations.Manipulations()
+
+	#for i in range(0, LAST):
+		#aaa.append(i)
+		#ccc = 'cont_{0}'.format(i)
+		#bbb.append(ccc)
+	#var_dict = {key:value for key, value in zip(aaa, bbb)}
+
+	#while pos_frame < 84:
+	while True:
+		cap = cv2.VideoCapture('/scratch/whoneyc/1524943548outA.mp4')
+		#cap = cv2.VideoCapture('/scratch/whoneyc/1535181028stabilized.mp4')
+		#cap = cv2.VideoCapture('/home/wes/Pictures/Demobird/videoout.mp4')
+		cap.set(cv2.CAP_PROP_POS_FRAMES, pos_frame)
+		ret, img = cap.read()
+
+		##Info for debugging
+		#for i in range(LAST, 1, -1):
+			#if i <= pos_frame:
+				#aaa = '/scratch/whoneyc/contours_minus_cont_{0}'.format(i-2)+'.p'
+				#bbb = '/scratch/whoneyc/contours_minus_cont_{0}'.format(i-1)+'.p'
+				#os.rename(aaa, bbb)
+
+		# bird in demo images appears at img 70
+		# So first we run this for loop to establish the background
+		if ret:
+			#print(pos_frame)
+			if True:#placeholder for another switch
+
+				# Make image img
+				img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+				# Blur Image
+				img = cv2.GaussianBlur(img, (5, 5), 0)
+
+				# Get thresholds
+				lower_thresh, upper_thresh = lcv.magic_thresh(img)
+
+				# Get contours
+				contours = lcv.cv_contour(img, lower_thresh, upper_thresh)
+
+				# Center Moon
+				ellipse, img = lcv.center_moon(img, contours)
+
+				# Subtract Background
+				img = lcv.subtract_background(img)
+
+				# Remove Halo Noise
+				img = lcv.halo_noise(ellipse, img)
+
+				# Get Contours Again
+				contours = lcv.cv_contour(img, 0, 255)
+
+				##Info for debugging
+				#with open('/scratch/whoneyc/contours_minus_cont_0.p', 'wb') as fff:
+					#pickle.dump(contours, fff)
+
+				# Dirty conversion to binary b/w
+				img[img > 0] = 1
+
+				# Deal with ringbuffer on LAST frames
+				ringbuffer_cycle(pos_frame, img)
+				img = ringbuffer_process(pos_frame, img)
+
+				cv2.imshow('image', img)
+				cv2.waitKey(1)
+
+		pos_frame += 1
+
+
+def ringbuffer_cycle(pos_frame, img):
+	'''Saves the contours from the image in a ring buffer.
+	'''
+	np.save('/scratch/whoneyc/Frame_minus_0.npy', img)
+
+	for i in range(LAST, 0, -1):
+		if pos_frame == 0:
+			continue
+		elif (pos_frame - i + 1) >= 0:
+			try:
+				# Save as name(i) from...the file that used to be name(i-1)
+				aaa = '/scratch/whoneyc/Frame_minus_{0}'.format(i-2)+'.npy'
+				bbb = '/scratch/whoneyc/Frame_minus_{0}'.format(i-1)+'.npy'
+				oldone = np.load(aaa)
+				np.save(bbb, oldone)
+			except FileNotFoundError:
+				pass
+	return
+
+def ringbuffer_process(pos_frame, img):
+	'''Access the existing ringbuffer to get information about the LAST frames.
+	Perform actions within.
+	'''
+	bbb = np.load('/scratch/whoneyc/Frame_minus_0.npy')
+	if pos_frame == 0:
+		pass
+	elif pos_frame >= LAST:
+		for i in range(LAST, 1, -1):
+			try:
+				aaa = '/scratch/whoneyc/Frame_minus_{0}'.format(i-1)+'.npy'
+				aaa = np.load(aaa)
+				bbb = np.add(aaa, bbb)
+				np.save('/scratch/whoneyc/Frame_minus_0.npy', bbb)
+			except TypeError:
+				print("bailing on error")
+		bbb = np.load('/scratch/whoneyc/Frame_minus_0.npy')
+		bbb[bbb > 1] = 0
+		bbb[bbb == 1] = 255
+		np.save('/scratch/whoneyc/Frame_mixed.npy', bbb)
+
+		img = np.load('/scratch/whoneyc/Frame_mixed.npy')
+		_, thresh = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
+		_, contours, _ = cv2.findContours(thresh, 2, 1)
+
+		centers = []
+		if contours:
+			centers = mixed_centers(contours)
+
+		img[img > 0] = 255
+
+		if centers:
+			img = centers_proc(pos_frame, centers, img)
+	return img
+
+def mixed_centers(contours):
+	'''Get the contours and centers of them should they exist.
+	'''
+	centers = []
+	cnt = contours[0]
+	for cnt in contours:
+		perimeter = cv2.arcLength(cnt, True)
+		if perimeter > 8 and perimeter < 200:
+			(xxx, yyy), _ = cv2.minEnclosingCircle(cnt)
+			#(xxx, yyy), radius = cv2.minEnclosingCircle(cnt)
+			centroid = (int(xxx), int(yyy))
+			centers.append(np.round(centroid))
+	return centers
+
+def centers_proc(pos_frame, centers, img):
+	'''Process centers that exist for lines
+	'''
+	xxx = []
+	yyy = []
+	for i in centers:
+		xxx.append(i[0])
+		yyy.append(i[1])
+	slope, intercept, _, _, _ = stats.linregress(xxx, yyy)
+	if math.isnan(slope) or math.isnan(intercept):
+		pass
+	else:
+		img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+		cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
+			(0, 0, 255), 2)
+		with open('/scratch/whoneyc/outputslopes.csv', 'a') as fff:
+			thestring = str(pos_frame) + ',' + str(slope) + ',' + str(intercept) +'\n'
+			fff.write(thestring)
+	return img
+
+#def ephreport(pos_frame):
+	#'''Uses the ephem class to get values for moon locations based on time.
+	#Input the latitude (N), longitude (E), and observation time (UTC)
+	#'''
+
+	#gatech = ephem.Observer()
+	## Norman, OK
+	#gatech.lat = '35.2226'
+	#gatech.lon = '-97.4395'
+	## Spotted at 1:33 AM on Sept. 25th
+	## In UTC +5
+
+	## Start time of video in Unix time (UTC)
+	#starttime = 1537857180
+
+	## Account for time of each frame.
+	#frametime = starttime + int(pos_frame/25)
+
+	## Assign timestamp in string format
+	#gatech.date = datetime.utcfromtimestamp(frametime).strftime('%Y/%m/%d %H:%M:%S')
+
+	##resutc = ("At UTC time of " + str(gatech.date))
+	##resobs = ("From Norman, OK (" + str(gatech.lat) + "N, " + str(gatech.lon) + "E)")
+
+	## Retrieve Positional information from the time we entered.
+	#position = ephem.Moon(gatech)
+	#azz = str(position.az).split(':')
+	#alt = str(position.alt).split(':')
+
+	#azzsec = []
+	#altsec = []
+	#for i in azz:
+		#azzsec.append(float(i))
+	#for i in alt:
+		#altsec.append(float(i))
+
+	#altdeg = altsec[0]+0.01666667*altsec[1]+0.00027778*altsec[2]
+	#azzdeg = azzsec[0]+0.01666667*azzsec[1]+0.00027778*azzsec[2]
+
+	##TODO add conics
+
+
+	#slope = sum(slopelist)/len(slopelist)
+	#intercept = sum(interlist)/len(slopelist)
+	#print(slope, intercept)
+
+
+
+
+
+
+	##resalt = ("We are looking up by " + str(altdeg) + " degrees")
+	##resazz = ("We are looking " + str(azzdeg) + " East of North")
+	##respth = ("The bird is moving along a roughly linear path of the form")
+	##respt2 = ("         y = " + str(slope) + " + " + str(intercept))
+	##reswut = ("           Why was this bird going NNE?")
+
+	##cv2.rectangle(img,(0,0),(1920,150),(0,0,0),-1)
+
+
+	##cv2.putText(img, resalt ,(10,200), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, resazz ,(10,300), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, respth ,(10,500), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, respt2 ,(10,600), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, reswut ,(10,800), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.imwrite('ephem_12.png', img)
+	##cv2.imshow('image',img)
+	##cv2.waitKey(0)
+
+
+if __name__ == '__main__':
+	try:
+		with open('/scratch/whoneyc/outputslopes.csv', 'w') as f:
+			f.write('frame, slope, intercept\n')
+		main()
+	except KeyboardInterrupt:
+		print("keyboard task kill")
+	finally:
+		cv2.destroyAllWindows()
+		## Wipe the old numpy junk from scratch directory.
+		#try:
+			#files = os.listdir('/scratch/whoneyc/')
+			#for file in files:
+				#if file.endswith(".npy"):
+					#os.remove(os.path.join('/scratch/whoneyc/',file))
+			#os.remove('/scratch/whoneyc/Frame_current.npy')
+		#except FileNotFoundError:
+			#pass
