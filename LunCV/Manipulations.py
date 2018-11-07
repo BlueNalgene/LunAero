@@ -9,9 +9,7 @@
 This particular file centers the moon and subtracks the background.
 '''
 
-#import sys
 import numpy as np
-#from scipy import ndimage as ndi
 
 import cv2
 

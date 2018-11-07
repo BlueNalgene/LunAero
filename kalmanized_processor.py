@@ -21,7 +21,7 @@ import ephem
 from scipy import stats
 
 import cv2
-from LunCV import Manipulations
+from LunCV import Manipulations, RingBuffer
 
 #kalman = cv2.KalmanFilter(2, 1, 0)
 #state = 0.1 * np.random.randn(2, 1)
@@ -44,6 +44,7 @@ def main():
 	bbb = []
 
 	lcv = Manipulations.Manipulations()
+	rbf = RingBuffer.RingBufferClass()
 
 	#for i in range(0, LAST):
 		#aaa.append(i)
@@ -104,68 +105,14 @@ def main():
 				img[img > 0] = 1
 
 				# Deal with ringbuffer on LAST frames
-				ringbuffer_cycle(pos_frame, img)
-				img = ringbuffer_process(pos_frame, img)
+				rbf.ringbuffer_cycle(pos_frame, img, LAST)
+				img = rbf.ringbuffer_process(pos_frame, img, LAST)
 
 				cv2.imshow('image', img)
 				cv2.waitKey(1)
 
 		pos_frame += 1
 
-
-def ringbuffer_cycle(pos_frame, img):
-	'''Saves the contours from the image in a ring buffer.
-	'''
-	np.save('/scratch/whoneyc/Frame_minus_0.npy', img)
-
-	for i in range(LAST, 0, -1):
-		if pos_frame == 0:
-			continue
-		elif (pos_frame - i + 1) >= 0:
-			try:
-				# Save as name(i) from...the file that used to be name(i-1)
-				aaa = '/scratch/whoneyc/Frame_minus_{0}'.format(i-2)+'.npy'
-				bbb = '/scratch/whoneyc/Frame_minus_{0}'.format(i-1)+'.npy'
-				oldone = np.load(aaa)
-				np.save(bbb, oldone)
-			except FileNotFoundError:
-				pass
-	return
-
-def ringbuffer_process(pos_frame, img):
-	'''Access the existing ringbuffer to get information about the LAST frames.
-	Perform actions within.
-	'''
-	bbb = np.load('/scratch/whoneyc/Frame_minus_0.npy')
-	if pos_frame == 0:
-		pass
-	elif pos_frame >= LAST:
-		for i in range(LAST, 1, -1):
-			try:
-				aaa = '/scratch/whoneyc/Frame_minus_{0}'.format(i-1)+'.npy'
-				aaa = np.load(aaa)
-				bbb = np.add(aaa, bbb)
-				np.save('/scratch/whoneyc/Frame_minus_0.npy', bbb)
-			except TypeError:
-				print("bailing on error")
-		bbb = np.load('/scratch/whoneyc/Frame_minus_0.npy')
-		bbb[bbb > 1] = 0
-		bbb[bbb == 1] = 255
-		np.save('/scratch/whoneyc/Frame_mixed.npy', bbb)
-
-		img = np.load('/scratch/whoneyc/Frame_mixed.npy')
-		_, thresh = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
-		_, contours, _ = cv2.findContours(thresh, 2, 1)
-
-		centers = []
-		if contours:
-			centers = mixed_centers(contours)
-
-		img[img > 0] = 255
-
-		if centers:
-			img = centers_proc(pos_frame, centers, img)
-	return img
 
 def mixed_centers(contours):
 	'''Get the contours and centers of them should they exist.
