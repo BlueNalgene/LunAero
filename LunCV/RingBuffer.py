@@ -96,13 +96,15 @@ class RingBufferClass():
 
 			img[img > 0] = 255
 
-			if self.ttt:
-				img = self.centers_proc(pos_frame, img)
+			# TODO: is this still needed?
+			#if self.ttt:
+				#img = self.centers_proc(pos_frame, img)
 		return img
 
 	def get_centers(self, pos_frame, contours):
 		'''Get the contours and centers of them should they exist.
 		'''
+		# TODO: is this still needed?
 		cnt = contours[0]
 		for cnt in contours:
 			perimeter = cv2.arcLength(cnt, True)
@@ -126,6 +128,7 @@ class RingBufferClass():
 			pass
 		else:
 			img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+			# Draw an estimate line
 			cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
 				(0, 0, 255), 2)
 			with open('/scratch/whoneyc/outputslopes.csv', 'a') as fff:
@@ -160,9 +163,10 @@ class RingBufferClass():
 
 							# If the score is good, the relationship passes the test.
 							if pythag >= 5 and pythag <= 50:
+								# TODO: is this still needed?
 								# Draw it visually
-								cv2.line(img, (int(self.xxx[i]), int(self.yyy[i])), (int(self.xxx[j]),\
-									int(self.yyy[j])), (255, 255, 0), 2)
+								#cv2.line(img, (int(self.xxx[i]), int(self.yyy[i])), (int(self.xxx[j]),\
+									#int(self.yyy[j])), (255, 255, 0), 2)
 
 								# Add these points to our good list.
 								goodlist = np.append(goodlist, np.array([[\
