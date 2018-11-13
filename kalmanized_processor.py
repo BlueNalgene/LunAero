@@ -33,6 +33,8 @@ from LunCV import Manipulations, RingBuffer
 #kalman.statePost = 0.1 * np.random.randn(2, 1)
 
 LAST = 5
+# Lazy solution to a start-at-zero problem.
+LAST = LAST + 2 
 
 def main():
 	'''main function
@@ -55,7 +57,7 @@ def main():
 		#cap = cv2.VideoCapture('/scratch/whoneyc/1535181028stabilized.mp4')
 		#cap = cv2.VideoCapture('/home/wes/Pictures/Demobird/videoout.mp4')
 		cap.set(cv2.CAP_PROP_POS_FRAMES, pos_frame)
-		ret, img = cap.read()
+		ret, frame = cap.read()
 
 		##Info for debugging
 		#for i in range(LAST, 1, -1):
@@ -70,25 +72,25 @@ def main():
 			#print(pos_frame)
 			if True:#placeholder for another switch
 				#Necessary cleanup of rbf class
-				rbf.re_init()
+				rbf.re_init(pos_frame, LAST)
 
-				# Make image img
-				img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+				# Make image gray
+				frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 				# Blur Image
-				img = cv2.GaussianBlur(img, (5, 5), 0)
+				frame = cv2.GaussianBlur(frame, (5, 5), 0)
 
 				# Get thresholds
-				lower_thresh, upper_thresh = lcv.magic_thresh(img)
+				lower_thresh, upper_thresh = lcv.magic_thresh(frame)
 
 				# Get contours
-				contours = lcv.cv_contour(img, lower_thresh, upper_thresh)
+				contours = lcv.cv_contour(frame, lower_thresh, upper_thresh)
 
 				# Center Moon
-				ellipse, img = lcv.center_moon(img, contours)
+				ellipse, frame = lcv.center_moon(frame, contours)
 
 				# Subtract Background
-				img = lcv.subtract_background(img)
+				img = lcv.subtract_background(frame)
 
 				# Remove Halo Noise
 				img = lcv.halo_noise(ellipse, img)
@@ -97,7 +99,7 @@ def main():
 				contours = lcv.cv_contour(img, 0, 255)
 
 				if contours:
-					print(len(contours[0]))
+					rbf.get_centers(pos_frame, contours)
 
 				##Info for debugging
 				#with open('/scratch/whoneyc/contours_minus_cont_0.p', 'wb') as fff:
@@ -109,6 +111,16 @@ def main():
 				# Deal with ringbuffer on LAST frames
 				rbf.ringbuffer_cycle(pos_frame, img, LAST)
 				img = rbf.ringbuffer_process(pos_frame, img, LAST)
+				goodlist = rbf.centers_local(pos_frame, img)
+				if goodlist.size > 0:
+					rbf.longer_range(pos_frame, LAST, img, goodlist)
+
+				# Screenshot
+				if goodlist.size != 0:
+					cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)
+					frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+					added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
+					cv2.imwrite('/scratch/whoneyc/contours_%09d.png' % pos_frame, added_image)
 
 				cv2.imshow('image', img)
 				cv2.waitKey(1)
