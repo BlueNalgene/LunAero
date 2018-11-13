@@ -113,7 +113,7 @@ def main():
 				img = rbf.ringbuffer_process(pos_frame, img, LAST)
 				goodlist = rbf.centers_local(pos_frame, img)
 				if goodlist.size > 0:
-					lrs = rbf.longer_range(pos_frame, LAST, img, goodlist)
+					lrs = rbf.longer_range(pos_frame, img, goodlist)
 					# Screenshot
 					if lrs:
 						cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)

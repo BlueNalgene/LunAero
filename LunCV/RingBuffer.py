@@ -24,6 +24,8 @@ class RingBufferClass():
 
 	def __init__(self):
 		np.set_printoptions(suppress=True)
+		with open('/scratch/whoneyc/longer_range_output.csv', 'w') as fff:
+			fff.write('')
 		return
 
 	def re_init(self, pos_frame, last):
@@ -97,14 +99,14 @@ class RingBufferClass():
 			img[img > 0] = 255
 
 			# TODO: is this still needed?
-			#if self.ttt:
+			if self.ttt:
+				img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 				#img = self.centers_proc(pos_frame, img)
 		return img
 
 	def get_centers(self, pos_frame, contours):
 		'''Get the contours and centers of them should they exist.
 		'''
-		# TODO: is this still needed?
 		cnt = contours[0]
 		for cnt in contours:
 			perimeter = cv2.arcLength(cnt, True)
@@ -123,6 +125,7 @@ class RingBufferClass():
 		'''Process centers that exist for lines
 		'''
 
+		# TODO: is this still needed?
 		slope, intercept, _, _, _ = stats.linregress(self.xxx, self.yyy)
 		if math.isnan(slope) or math.isnan(intercept):
 			pass
@@ -177,10 +180,13 @@ class RingBufferClass():
 			goodlist = np.unique(goodlist, axis=0)
 		return goodlist
 
-	def longer_range(self, pos_frame, last, img, goodlist):
+	def longer_range(self, pos_frame, img, goodlist):
 		'''Look for longer range linearity in the goodlist
 		Draws a green box around those points.
 		'''
+
+		# No scientific notation please.
+		np.set_printoptions(suppress=True)
 
 		long_range_switch = False
 		# Process Numpy Array with floats in a format:
@@ -236,9 +242,9 @@ class RingBufferClass():
 									speedx = (result[2]+1)/(abs(result[3])+1)
 									speedy = (result[1]+1)/(abs(result[3])+1)
 									# Speed test
-									if abs(speedx) < 10 and abs(speedy) < 10:
+									if abs(speedx) < 15 and abs(speedy) < 15:
 										long_range_switch = True
-										print(speedx, speedy)
+										#print(speedx, speedy)
 										# Put points into a simplified x y format so they can be read.
 										points = np.delete(potentialround4, 3, 1)
 										points = np.delete(points, 0, 1)
@@ -251,5 +257,6 @@ class RingBufferClass():
 											outputline = str('%09d' % pos_frame) + '\n'
 											fff.write(outputline)
 										with open('/scratch/whoneyc/longer_range_output.csv', 'ab') as fff:
+											np.set_printoptions(suppress=True)
 											np.savetxt(fff, potentialround4, delimiter=",")
-										return long_range_switch
+		return long_range_switch
