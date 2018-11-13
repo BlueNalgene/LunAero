@@ -113,16 +113,15 @@ def main():
 				img = rbf.ringbuffer_process(pos_frame, img, LAST)
 				goodlist = rbf.centers_local(pos_frame, img)
 				if goodlist.size > 0:
-					rbf.longer_range(pos_frame, LAST, img, goodlist)
+					lrs = rbf.longer_range(pos_frame, LAST, img, goodlist)
+					# Screenshot
+					if lrs:
+						cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)
+						frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+						added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
+						cv2.imwrite('/scratch/whoneyc/contours_%09d.png' % pos_frame, added_image)
 
-				# Screenshot
-				if goodlist.size != 0:
-					cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)
-					frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-					added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-					cv2.imwrite('/scratch/whoneyc/contours_%09d.png' % pos_frame, added_image)
-
-				cv2.imshow('image', img)
+				#cv2.imshow('image', img)
 				cv2.waitKey(1)
 
 		pos_frame += 1

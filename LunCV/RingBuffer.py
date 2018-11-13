@@ -178,6 +178,7 @@ class RingBufferClass():
 		Draws a green box around those points.
 		'''
 
+		long_range_switch = False
 		# Process Numpy Array with floats in a format:
 		#    [[ pos[i] x[i] y[i] radius[i] pos[j] x[j] y[j] radius[j]
 		#     [ pos[i] x[i] y[i] radius[i] pos[j] x[j] y[j] radius[j]]
@@ -232,16 +233,19 @@ class RingBufferClass():
 									speedy = (result[1]+1)/(abs(result[3])+1)
 									# Speed test
 									if abs(speedx) < 10 and abs(speedy) < 10:
+										long_range_switch = True
 										print(speedx, speedy)
-										# put a box that encloses all of the points
+										# Put points into a simplified x y format so they can be read.
 										points = np.delete(potentialround4, 3, 1)
 										points = np.delete(points, 0, 1)
 										points = points.astype('int')
+										# draw a box that encloses all of the points
 										xbox, ybox, wbox, hbox = cv2.boundingRect(points)
 										cv2.rectangle(img, (xbox, ybox), (xbox+wbox, ybox+hbox), (0, 255, 0), 2)
 										# Save to file
 										with open('/scratch/whoneyc/longer_range_output.csv', 'a') as fff:
-											outputline = str(pos_frame) + '\n'
+											outputline = str('%09d' % pos_frame) + '\n'
 											fff.write(outputline)
 										with open('/scratch/whoneyc/longer_range_output.csv', 'ab') as fff:
 											np.savetxt(fff, potentialround4, delimiter=",")
+										return long_range_switch
