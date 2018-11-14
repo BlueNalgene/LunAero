@@ -8,11 +8,12 @@ on the RasPi, make sure that USEGUI in ./__init__.py is False.
 
 from __future__ import print_function
 
+#import argparse
 #import csv
 #from datetime import datetime
 #import itertools
 #import math
-#import os
+import os
 #import pickle
 #import time
 #import numpy as np
@@ -36,11 +37,13 @@ LAST = 5
 # Lazy solution to a start-at-zero problem.
 LAST = LAST + 2 
 
-def main():
+def main(the_file):
 	'''main function
 	'''
 
 	pos_frame = 0
+	file_datetime = str(the_file)
+	file_datetime = (file_datetime.split('/')[-1].split('outA.'))[0]
 
 	lcv = Manipulations.Manipulations()
 	rbf = RingBuffer.RingBufferClass()
@@ -53,7 +56,7 @@ def main():
 
 	#while pos_frame < 84:
 	while True:
-		cap = cv2.VideoCapture('/scratch/whoneyc/1524943548outA.mp4')
+		cap = cv2.VideoCapture(the_file)
 		#cap = cv2.VideoCapture('/scratch/whoneyc/1535181028stabilized.mp4')
 		#cap = cv2.VideoCapture('/home/wes/Pictures/Demobird/videoout.mp4')
 		cap.set(cv2.CAP_PROP_POS_FRAMES, pos_frame)
@@ -112,7 +115,7 @@ def main():
 				rbf.ringbuffer_cycle(pos_frame, img, LAST)
 				img = rbf.ringbuffer_process(pos_frame, img, LAST)
 				goodlist = rbf.centers_local(pos_frame, img)
-				if goodlist.size > 0:
+				if goodlist.size > 0 and goodlist.size < 300:
 					lrs = rbf.longer_range(pos_frame, img, goodlist)
 					# Screenshot
 					if lrs:
@@ -125,6 +128,50 @@ def main():
 				cv2.waitKey(1)
 
 		pos_frame += 1
+
+def is_valid_file(parser, arg):
+	'''
+	Check if arg is a valid file that already exists on the file system.
+
+	Parameters
+	----------
+	parser : argparse object
+	arg : str
+
+	Returns
+	-------
+	arg
+	'''
+	arg = os.path.abspath(arg)
+	if not os.path.exists(arg):
+		parser.error("The file %s does not exist!" % arg)
+	else:
+		return arg
+
+def get_parser():
+	'''Get parser object for script processor.py
+	'''
+	from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+	parser = ArgumentParser(description=__doc__,
+							formatter_class=ArgumentDefaultsHelpFormatter)
+	parser.add_argument("-f", "--file",
+						dest="filename",
+						required=True,
+						type=lambda x: is_valid_file(parser, x),
+						help="write report to FILE",
+						metavar="FILE")
+	#parser.add_argument("-n",
+						#dest="n",
+						#default=10,
+						#type=int,
+						#help="how many lines get printed")
+	#parser.add_argument("-q", "--quiet",
+						#action="store_false",
+						#dest="verbose",
+						#default=True,
+						#help="don't print status messages to stdout")
+	return parser
+
 
 #def ephreport(pos_frame):
 	#'''Uses the ephem class to get values for moon locations based on time.
@@ -197,10 +244,10 @@ def main():
 
 
 if __name__ == '__main__':
+	args = get_parser().parse_args()
+	print(args.filename)
 	try:
-		with open('/scratch/whoneyc/outputslopes.csv', 'w') as f:
-			f.write('frame, slope, intercept\n')
-		main()
+		main(args.filename)
 	except KeyboardInterrupt:
 		print("keyboard task kill")
 	finally:
