@@ -101,7 +101,6 @@ class RingBufferClass():
 			# TODO: is this still needed?
 			if self.ttt:
 				img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-				#img = self.centers_proc(pos_frame, img)
 		return img
 
 	def get_centers(self, pos_frame, contours):
@@ -120,24 +119,6 @@ class RingBufferClass():
 				#centroid = (int(pos_frame), (xxx), int(yyy))
 				#self.centers.append(np.round(centroid))
 		return
-
-	def centers_proc(self, pos_frame, img):
-		'''Process centers that exist for lines
-		'''
-
-		# TODO: is this still needed?
-		slope, intercept, _, _, _ = stats.linregress(self.xxx, self.yyy)
-		if math.isnan(slope) or math.isnan(intercept):
-			pass
-		else:
-			img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-			# Draw an estimate line
-			cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
-				(0, 0, 255), 2)
-			with open('/scratch/whoneyc/outputslopes.csv', 'a') as fff:
-				thestring = str(pos_frame) + ',' + str(slope) + ',' + str(intercept) +'\n'
-				fff.write(thestring)
-		return img
 
 	def centers_local(self, pos_frame, img):
 		'''Process local centers as a cyan line.
@@ -166,10 +147,6 @@ class RingBufferClass():
 
 							# If the score is good, the relationship passes the test.
 							if pythag >= 5 and pythag <= 50:
-								# TODO: is this still needed?
-								# Draw it visually
-								#cv2.line(img, (int(self.xxx[i]), int(self.yyy[i])), (int(self.xxx[j]),\
-									#int(self.yyy[j])), (255, 255, 0), 2)
 
 								# Add these points to our good list.
 								goodlist = np.append(goodlist, np.array([[\
@@ -180,7 +157,45 @@ class RingBufferClass():
 			goodlist = np.unique(goodlist, axis=0)
 		return goodlist
 
-	def longer_range(self, pos_frame, img, goodlist):
+	def simple_regression(self, pos_frame, img):
+		'''Places a line through the frame which attempts to fit all of the points on the plot.
+		This is done by least squares regression.
+		It is not very useful, but I have kept it just in case.
+		'''
+
+		slope, intercept, _, _, _ = stats.linregress(self.xxx, self.yyy)
+		if math.isnan(slope) or math.isnan(intercept):
+			pass
+		else:
+			#img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+			# Draw an estimate line
+			cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
+				(0, 0, 255), 2)
+			with open('/scratch/whoneyc/outputslopes.csv', 'a') as fff:
+				thestring = str(pos_frame) + ',' + str(slope) + ',' + str(intercept) +'\n'
+				fff.write(thestring)
+		return img
+
+	def local_linear(self, pos_frame, img, goodlist):
+		'''Compares two points.  If the points are linked with pythag, then draws a line between them.
+		Works ok for visual spotting.
+		'''
+		if goodlist.size != 0:
+			with open('/scratch/whoneyc/local_linear_output.csv', 'a') as fff:
+				outputline = str('%09d' % pos_frame) + '\n'
+				fff.write(outputline)
+		for i in range(0, len(self.xxx)):
+			for j in range(0, len(self.xxx)):
+				# Draw a line through the points
+				cv2.line(img, (int(self.xxx[i]), int(self.yyy[i])), (int(self.xxx[j]),\
+					int(self.yyy[j])), (255, 255, 0), 2)
+				with open('/scratch/whoneyc/longer_range_output.csv', 'a') as fff:
+					outputline = str(int(self.xxx[i])) + ',' + str(int(self.yyy[i])) + ',' + \
+						str(int(self.xxx[j])) + ',' + str(int(self.yyy[j])) + '\n'
+					fff.write(outputline)
+		return img
+
+	def longer_range(self, pos_frame, img, frame, goodlist):
 		'''Look for longer range linearity in the goodlist
 		Draws a green box around those points.
 		'''
@@ -206,7 +221,6 @@ class RingBufferClass():
 			potentialround1 = np.array(goodlist[i,:])
 			for j in range(0, np.size(goodlist, 0)):
 				# Test for frame difference.
-				#print(goodlist[j,:])
 				if goodlist[j,:][0] < goodlist[i,:][0] and goodlist[j,:][3] > 2 and goodlist[i,:][3] > 2:
 					potentialround2 = np.vstack((potentialround1, goodlist[j,:]))
 					for k in range(0, np.size(goodlist, 0)):
@@ -231,11 +245,9 @@ class RingBufferClass():
 									# What we have now should be a two column matrix.
 									# Each row is a pair of differences in the order: r, y, x, t
 									# We now repeat on this matrix.
-									#print(result)
 									result = np.ediff1d(result, to_end=0)
 									result = np.reshape(result, (4, 3))
 									result = np.delete(result, 2, 1)
-									#print(result)
 									result = np.ediff1d(result, to_end=0)
 									result = np.reshape(result, (4, 2))
 									result = np.delete(result, 1, 1)
@@ -245,7 +257,6 @@ class RingBufferClass():
 									# Speed test
 									if abs(speedx) < 15 and abs(speedy) < 15:
 										long_range_switch = True
-										#print(speedx, speedy)
 										# Put points into a simplified x y format so they can be read.
 										points = np.delete(potentialround4, 3, 1)
 										points = np.delete(points, 0, 1)
@@ -260,4 +271,10 @@ class RingBufferClass():
 										with open('/scratch/whoneyc/longer_range_output.csv', 'ab') as fff:
 											np.set_printoptions(suppress=True)
 											np.savetxt(fff, potentialround4, delimiter=",")
-		return long_range_switch
+		# Output screenshots
+		if long_range_switch:
+			cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)
+			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
+			cv2.imwrite('/scratch/whoneyc/contours_%09d.png' % pos_frame, added_image)
+		return
