@@ -206,7 +206,7 @@ class RingBufferClass():
 			potentialround1 = np.array(goodlist[i,:])
 			for j in range(0, np.size(goodlist, 0)):
 				# Test for frame difference.
-				print(goodlist[j,:])
+				#print(goodlist[j,:])
 				if goodlist[j,:][0] < goodlist[i,:][0] and goodlist[j,:][3] > 2 and goodlist[i,:][3] > 2:
 					potentialround2 = np.vstack((potentialround1, goodlist[j,:]))
 					for k in range(0, np.size(goodlist, 0)):
