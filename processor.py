@@ -37,11 +37,10 @@ LAST = 5
 # Lazy solution to a start-at-zero problem.
 LAST = LAST + 2
 
-def main(the_file, mode, gui):
+def main(the_file, mode, gui, pos_frame):
 	'''main function
 	'''
 
-	pos_frame = 0
 	file_datetime = str(the_file)
 	file_datetime = (file_datetime.split('/')[-1].split('outA.'))[0]
 
@@ -56,6 +55,7 @@ def main(the_file, mode, gui):
 
 	#while pos_frame < 84:
 	while True:
+		print(pos_frame)
 		cap = cv2.VideoCapture(the_file)
 		#cap = cv2.VideoCapture('/scratch/whoneyc/1535181028stabilized.mp4')
 		#cap = cv2.VideoCapture('/home/wes/Pictures/Demobird/videoout.mp4')
@@ -112,7 +112,7 @@ def main(the_file, mode, gui):
 			# Deal with ringbuffer on LAST frames
 			rbf.ringbuffer_cycle(pos_frame, img, LAST)
 			img = rbf.ringbuffer_process(pos_frame, img, LAST)
-			goodlist = rbf.centers_local(pos_frame, img)
+			goodlist = rbf.centers_local(pos_frame)
 			# Number of contours limiter
 			if goodlist.size > 0 and goodlist.size < 300:
 				if mode == 0:
@@ -122,7 +122,7 @@ def main(the_file, mode, gui):
 				elif mode == 2:
 					img = rbf.local_linear(pos_frame, img, goodlist)
 				elif mode == 3:
-					rbf.longer_range(pos_frame, img, frame, goodlist)
+					rbf.middle_range(pos_frame, img, frame, goodlist)
 
 			if gui:
 				cv2.imshow('image', img)
@@ -163,6 +163,8 @@ def get_parser():
 		help="processing mode: 0=none, 1=simple_regression, 2=local_linear, 3=longer_range")
 	parser.add_argument("-g", "--gui", dest="gui", action="store_true", default=False,\
 		help="show the slides as you are processing them.")
+	parser.add_argument("-n", "--nthframe", dest="pos_frame", type=int, default=0,\
+		help="set the starting frame number; defaults to 0.\n *NOTE: This changes the basis set/early results!")
 	#parser.add_argument("-q", "--quiet",
 						#action="store_false",
 						#dest="verbose",
@@ -245,7 +247,7 @@ if __name__ == '__main__':
 	ARGS = get_parser().parse_args()
 	print(ARGS.filename)
 	try:
-		main(ARGS.filename, ARGS.mode, ARGS.gui)
+		main(ARGS.filename, ARGS.mode, ARGS.gui, ARGS.pos_frame)
 	except KeyboardInterrupt:
 		print("keyboard task kill")
 	finally:
