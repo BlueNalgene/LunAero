@@ -133,6 +133,7 @@ def main(the_file, mode, gui, pos_frame):
 				cv2.imshow('image', img)
 
 			cv2.waitKey(1)
+
 		else:
 			break
 

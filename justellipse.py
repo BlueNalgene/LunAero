@@ -17,7 +17,7 @@ LAST = 5
 # Lazy solution to a start-at-zero problem.
 LAST = LAST + 2
 
-def main(the_file, mode, gui, pos_frame):
+def main(the_file, pos_frame):
 	'''main function
 	'''
 
@@ -35,8 +35,6 @@ def main(the_file, mode, gui, pos_frame):
 		ret, frame = cap.read()
 
 		if ret:
-			#Necessary cleanup of rbf class
-			rbf.re_init(pos_frame, LAST)
 
 			# Make image gray
 			frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -55,10 +53,13 @@ def main(the_file, mode, gui, pos_frame):
 
 			with open('./outputellipse.csv', 'a') as fff:
 				outstring = str(pos_frame) + ',' + str(ellipse[0][0]) + ',' + str(ellipse[0][1])\
-					+ ',' + str(ellipse[1][0]) + ',' + str(ellipse[1][1]) + ',' + str(ellipse[2])
-				fff.write(oustring)
+					+ ',' + str(ellipse[1][0]) + ',' + str(ellipse[1][1]) + ',' + str(ellipse[2]) + '\n'
+				fff.write(outstring)
+
+			cv2.waitKey(1)
 
 		else:
+			print("end of the line")
 			break
 
 		pos_frame += 1
@@ -89,10 +90,6 @@ def get_parser():
 	parser = ArgumentParser(description=__doc__, formatter_class=ArgumentDefaultsHelpFormatter)
 	parser.add_argument("-f", "--file", dest="filename", required=True,\
 		type=lambda x: is_valid_file(parser, x), help="write report to FILE", metavar="FILE")
-	parser.add_argument("-m", "--mode", dest="mode", required=True, type=int,\
-		help="processing mode: 0=none, 1=simple_regression, 2=local_linear, 3=longer_range")
-	parser.add_argument("-g", "--gui", dest="gui", action="store_true", default=False,\
-		help="show the slides as you are processing them.")
 	parser.add_argument("-n", "--nthframe", dest="pos_frame", type=int, default=0,\
 		help="set the starting frame number; defaults to 0.\n *NOTE: This changes the basis set/early results!")
 	#parser.add_argument("-q", "--quiet",
@@ -106,9 +103,9 @@ if __name__ == '__main__':
 	ARGS = get_parser().parse_args()
 	print(ARGS.filename)
 	try:
-		main(ARGS.filename, ARGS.mode, ARGS.gui, ARGS.pos_frame)
 		with open('./outputellipse.csv', 'w') as fff:
 				fff.write('')
+		main(ARGS.filename, ARGS.pos_frame)
 	except KeyboardInterrupt:
 		print("keyboard task kill")
 	finally:
