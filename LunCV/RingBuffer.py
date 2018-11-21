@@ -24,7 +24,7 @@ class RingBufferClass():
 
 	def __init__(self):
 		np.set_printoptions(suppress=True)
-		with open('/scratch/whoneyc/longer_range_output.csv', 'w') as fff:
+		with open('./longer_range_output.csv', 'w') as fff:
 			fff.write('')
 		return
 
@@ -52,7 +52,7 @@ class RingBufferClass():
 	def ringbuffer_cycle(self, pos_frame, img, last):
 		'''Saves the contours from the image in a ring buffer.
 		'''
-		np.save('/scratch/whoneyc/Frame_minus_0.npy', img)
+		np.save('./Frame_minus_0.npy', img)
 
 		for i in range(last, 0, -1):
 			if pos_frame == 0:
@@ -60,8 +60,8 @@ class RingBufferClass():
 			elif (pos_frame - i + 1) >= 0:
 				try:
 					# Save as name(i) from...the file that used to be name(i-1)
-					self.aaa = '/scratch/whoneyc/Frame_minus_{0}'.format(i-2)+'.npy'
-					self.bbb = '/scratch/whoneyc/Frame_minus_{0}'.format(i-1)+'.npy'
+					self.aaa = './Frame_minus_{0}'.format(i-2)+'.npy'
+					self.bbb = './Frame_minus_{0}'.format(i-1)+'.npy'
 					oldone = np.load(self.aaa)
 					np.save(self.bbb, oldone)
 				except FileNotFoundError:
@@ -72,24 +72,24 @@ class RingBufferClass():
 		'''Access the existing ringbuffer to get information about the last frames.
 		Perform actions within.
 		'''
-		self.bbb = np.load('/scratch/whoneyc/Frame_minus_0.npy')
+		self.bbb = np.load('./Frame_minus_0.npy')
 		if pos_frame == 0:
 			pass
 		elif pos_frame >= last:
 			for i in range(last, 1, -1):
 				try:
-					self.aaa = '/scratch/whoneyc/Frame_minus_{0}'.format(i-1)+'.npy'
+					self.aaa = './Frame_minus_{0}'.format(i-2)+'.npy'
 					self.aaa = np.load(self.aaa)
 					self.bbb = np.add(self.aaa, self.bbb)
-					np.save('/scratch/whoneyc/Frame_minus_0.npy', self.bbb)
+					np.save('./Frame_minus_0.npy', self.bbb)
 				except TypeError:
 					print("bailing on error")
-			self.bbb = np.load('/scratch/whoneyc/Frame_minus_0.npy')
+			self.bbb = np.load('./Frame_minus_0.npy')
 			self.bbb[self.bbb > 1] = 0
 			self.bbb[self.bbb == 1] = 255
-			np.save('/scratch/whoneyc/Frame_mixed.npy', self.bbb)
+			np.save('./Frame_mixed.npy', self.bbb)
 
-			img = np.load('/scratch/whoneyc/Frame_mixed.npy')
+			img = np.load('./Frame_mixed.npy')
 
 			img[img > 0] = 255
 
@@ -164,7 +164,7 @@ class RingBufferClass():
 			# Draw an estimate line
 			cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
 				(0, 0, 255), 2)
-			with open('/scratch/whoneyc/outputslopes.csv', 'a') as fff:
+			with open('./outputslopes.csv', 'a') as fff:
 				thestring = str(pos_frame) + ',' + str(slope) + ',' + str(intercept) +'\n'
 				fff.write(thestring)
 		return img
@@ -174,7 +174,7 @@ class RingBufferClass():
 		Works ok for visual spotting.
 		'''
 		if goodlist.size != 0:
-			with open('/scratch/whoneyc/local_linear_output.csv', 'a') as fff:
+			with open('./local_linear_output.csv', 'a') as fff:
 				outputline = str('%09d' % pos_frame) + '\n'
 				fff.write(outputline)
 		for i in range(0, len(self.xxx)):
@@ -182,7 +182,7 @@ class RingBufferClass():
 				# Draw a line through the points
 				cv2.line(img, (int(self.xxx[i]), int(self.yyy[i])), (int(self.xxx[j]),\
 					int(self.yyy[j])), (255, 255, 0), 2)
-				with open('/scratch/whoneyc/longer_range_output.csv', 'a') as fff:
+				with open('./longer_range_output.csv', 'a') as fff:
 					outputline = str(int(self.xxx[i])) + ',' + str(int(self.yyy[i])) + ',' + \
 						str(int(self.xxx[j])) + ',' + str(int(self.yyy[j])) + '\n'
 					fff.write(outputline)
@@ -286,17 +286,17 @@ class RingBufferClass():
 							# draw a box that encloses all of the points
 							img = self.draw_rotated_box(img, points)
 							# Save to file
-							with open('/scratch/whoneyc/longer_range_output.csv', 'a') as fff:
+							with open('./longer_range_output.csv', 'a') as fff:
 								outputline = str('%09d' % pos_frame) + '\n'
 								fff.write(outputline)
-							with open('/scratch/whoneyc/longer_range_output.csv', 'ab') as fff:
+							with open('./longer_range_output.csv', 'ab') as fff:
 								np.savetxt(fff, pr3, delimiter=",")
 		# Output screenshots
 		if long_range_switch:
-			cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)
+			cv2.imwrite('./original_%09d.png' % pos_frame, frame)
 			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-			cv2.imwrite('/scratch/whoneyc/contours_%09d.png' % pos_frame, added_image)
+			cv2.imwrite('./contours_%09d.png' % pos_frame, added_image)
 		return
 
 	def longer_range(self, pos_frame, img, frame, gdl):
@@ -387,17 +387,17 @@ class RingBufferClass():
 									# draw a box that encloses all of the points
 									img = self.draw_box(img, points)
 									# Save to file
-									with open('/scratch/whoneyc/longer_range_output.csv', 'a') as fff:
+									with open('./longer_range_output.csv', 'a') as fff:
 										outputline = str('%09d' % pos_frame) + '\n'
 										fff.write(outputline)
-									with open('/scratch/whoneyc/longer_range_output.csv', 'ab') as fff:
+									with open('./longer_range_output.csv', 'ab') as fff:
 										np.savetxt(fff, pr4, delimiter=",")
 		# Output screenshots
 		if long_range_switch:
-			cv2.imwrite('/scratch/whoneyc/original_%09d.png' % pos_frame, frame)
+			cv2.imwrite('./original_%09d.png' % pos_frame, frame)
 			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-			cv2.imwrite('/scratch/whoneyc/contours_%09d.png' % pos_frame, added_image)
+			cv2.imwrite('./contours_%09d.png' % pos_frame, added_image)
 		return
 
 	def draw_box(self, img, points):

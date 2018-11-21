@@ -90,6 +90,11 @@ def main(the_file, mode, gui, pos_frame):
 			# Center Moon
 			ellipse, frame = lcv.center_moon(frame, contours)
 
+			with open('./outputellipse.csv', 'a') as fff:
+				outstring = str(pos_frame) + ',' + str(ellipse[0][0]) + ',' + str(ellipse[0][1])\
+					+ ',' + str(ellipse[1][0]) + ',' + str(ellipse[1][1]) + ',' + str(ellipse[2])
+				fff.write(oustring)
+
 			# Subtract Background
 			img = lcv.subtract_background(frame)
 

@@ -58,7 +58,7 @@ def main(filein, fileout, forced_date, utcoffset, lat, lon, elev):
 					# Convert the unixtime of the frame to a format readible by astropy
 					ucorrtime = unixdate + frametime
 					datetag = Time(datetime.utcfromtimestamp(ucorrtime).strftime('%Y-%m-%d %H:%M:%S.%f')) - utcoffset
-					get_moon(datetag).transform_to(AltAz(obstime=datetag,location=site))
+					mooninfo = get_moon(datetag).transform_to(AltAz(obstime=datetag,location=site))
 				else:
 					pass
 			elif i % 4 in (1, 2):
@@ -82,7 +82,7 @@ def main(filein, fileout, forced_date, utcoffset, lat, lon, elev):
 	
 	return
 
-def bird_ass(tlist, xlist, ylist, rlist):
+def bird_ass(tlist, xlist, ylist, rlist, mooninfo):
 	'''Math is done on the observed bird
 	
 	Bird final location is the last in the list, so the coordinates are (xlist[2], ylist[2])
@@ -97,8 +97,16 @@ def bird_ass(tlist, xlist, ylist, rlist):
 	# Assumption 4: All birds travel in straight lines which cut a plane through our viewing cone orthogonal to...
 	# ...the antipodal axis from zenith to nadir.  We ignore the true horizon for birds relatively close to us.
 	# Assumption 5: The moon is a constant distance away from the earth during this transit period.
-	# Assumption 6: The observer of the moon is not beholden to atmospheric or gravitational lensing.
+	# Assumption 6: An image of the moon recorded by machine is not subject to the horizon illusion.
+	# Assumption 7: Atmospheric turbulence does not impact the image of the birds, and can be ignored.
 	
+	# Assumptionxxx We are conveniently ignoring the effect on temperature and humidity on low altitude moon...
+	# ...observations because it is hard.  Also, it might be below our threshold of caring.  Terrestrial refraction...
+	# ...is completely ignored because we will not be measuring birds that low (transit at that angle is not...
+	# ...measuring high altitude migration).
+	
+	# Check for deviation of ellipse predicted by spherical moon and observed ellipse.
+	calculate_ideal_ellipse(mooninfo)
 
 	# Total travel time of this bird in these frames
 	delt = tlist[2] - tlist[0]
@@ -111,6 +119,33 @@ def bird_ass(tlist, xlist, ylist, rlist):
 
 	# Size of the bird we observed
 	relsize = sum(rlist)/3
+
+
+def calculate_ideal_ellipse(mooninfo):
+	'''This function calculates the ideal parameters of the observed ellipse based on the information retrieved
+	from astropy.  This can be compared to what is observed.
+	'''
+	# Distance to the moon in meters
+	dist = mooninfo.distance.value
+	# Lunar equitorial and polar radii in meters
+	# https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html
+	eqrd = 1738100
+	pord = 1736000
+	# Lateral surface area of an elliptical cone
+	# L = 1/2 * π * ( a * √ b² + h² + b * √ a² + h² )
+	lata = 0.5 * math.pi *(eqrd * math.sqrt(pord**2 + dist**2) + pord * math.sqrt(eqrd**2 + dist**2))
+	# Surface area of elliptical cone
+	# A = L + π * a * b
+	elar = lata + (math.pi * eqrd * pord)
+	# Altitude of moon in degrees
+	altm = mooninfo.alt.value
+	# If the Earth is a perfect sphere and light travels in straight lines. 
+	# r = 6371000m, c = 2*pi*r, c = 40030000m, radial distance = c/360 = 111194.4m/deg
+	# If we go with the more correct oblate spheroid, it gets more complicated.
+	# a = equitorial radius = 12,756,274m
+	# b = polar radius = 12,713,560m
+	# 
+	
 
 def is_valid_file(parser, arg):
 	'''
