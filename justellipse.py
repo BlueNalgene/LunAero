@@ -11,7 +11,7 @@ from __future__ import print_function
 import os
 
 import cv2
-from LunCV import Manipulations, RingBuffer
+from LunCV import Manipulations
 
 LAST = 5
 # Lazy solution to a start-at-zero problem.
@@ -25,7 +25,6 @@ def main(the_file, pos_frame):
 	file_datetime = (file_datetime.split('/')[-1].split('outA.'))[0]
 
 	lcv = Manipulations.Manipulations()
-	rbf = RingBuffer.RingBufferClass()
 
 	while True:
 		print(pos_frame)
