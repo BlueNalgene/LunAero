@@ -142,9 +142,23 @@ def calculate_ideal_ellipse(mooninfo):
 	# If the Earth is a perfect sphere and light travels in straight lines. 
 	# r = 6371000m, c = 2*pi*r, c = 40030000m, radial distance = c/360 = 111194.4m/deg
 	# If we go with the more correct oblate spheroid, it gets more complicated.
-	# a = equitorial radius = 12,756,274m
-	# b = polar radius = 12,713,560m
-	# 
+	# a = equitorial radius = 6,378,137m
+	# b = polar radius = 6,356,752.314245m
+	axsa = 6378137
+	axsb = 6356752.31424
+	# b/a = e = 0.99664718933
+	# from WGS84, the first eccentricity squared (e^2) = 0.99330562001
+	ecc2 = 0.99330562001
+	# Need reduced latitude from our geodetic latitude (θg) from our GPS
+	# tan θ = (b/a) tan θg
+	latr = math.atan((0.99664718933)*math.tan(mooninfo.location.lat.value))
+	# local curvature through the greatarc in the azimutal (φ) direction is:
+	# r   =   a (1 - e2 cos2 φ cos2 θ)3/2 / (1 - e2 [1- sin2 φ cos2 θ])1/2
+	azim = mooninfo.az.value
+	xxxx = math.radians(math.cos(azim)**2)
+	yyyy = math.radians(math.cos(latr)**2)
+	zzzz = math.radians(math.sin(azim)**2)
+	radi = (axsa*(1-(ecc2*xxxx*yyyy))**(3/2))/((1-(ecc2*(1-(zzzz*yyyy))))**(1/2))
 	
 
 def is_valid_file(parser, arg):
@@ -232,3 +246,75 @@ if __name__ == '__main__':
 		print("keyboard task kill")
 	finally:
 		quit()
+
+
+
+
+#def ephreport(pos_frame):
+	#'''Uses the ephem class to get values for moon locations based on time.
+	#Input the latitude (N), longitude (E), and observation time (UTC)
+	#'''
+
+	#gatech = ephem.Observer()
+	## Norman, OK
+	#gatech.lat = '35.2226'
+	#gatech.lon = '-97.4395'
+	## Spotted at 1:33 AM on Sept. 25th
+	## In UTC +5
+
+	## Start time of video in Unix time (UTC)
+	#starttime = 1537857180
+
+	## Account for time of each frame.
+	#frametime = starttime + int(pos_frame/25)
+
+	## Assign timestamp in string format
+	#gatech.date = datetime.utcfromtimestamp(frametime).strftime('%Y/%m/%d %H:%M:%S')
+
+	##resutc = ("At UTC time of " + str(gatech.date))
+	##resobs = ("From Norman, OK (" + str(gatech.lat) + "N, " + str(gatech.lon) + "E)")
+
+	## Retrieve Positional information from the time we entered.
+	#position = ephem.Moon(gatech)
+	#azz = str(position.az).split(':')
+	#alt = str(position.alt).split(':')
+
+	#azzsec = []
+	#altsec = []
+	#for i in azz:
+		#azzsec.append(float(i))
+	#for i in alt:
+		#altsec.append(float(i))
+
+	#altdeg = altsec[0]+0.01666667*altsec[1]+0.00027778*altsec[2]
+	#azzdeg = azzsec[0]+0.01666667*azzsec[1]+0.00027778*azzsec[2]
+
+	##TODO add conics
+
+
+	#slope = sum(slopelist)/len(slopelist)
+	#intercept = sum(interlist)/len(slopelist)
+	#print(slope, intercept)
+
+
+
+
+
+
+	##resalt = ("We are looking up by " + str(altdeg) + " degrees")
+	##resazz = ("We are looking " + str(azzdeg) + " East of North")
+	##respth = ("The bird is moving along a roughly linear path of the form")
+	##respt2 = ("         y = " + str(slope) + " + " + str(intercept))
+	##reswut = ("           Why was this bird going NNE?")
+
+	##cv2.rectangle(img,(0,0),(1920,150),(0,0,0),-1)
+
+
+	##cv2.putText(img, resalt ,(10,200), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, resazz ,(10,300), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, respth ,(10,500), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, respt2 ,(10,600), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.putText(img, reswut ,(10,800), font, 2,(255,255,255),2,cv2.LINE_AA)
+	##cv2.imwrite('ephem_12.png', img)
+	##cv2.imshow('image',img)
+	##cv2.waitKey(0)
