@@ -153,7 +153,7 @@ class RingBufferClass():
 							#print(((pos_frame - self.ttt[i]) + 1), pythag)
 
 							# If the score is good, the relationship passes the test.
-							if pythag >= 5 and pythag <= 200:
+							if pythag >= 5 and pythag <= 300:
 
 								# Add these points to our good list.
 								goodlist = np.append(goodlist, np.array([[\
@@ -289,7 +289,7 @@ class RingBufferClass():
 							result = np.delete(result, 1, 1)
 
 							# Run a size test.  The radius should be relatively constant.
-							if abs(result[0]) > 4:
+							if abs(result[0]) > 10:
 								continue
 
 							long_range_switch = True
