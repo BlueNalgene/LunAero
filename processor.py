@@ -15,10 +15,11 @@ from __future__ import print_function
 #import math
 import os
 #import pickle
+import sys
 #import time
-#import numpy as np
 
 #import ephem
+#import numpy as np
 #from scipy import stats
 
 import cv2
@@ -37,7 +38,7 @@ LAST = 5
 # Lazy solution to a start-at-zero problem.
 LAST = LAST + 2
 
-def main(the_file, mode, gui, pos_frame):
+def main(the_file, mode, gui, pos_frame, procpath):
 	'''main function
 	'''
 
@@ -45,15 +46,8 @@ def main(the_file, mode, gui, pos_frame):
 	file_datetime = (file_datetime.split('/')[-1].split('outA.'))[0]
 
 	lcv = Manipulations.Manipulations()
-	rbf = RingBuffer.RingBufferClass()
+	rbf = RingBuffer.RingBufferClass(pos_frame, LAST, procpath)
 
-	#for i in range(0, LAST):
-		#aaa.append(i)
-		#ccc = 'cont_{0}'.format(i)
-		#bbb.append(ccc)
-	#var_dict = {key:value for key, value in zip(aaa, bbb)}
-
-	#while pos_frame < 84:
 	while True:
 		print(pos_frame)
 		cap = cv2.VideoCapture(the_file)
@@ -62,15 +56,6 @@ def main(the_file, mode, gui, pos_frame):
 		cap.set(cv2.CAP_PROP_POS_FRAMES, pos_frame)
 		ret, frame = cap.read()
 
-		##Info for debugging
-		#for i in range(LAST, 1, -1):
-			#if i <= pos_frame:
-				#aaa = '/scratch/whoneyc/contours_minus_cont_{0}'.format(i-2)+'.p'
-				#bbb = '/scratch/whoneyc/contours_minus_cont_{0}'.format(i-1)+'.p'
-				#os.rename(aaa, bbb)
-
-		# bird in demo images appears at img 70
-		# So first we run this for loop to establish the background
 		if ret:
 			#Necessary cleanup of rbf class
 			rbf.re_init(pos_frame, LAST)
@@ -155,6 +140,7 @@ def is_valid_file(parser, arg):
 	arg = os.path.abspath(arg)
 	if not os.path.exists(arg):
 		parser.error("The file %s does not exist!" % arg)
+		sys.exit(1)
 	else:
 		return arg
 
@@ -170,7 +156,7 @@ def get_parser():
 	parser.add_argument("-g", "--gui", dest="gui", action="store_true", default=False,\
 		help="show the slides as you are processing them.")
 	parser.add_argument("-n", "--nthframe", dest="pos_frame", type=int, default=0,\
-		help="set the starting frame number; defaults to 0.\n *NOTE: This changes the basis set/early results!")
+		help="set starting frame number; defaults 0\n *NOTE: This changes the basis set/early results!")
 	#parser.add_argument("-q", "--quiet",
 						#action="store_false",
 						#dest="verbose",
@@ -178,22 +164,28 @@ def get_parser():
 						#help="don't print status messages to stdout")
 	return parser
 
+def read_proc_number():
+	'''Look for deleteme file.
+	If it exists, parse it for the number we need
+	Else, die
+	'''
+	arg = os.path.abspath("./deleteme")
+	if not os.path.exists(arg):
+		print("the deleteme file does not exist")
+		sys.exit(1)
+	else:
+		with open("./deleteme", 'r') as fff:
+			procpath = fff.read()
+			return procpath
+
 
 if __name__ == '__main__':
 	ARGS = get_parser().parse_args()
 	print(ARGS.filename)
 	try:
-		main(ARGS.filename, ARGS.mode, ARGS.gui, ARGS.pos_frame)
+		main(ARGS.filename, ARGS.mode, ARGS.gui, ARGS.pos_frame, read_proc_number())
 	except KeyboardInterrupt:
 		print("keyboard task kill")
 	finally:
 		cv2.destroyAllWindows()
-		## Wipe the old numpy junk from scratch directory.
-		#try:
-			#files = os.listdir('/scratch/whoneyc/')
-			#for file in files:
-				#if file.endswith(".npy"):
-					#os.remove(os.path.join('/scratch/whoneyc/',file))
-			#os.remove('/scratch/whoneyc/Frame_current.npy')
-		#except FileNotFoundError:
-			#pass
+		os.remove("./deleteme")

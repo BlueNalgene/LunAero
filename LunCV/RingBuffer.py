@@ -5,8 +5,9 @@
 '''
 
 import math
-import numpy as np
+import os
 
+import numpy as np
 from scipy import stats
 
 import cv2
@@ -21,11 +22,25 @@ class RingBufferClass():
 	rrr = []
 	xxx = []
 	yyy = []
+	procpath = []
 
-	def __init__(self):
+	def __init__(self, pos_frame, last, procpath):
+		self.procpath = procpath
 		np.set_printoptions(suppress=True)
-		with open('./longer_range_output.csv', 'w') as fff:
+		try:
+			os.mkdir(self.procpath)
+		except FileExistsError:
+			pass
+		os.mkdir(self.procpath + '/orig_w_birds')
+		os.mkdir(self.procpath + '/mixed_contours')
+		fff = self.procpath + '/longer_range_output.csv'
+		with open(fff, 'w') as fff:
 			fff.write('')
+		if pos_frame > 0:
+			emptyslug = np.zeros((1080, 1920), dtype='uint8')
+			for i in range(0, last):
+				aaa = procpath + '/Frame_minus_{0}'.format(i)+'.npy'
+				np.save(aaa, emptyslug)
 		return
 
 	def re_init(self, pos_frame, last):
@@ -52,7 +67,8 @@ class RingBufferClass():
 	def ringbuffer_cycle(self, pos_frame, img, last):
 		'''Saves the contours from the image in a ring buffer.
 		'''
-		np.save('./Frame_minus_0.npy', img)
+		filename = self.procpath + '/Frame_minus_0.npy'
+		np.save(filename, img)
 
 		for i in range(last, 0, -1):
 			if pos_frame == 0:
@@ -60,8 +76,8 @@ class RingBufferClass():
 			elif (pos_frame - i + 1) >= 0:
 				try:
 					# Save as name(i) from...the file that used to be name(i-1)
-					self.aaa = './Frame_minus_{0}'.format(i-2)+'.npy'
-					self.bbb = './Frame_minus_{0}'.format(i-1)+'.npy'
+					self.aaa = self.procpath + '/Frame_minus_{0}'.format(i-2)+'.npy'
+					self.bbb = self.procpath + '/Frame_minus_{0}'.format(i-1)+'.npy'
 					oldone = np.load(self.aaa)
 					np.save(self.bbb, oldone)
 				except FileNotFoundError:
@@ -72,24 +88,24 @@ class RingBufferClass():
 		'''Access the existing ringbuffer to get information about the last frames.
 		Perform actions within.
 		'''
-		self.bbb = np.load('./Frame_minus_0.npy')
+		self.bbb = np.load(self.procpath + '/Frame_minus_0.npy')
 		if pos_frame == 0:
 			pass
 		elif pos_frame >= last:
 			for i in range(last, 1, -1):
 				try:
-					self.aaa = './Frame_minus_{0}'.format(i-2)+'.npy'
+					self.aaa = self.procpath + '/Frame_minus_{0}'.format(i-2)+'.npy'
 					self.aaa = np.load(self.aaa)
 					self.bbb = np.add(self.aaa, self.bbb)
-					np.save('./Frame_minus_0.npy', self.bbb)
+					np.save(self.procpath + '/Frame_minus_0.npy', self.bbb)
 				except TypeError:
 					print("bailing on error")
-			self.bbb = np.load('./Frame_minus_0.npy')
+			self.bbb = np.load(self.procpath + '/Frame_minus_0.npy')
 			self.bbb[self.bbb > 1] = 0
 			self.bbb[self.bbb == 1] = 255
-			np.save('./Frame_mixed.npy', self.bbb)
+			np.save(self.procpath + '/Frame_mixed.npy', self.bbb)
 
-			img = np.load('./Frame_mixed.npy')
+			img = np.load(self.procpath + '/Frame_mixed.npy')
 
 			img[img > 0] = 255
 
@@ -115,7 +131,6 @@ class RingBufferClass():
 		'''Process local centers as a cyan line.
 		'''
 
-		
 		goodlist = np.empty((0, 4), np.float32)
 
 		# Comparitor counter for individual frames
@@ -164,7 +179,7 @@ class RingBufferClass():
 			# Draw an estimate line
 			cv2.line(img, (0, int(slope*0+intercept)), (10000000, int(slope*10000000+intercept)), \
 				(0, 0, 255), 2)
-			with open('./outputslopes.csv', 'a') as fff:
+			with open(self.procpath + '/outputslopes.csv', 'a') as fff:
 				thestring = str(pos_frame) + ',' + str(slope) + ',' + str(intercept) +'\n'
 				fff.write(thestring)
 		return img
@@ -174,7 +189,7 @@ class RingBufferClass():
 		Works ok for visual spotting.
 		'''
 		if goodlist.size != 0:
-			with open('./local_linear_output.csv', 'a') as fff:
+			with open(self.procpath + '/local_linear_output.csv', 'a') as fff:
 				outputline = str('%09d' % pos_frame) + '\n'
 				fff.write(outputline)
 		for i in range(0, len(self.xxx)):
@@ -182,7 +197,7 @@ class RingBufferClass():
 				# Draw a line through the points
 				cv2.line(img, (int(self.xxx[i]), int(self.yyy[i])), (int(self.xxx[j]),\
 					int(self.yyy[j])), (255, 255, 0), 2)
-				with open('./longer_range_output.csv', 'a') as fff:
+				with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
 					outputline = str(int(self.xxx[i])) + ',' + str(int(self.yyy[i])) + ',' + \
 						str(int(self.xxx[j])) + ',' + str(int(self.yyy[j])) + '\n'
 					fff.write(outputline)
@@ -255,7 +270,6 @@ class RingBufferClass():
 								sequence = np.append(sequence, pythag)
 							if abs(np.ediff1d(sequence)) > 10:
 								continue
-							
 
 							# We find the difference between each entry in the matrix in each row.
 							# Should give a 1D matrix of size 11
@@ -286,17 +300,17 @@ class RingBufferClass():
 							# draw a box that encloses all of the points
 							img = self.draw_rotated_box(img, points)
 							# Save to file
-							with open('./longer_range_output.csv', 'a') as fff:
+							with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
 								outputline = str('%09d' % pos_frame) + '\n'
 								fff.write(outputline)
-							with open('./longer_range_output.csv', 'ab') as fff:
+							with open(self.procpath + '/longer_range_output.csv', 'ab') as fff:
 								np.savetxt(fff, pr3, delimiter=",")
 		# Output screenshots
 		if long_range_switch:
-			cv2.imwrite('./original_%09d.png' % pos_frame, frame)
+			cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % pos_frame, frame)
 			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-			cv2.imwrite('./contours_%09d.png' % pos_frame, added_image)
+			cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
 		return
 
 	def longer_range(self, pos_frame, img, frame, gdl):
@@ -353,7 +367,7 @@ class RingBufferClass():
 
 									# We reshape this result so we have two rows of diff and a useless col
 									result = np.reshape(result, (4, 4))
-									
+
 									# And we remove the useless col
 									result = np.delete(result, 3, 1)
 
@@ -368,8 +382,8 @@ class RingBufferClass():
 									result = np.reshape(result, (4, 2))
 									result = np.delete(result, 1, 1)
 									# Speed calculation
-									speedx = (result[2]+1)/(abs(result[3])+1)
-									speedy = (result[1]+1)/(abs(result[3])+1)
+									#speedx = (result[2]+1)/(abs(result[3])+1)
+									#speedy = (result[1]+1)/(abs(result[3])+1)
 
 									#####################TODO
 									#np.array(speedx, speedy)
@@ -387,17 +401,17 @@ class RingBufferClass():
 									# draw a box that encloses all of the points
 									img = self.draw_box(img, points)
 									# Save to file
-									with open('./longer_range_output.csv', 'a') as fff:
+									with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
 										outputline = str('%09d' % pos_frame) + '\n'
 										fff.write(outputline)
-									with open('./longer_range_output.csv', 'ab') as fff:
+									with open(self.procpath + '/longer_range_output.csv', 'ab') as fff:
 										np.savetxt(fff, pr4, delimiter=",")
 		# Output screenshots
 		if long_range_switch:
-			cv2.imwrite('./original_%09d.png' % pos_frame, frame)
+			cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % pos_frame, frame)
 			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-			cv2.imwrite('./contours_%09d.png' % pos_frame, added_image)
+			cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
 		return
 
 	def draw_box(self, img, points):
