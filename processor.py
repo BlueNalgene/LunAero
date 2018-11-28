@@ -112,9 +112,10 @@ def main(the_file, mode, gui, pos_frame, procpath):
 				elif mode == 2:
 					img = rbf.local_linear(pos_frame, img, goodlist)
 				elif mode == 3:
-					rbf.middle_range(pos_frame, img, frame, goodlist)
+					img = rbf.middle_range(pos_frame, img, frame, goodlist)
 
 			if gui:
+				#img[img < 0] = 255
 				cv2.imshow('image', img)
 
 			cv2.waitKey(1)

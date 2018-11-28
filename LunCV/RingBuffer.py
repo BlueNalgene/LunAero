@@ -311,7 +311,7 @@ class RingBufferClass():
 			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
 			cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
-		return
+		return img
 
 	def longer_range(self, pos_frame, img, frame, gdl):
 		'''Look for longer range linearity in the goodlist
@@ -412,7 +412,7 @@ class RingBufferClass():
 			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
 			cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
-		return
+		return img
 
 	def draw_box(self, img, points):
 		'''Draws a box.
