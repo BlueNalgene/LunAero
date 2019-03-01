@@ -18,9 +18,9 @@ import numpy as np
 import picamera
 import RPi.GPIO as GPIO
 
-moveFactorX = 0.0020
-moveFactorY = 0.0015
-lostRatio = 0.005
+#os.system('sudo fake-hwclock')
+
+lostRatio = 0.001
 imgThresh = 125
 
 lostCount = 0 #Always initialize at 0
@@ -30,10 +30,10 @@ start = time.time()
 # the moon must be displaced by this amount for movement to occur.
 vertDim = 240  #height of test images
 horDim = 320     #width of test images
-vertThreshStart = 0.10 * vertDim   #image offset for verticle movement
+vertThreshStart = 0.1 * vertDim   #image offset for verticle movement
 horThreshStart = 0.20 * horDim     #image offset for horizontal movement
 vertThreshStop = 0.05 * vertDim   #image offset to stop trigger verticle movement (must be < Start)
-horThreshStop = 0.10 * horDim     #image offset to stop horizontal movement (must be < Start)
+horThreshStop = 0.1 * horDim     #image offset to stop horizontal movement (must be < Start)
 check = 1
 iso = 200
 
@@ -73,7 +73,7 @@ camera.led = False
 camera.video_stabilization = True
 camera.resolution = (1920, 1080)
 camera.color_effects = (128, 128) # turn camera to black and white
-prev = 3
+prev = 6
 
 
 
@@ -81,24 +81,24 @@ def getImg():
 	#Capture an image and see how close it is to center
 	global stream
 	global imgThresh
-	global theImg
-	#stream = io.BytesIO()  #Variable to hold image
+#	global theImg
+	stream = io.BytesIO()  #Variable to hold image
 	camera.capture(stream, use_video_port=True, resize=(horDim, vertDim), format='jpeg')
 	img = Image.open(stream)
 	img = img.convert('L')        #convert to monochrome
 	img = img.point(lambda x: 0 if x < imgThresh else 255, '1')
-	arm = np.asarray(img)        #convert to numeric array
-	armcol = np.sum(arm, axis=0) #sum down all columns to give a vector
-	armrow = np.sum(arm, axis=1) #sum across all rows to give a vector
-	armcol[armcol < 10] = 0        #quick filter to remove effects of any stray pixels
-	armrow[armrow < 10] = 0        #quick filter to remove effects of any stray pixels
-	cmx = float(np.mean(np.nonzero(armcol)))  #horizontal center of moon
-	cmy = float(np.mean(np.nonzero(armrow)))  #vertical center of moon
+	img = np.asarray(img)        #convert to numeric array
+#	armcol = np.sum(img, axis=0) #sum down all columns to give a vector
+#	armrow = np.sum(img, axis=1) #sum across all rows to give a vector
+#	armcol[armcol < 10] = 0        #quick filter to remove effects of any stray pixels
+#	armrow[armrow < 10] = 0        #quick filter to remove effects of any stray pixels
 	cenx, ceny = horDim/2, vertDim/2   #center of image
-	ratio = arm.sum()/(float(horDim)*float(vertDim))     #ratio of white:black
-	diffx = cenx - cmx  #image center x minus mass center x - if pos shift right, if negshift left
-	diffy = ceny - cmy  #image center y minus mass center y - if pos shift down, if neg shift up
-	print(ratio, cmx, cmy, diffx, diffy)
+	diffx = cenx - float(np.nanmean(np.nonzero(np.sum(img, axis=0))))  #horizontal center of moon
+	diffy = ceny - float(np.nanmean(np.nonzero(np.sum(img, axis=1))))  #vertical center of moon
+	ratio = np.sum(img, dtype=np.int32)/(float(horDim)*float(vertDim))     #ratio of white:black
+#	diffx = cenx - cmx  #image center x minus mass center x - if pos shift right, if negshift left
+#	diffy = ceny - cmy  #image center y minus mass center y - if pos shift down, if neg shift up
+	print(ratio, diffx, diffy)
 	return diffx, diffy, ratio
 
 def checkAndMove():
@@ -107,20 +107,16 @@ def checkAndMove():
 		rtn = 2
 	else:
 		if abs(diffx) > horThreshStop:
-			#movetime = abs(diffx) * moveFactorX
 			if diffx > 0:
 				motLeft()
 			else:
 				motRight()
 			speedUp("X")
-			#time.sleep(movetime)
 		if abs(diffy) > vertThreshStop:
-			#movetime = abs(diffy) * moveFactorY
 			if diffy > 0:
 				motUp()
 			else:
 				motDown()
-			#time.sleep(movetime)
 			speedUp("Y")
 		if (abs(diffx) < horThreshStop and dcB > 0):
 			motStop("X")
@@ -171,14 +167,14 @@ def motStop(direct):
 		GPIO.output(BPIN2, GPIO.LOW)
 	return
 
-def motUp():
-	print("moving up")
+def motDown():
+	print("moving down")
 	GPIO.output(APIN1, GPIO.HIGH)
 	GPIO.output(APIN2, GPIO.LOW)
 	return
 
-def motDown():
-	print("moving down")
+def motUp():
+	print("moving up")
 	GPIO.output(APIN1, GPIO.LOW)
 	GPIO.output(APIN2, GPIO.HIGH)
 	return
@@ -200,12 +196,18 @@ def speedUp(direct):
 	global dcB
 	if direct == "Y":
 		if dcA < 20:
-			dcA = dcA + 1
+			dcA = 20
+			pwmA.ChangeDutyCycle(dcA)
+		if dcA < 70 and dcA > 19:
+			dcA = dcA + 2
 			pwmA.ChangeDutyCycle(dcA)
 		print("speedup ", direct, dcA)
 	if direct == "X":
 		if dcB < 20:
-			dcB = dcB + 1
+			dcB = 20
+			pwmB.ChangeDutyCycle(dcB)
+		if dcB < 70 and dcB > 19:
+			dcB = dcB + 2
 			pwmB.ChangeDutyCycle(dcB)
 		print("speedup", direct, dcB)
 	return
@@ -234,6 +236,8 @@ def goPrev(prev):
 		camera.start_preview(fullscreen=False, window=(20, 200, 1280, 960))
 	if prev == 5:
 		camera.start_preview(fullscreen=True)
+	if prev == 6:
+		camera.start_preview(fullscreen=False, window=(0,0, 640, 480))
 	return
 
 
@@ -243,15 +247,40 @@ time.sleep(2)
 exp = camera.exposure_speed
 print("exposure speed ", exp)
 
-pygame.init()
+red = (255, 0, 0)
+position = (620, 20)
+os.environ['SDL_VIDEO_WINDOW_POS'] = str(position[0]) + "," + str(position[1])
+
+#pygame.init()
+pygame.display.init()
+pygame.font.init()
+#pygame.event.init()
+#pygame.time.init()
+
 pygame.display.set_caption('Manual control')
-size = [400, 240]
+size = [640, 480]
+mrgn = 10
+ftsz = 25
 screen = pygame.display.set_mode(size)
-font = pygame.font.SysFont('Arial', 25)
-screen.blit(font.render('Use arrow keys to move.', True, (255, 0, 0)), (25, 25))
-screen.blit(font.render('Hit the space bar to stop.', True, (255, 0, 0)), (25, 75))
-screen.blit(font.render('Press ENTER or r to run the', True, (255, 0, 0)), (25, 125))
-screen.blit(font.render('moon tracker', True, (255, 0, 0)), (25, 165))
+font = pygame.font.SysFont('monospace', ftsz)
+lctn = mrgn + ftsz
+screen.blit(font.render('-----------------MANUAL  CONTROL-----------------', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('Use arrow keys to move view.', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [SPACEBAR] - stop motors', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [ENTER] or [r] - track & record', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [v] - Change preview window mode', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [i] - Cycle camera ISO mode', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [d] - Increase exposure', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [b] - Decrease exposure', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [p] - Clear Night threshold', True, red), (mrgn, lctn))
 pygame.display.update()
 clock = pygame.time.Clock()
 x = 0
@@ -264,8 +293,8 @@ while x < 10:
 		# check if key is pressed
 		# if you use event.key here it will give you error at runtime
 		if event.type == pygame.KEYDOWN:
-			dcA = 50
-			dcB = 50
+			dcA = 100
+			dcB = 100
 			if event.key == pygame.K_LEFT:
 				pwmB.ChangeDutyCycle(dcA)
 				motLeft()
@@ -296,9 +325,14 @@ while x < 10:
 				exp = exp + 1000
 				camera.shutter_speed = exp
 				print("exposure time set to ", exp)
+			if event.key == pygame.K_p:
+				exp = 1000
+				iso = 100
+				camera.iso = iso
+				camera.shutter_speed = exp
 			if event.key == pygame.K_v:
 				prev = prev + 1
-				if prev > 5:
+				if prev > 6:
 					prev = 1
 				camera.stop_preview()
 				goPrev(prev)
@@ -315,10 +349,28 @@ print("quitting manual control, switching to tracking")
 screen.fill((0, 0, 0))
 pygame.display.update()
 pygame.display.set_caption('Tracking Moon')
-screen.blit(font.render('TRACKING MOON.', True, (255, 0, 0)), (25, 25))
-screen.blit(font.render('Click this window and type "q" to quit', True, (255, 0, 0)), (25, 75))
-screen.blit(font.render('Or just close this window to to quit.', True, (255, 0, 0)), (25, 125))
-screen.blit(font.render('(it might take a few seconds)', True, (255, 0, 0)), (25, 175))
+lctn = mrgn + ftsz
+screen.blit(font.render('--------------------TRACKING MOON----------------', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('*Buttons only work when this window is selected!*', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [q] - quit', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('(Or just close this window to to quit)', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('(it might take a few seconds)', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [v] - Change preview window mode', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [i] - Cycle camera ISO mode', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [d] - Increase exposure', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [b] - Decrease exposure', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [z] - Decrease thresholding Value', True, red), (mrgn, lctn))
+lctn = lctn + ftsz + mrgn
+screen.blit(font.render('  [x] - Increase thresholding Value', True, red), (mrgn, lctn))
 pygame.display.update()
 
 startRecording()
@@ -327,8 +379,8 @@ cnt = 0
 while cnt < 55:
 	for event in pygame.event.get():
 		if event.type == pygame.KEYDOWN:
-			dcA = 10
-			dcB = 10
+			dcA = 50
+			dcB = 50
 			if event.key == pygame.K_z:
 				if imgThresh > 10:
 					imgThresh = (imgThresh - 10)
@@ -357,7 +409,7 @@ while cnt < 55:
 				print("exposure time set to ", exp)
 			if event.key == pygame.K_v:
 				prev = prev + 1
-				if prev > 5:
+				if prev > 6:
 					prev = 1
 				camera.stop_preview()
 				goPrev(prev)
@@ -378,13 +430,14 @@ while cnt < 55:
 		lostCount = 0
 		img = Image.open(stream)
 		img = img.convert('L')
-		img = img.point(lambda x: 0 if x < 20 else 255, '1')
-		img.save("tmp.png")
-		os.system("xdg-open tmp.png") #display image - for debugging only
+#		img = img.point(lambda x: 0 if x < 20 else 255, '1')
+#		img.save("tmp.png")
+#		os.system("xdg-open tmp.png") #display image - for debugging only
 		time.sleep(3)
-		os.system("killall gpicview")
+#		os.system("killall gpicview")
 	if check == 0:       #centering in progress
 		time.sleep(.02)  #sleep for 20ms
+#		motStop("B")
 	if check == 2 or ratio < lostRatio:        #moon lost, theshold too low
 		lostCount = lostCount + 1
 		print("moon lost")
@@ -394,10 +447,16 @@ while cnt < 55:
 			#os.system("killall gpicview")
 			cnt = 100   #set count to 100 to exit the while loop
 
-time.sleep(2)
 motStop("B")
+time.sleep(2)
 camera.stop_recording()
+with open("/home/pi/Documents/LunAero_endlog.log", 'a') as file:
+	file.write(str(time.time()) + " , " + str(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())) + '\n')
+	file.write('\n')
+	file.write(str(os.popen('journalctl -n 10 | cat').read()))
+	file.write('\n')
 camera.stop_preview()
-os.system("killall gpicview")
+#os.system("killall gpicview")
 pygame.quit()
 GPIO.cleanup()
+
