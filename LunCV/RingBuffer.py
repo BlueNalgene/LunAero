@@ -309,6 +309,7 @@ class RingBufferClass():
 		if np.size(fourlistx, 0) == 0 and np.size(fourlisty, 0) == 0 and np.size(fourlistz, 0) == 0:
 			gc.collect()
 			return img
+		# TODO be smarter about this vstacking, work it for individual linear ranges.
 		fourlist = np.vstack((fourlistx, fourlisty, fourlistz))
 		del fourlistx, fourlisty, fourlistz
 
@@ -320,22 +321,28 @@ class RingBufferClass():
 		points = np.divide(points, 10)
 		points = points.astype('int')
 
+		#TEST
 		print("points\n", points)
 
-		long_range_switch = True
 		# draw a box that encloses all of the points
 		img = self.draw_rotated_box(img, points)
-		# Save to file
+
+		# Save contour information to file
 		with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
 			outputline = str('%09d' % pos_frame) + '\n'
 			fff.write(outputline)
 		with open(self.procpath + '/longer_range_output.csv', 'ab') as fff:
 			np.savetxt(fff, fourlist, delimiter=",")
-		if long_range_switch:
-			cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % pos_frame, frame)
-			frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-			added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-			cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
+
+		# Save original image which is believed to contain birds
+		cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % pos_frame, frame)
+
+		# Overlay the boxed birds to the original image
+		frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+		added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
+
+		# Save  mixed image to file
+		cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
 
 		#Cleanup what we have left to free memory
 		del fourlist
@@ -415,117 +422,6 @@ class RingBufferClass():
 			inout = np.empty((0, 22), int)
 		return inout
 
-
-
-
-	#def middle_range(self, pos_frame, img, frame, gdl):
-		#'''Look for longer range linearity in the goodlist
-		#Draws a green box around those points.
-		#'''
-		## No scientific notation please.
-		#np.set_printoptions(suppress=True)
-
-		#print(gdl)
-		#long_range_switch = False
-		## Process Numpy Array with floats in a format:
-		##    [[ pos[i] x[i] y[i] radius[i] pos[j] x[j] y[j] radius[j]
-		##     [ pos[i] x[i] y[i] radius[i] pos[j] x[j] y[j] radius[j]]
-		#gdl = np.reshape(gdl, (-1, 4))
-		## Now looks like:
-		##    [[ pos[i] x[i] y[i] radius[i]
-		##     [ pos[j] x[j] y[j] radius[j]
-		##     [ pos[i] x[i] y[i] radius[i]
-		##     [ pos[j] x[j] y[j] radius[j]]
-		#gdl = np.unique(gdl, axis=0)
-		## Now looks like:
-		##    [[ pos[i] x[i] y[i] radius[i]
-		##     [ pos[j] x[j] y[j] radius[j]]
-
-		## Make a size range thing
-		#counter = range(0, np.size(gdl, 0))
-		## For everything in the list iterated twice
-		#for i in counter:
-			#pr1 = np.array(gdl[i])
-			#for j in counter:
-				## Test for frame difference.
-				#if gdl[j][0] > gdl[i][0] and gdl[j][3] > 2 and gdl[i][3] > 2:
-					#pr2 = np.vstack((pr1, gdl[j]))
-					#for k in counter:
-						#if gdl[k][0] > gdl[j][0] and gdl[k][3] > 2:
-							## Now we have interesting rows i, j, and k
-							#pr3 = np.vstack((pr2, gdl[k]))
-
-							## We rotate the array 90 degrees so that all of the entries are lined up by type.
-							#potrot = np.rot90(pr3)
-
-							## Check that it is possible that these points are sequential in time.
-							#sequence = np.empty((1, 0), np.float32)
-							#for x in potrot[3]:
-								#sequence = np.append(sequence, x)
-							#if np.size(sequence) != np.size(np.unique(sequence)):
-								#continue
-
-							## Check that the linearity is good.
-							#sequence = np.empty((1, 0), np.float32)
-							#for x in range(1, 3):
-								#direct = math.atan((potrot[1][x] - potrot[1][0])/\
-									#(potrot[2][x] - potrot[2][0]))
-								#sequence = np.append(sequence, direct)
-							## Check if they deviate by ~1 degrees
-							#if abs(np.ediff1d(sequence)) > 0.02:
-								#continue
-
-							## Check that the lengths are similar
-							#sequence = np.empty((1, 0), np.float32)
-							#for x in range(0, 2):
-								#pythag = math.sqrt((potrot[2][x+1] - potrot[2][x])**2 +\
-									#(potrot[1][x+1] - potrot[1][x])**2)
-								#pythag = pythag/(potrot[3][x+1] - potrot[3][x])
-								#sequence = np.append(sequence, pythag)
-							#if abs(np.ediff1d(sequence)) > 10:
-								#continue
-
-							## We find the difference between each entry in the matrix in each row.
-							## Should give a 1D matrix of size 11
-							## The 3rd, 6th, 9th, and 11th element of that array will be useless
-							## We add another uselss element to the end (the 15th element)
-							#result = np.ediff1d(potrot, to_end=0)
-							## We reshape this result so we have two rows of diff and a useless col
-							#result = np.reshape(result, (4, 3))
-							## And we remove the useless col
-							#result = np.delete(result, 2, 1)
-
-							## What we have now should be a two column matrix.
-							## Each row is a pair of differences in the order: r, y, x, t
-							## We now repeat on this matrix.
-							#result = np.ediff1d(result, to_end=0)
-							#result = np.reshape(result, (4, 2))
-							#result = np.delete(result, 1, 1)
-
-							## Run a size test.  The radius should be relatively constant.
-							#if abs(result[0]) > 10:
-								#continue
-
-							#long_range_switch = True
-							## Put points into a simplified x y format so they can be read.
-							#points = np.delete(pr3, 3, 1)
-							#points = np.delete(points, 0, 1)
-							#points = points.astype('int')
-							## draw a box that encloses all of the points
-							#img = self.draw_rotated_box(img, points)
-							## Save to file
-							#with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
-								#outputline = str('%09d' % pos_frame) + '\n'
-								#fff.write(outputline)
-							#with open(self.procpath + '/longer_range_output.csv', 'ab') as fff:
-								#np.savetxt(fff, pr3, delimiter=",")
-		## Output screenshots
-		#if long_range_switch:
-			#cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % pos_frame, frame)
-			#frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-			#added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
-			#cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
-		#return img
 
 	def longer_range(self, pos_frame, img, frame, gdl):
 		'''Look for longer range linearity in the goodlist
