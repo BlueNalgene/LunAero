@@ -105,14 +105,7 @@ def main(the_file, mode, gui, pos_frame, procpath):
 			goodlist = rbf.centers_local(pos_frame)
 			# Number of contours limiter
 			if goodlist.size > 0 and goodlist.size < 300:
-				if mode == 0:
-					pass
-				elif mode == 1:
-					img = rbf.simple_regression(pos_frame, img)
-				elif mode == 2:
-					img = rbf.local_linear(pos_frame, img, goodlist)
-				elif mode == 3:
-					img = rbf.middle_range(pos_frame, img, frame, goodlist)
+				img = rbf.bird_range(pos_frame, img, frame, goodlist, LAST)
 
 			if gui:
 				#img[img < 0] = 255
@@ -189,4 +182,7 @@ if __name__ == '__main__':
 		print("keyboard task kill")
 	finally:
 		cv2.destroyAllWindows()
-		os.remove("./deleteme")
+		try:
+			os.remove("./deleteme")
+		except FileNotFoundError:
+			pass
