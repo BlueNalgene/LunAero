@@ -9,6 +9,7 @@ import math
 import os
 
 import numpy as np
+# TODO remove me?
 from scipy import stats
 
 import cv2
@@ -17,26 +18,48 @@ class RingBufferClass():
 	'''This is a buffering class used for the LunAero prototype processor
 	'''
 
+	# Reserved memory spaces for ring buffer lists
 	aaa = []
 	bbb = []
+	# Reserved memory spaces for information about contour details
 	ttt = []
 	rrr = []
 	xxx = []
 	yyy = []
+	# Reserved memory space for our working directory path.
 	procpath = []
+	# Tolerances factors.  Values are the rel. tolerance and abs. tolerance of variable.
+	# Relative tolerance is the least significant digit.
+	# Absolute tolerance is the threshold for giving up.  Numpy is weird on this.
+	# The numpy version absolute(a - b) <= (atol + rtol * absolute(b)) is not reversible,
+	# but that shouldn't matter for our stuff because of the implicit ordering here.
+	# For contour radius
+	radr = 10
+	rada = 0.0
+	# For contour apparent speed
+	sper = 2
+	spea = 2e-5 # Should not be zero, because a zero speed is possible
+	# For angle of directional vector
+	angr = 1e-3
+	anga = 2e-5 # Should not be zero, because a zero angle is possible
 
 	def __init__(self, pos_frame, last, procpath):
+		# Set self.procpath to be the path determined in processor.py
 		self.procpath = procpath
+		# Numpy, quit using scientific notation, its painful
 		np.set_printoptions(suppress=True)
+		# TODO handler for when the directory already exists should be smarter
 		try:
 			os.mkdir(self.procpath)
 		except FileExistsError:
 			pass
 		os.mkdir(self.procpath + '/orig_w_birds')
 		os.mkdir(self.procpath + '/mixed_contours')
+		# Create a new empty file for our csv output
 		fff = self.procpath + '/longer_range_output.csv'
 		with open(fff, 'w') as fff:
 			fff.write('')
+		# If we are not starting at frame zero, fudge some empty frames in there
 		if pos_frame > 0:
 			emptyslug = np.zeros((1080, 1920), dtype='uint8')
 			for i in range(0, last):
@@ -47,6 +70,9 @@ class RingBufferClass():
 	def re_init(self, pos_frame, last):
 		'''This function is called at the beginning of a main loop to
 		clean up some of the leftovers from a previous frame
+		If we don't call this, the ringbuffer may still have information stored from the previous
+		run, and this can mess up our results.
+		aka: magic function, do not touch.
 		'''
 		self.aaa = []
 		self.bbb = []
@@ -188,8 +214,6 @@ class RingBufferClass():
 		# Make an int only array (multiplied by 10 to include significant digit decimal) for x,y
 		# locaions.  Remember the 10x!
 		gdl = (gdl * np.array([1, 10, 10, 10000], np.newaxis)).astype(dtype=int)
-		#print("gdl")
-		#print(gdl)
 
 		# Remove rows with radii less than a certain size
 		gdl = gdl[np.greater_equal(gdl[:, 3], radii_minimum), :]
@@ -201,24 +225,11 @@ class RingBufferClass():
 			for j in range(0, np.size(gdlmix[:, 0])):
 				fourlist = np.vstack((fourlist, np.hstack((gdlmix[i], gdlmix[j]))))
 
-		## Multiply rows to increase accuracy
-		#gdl = (gdl * np.array([1, 10, 10, 10000], np.newaxis)).astype(dtype=int)
-		#print("gdl")
-		#print(gdl)
-
 		# Group by frame
 		gdlmin0 = gdl[np.equal(gdl[:, 0], pos_frame), :]
 		gdlmin1 = gdl[np.equal(gdl[:, 0], pos_frame-1), :]
 		gdlmin2 = gdl[np.equal(gdl[:, 0], pos_frame-2), :]
 		gdlmin3 = gdl[np.equal(gdl[:, 0], pos_frame-3), :]
-		#print("gdlmin0\n", gdlmin0)
-		#print("gdlmin1\n", gdlmin1)
-
-		## The size of each of these arrays in the first dimension
-		#size0 = np.size(gdlmin0)/4
-		#size1 = np.size(gdlmin1)/4
-		#size2 = np.size(gdlmin2)/4
-		#size3 = np.size(gdlmin3)/4
 
 		# Generate empty array to hold our final results from the analysis
 		points = np.empty((0, 2), int)
@@ -245,14 +256,16 @@ class RingBufferClass():
 		fourlistz = self.getdir(fourlistz)
 
 		# Run a size test.  The radius should be relatively constant.
-		fourlistx = fourlistx[np.isclose(fourlistx[:, 3], fourlistx[:, 7], rtol=2, atol=0.0)]
-		fourlisty = fourlisty[np.isclose(fourlisty[:, 3], fourlisty[:, 7], rtol=2, atol=0.0)]
-		fourlistz = fourlistz[np.isclose(fourlistz[:, 3], fourlistz[:, 7], rtol=2, atol=0.0)]
+		fourlistx = fourlistx[np.isclose(fourlistx[:, 3], fourlistx[:, 7], rtol=self.radr, atol=self.rada)]
+		fourlisty = fourlisty[np.isclose(fourlisty[:, 3], fourlisty[:, 7], rtol=self.radr, atol=self.rada)]
+		fourlistz = fourlistz[np.isclose(fourlistz[:, 3], fourlistz[:, 7], rtol=self.radr, atol=self.rada)]
 
 		# Compare the generated lists (second order)
-		fourlistx = self.combineperms(fourlistx, fourlisty)
+		fourlistn = self.combineperms(fourlistx, fourlisty)
 		fourlisty = self.combineperms(fourlisty, fourlistz)
 		fourlistz = self.combineperms(fourlistx, fourlistz)
+		fourlistx = fourlistn
+		del fourlistn
 
 		# Test distance/direction
 		fourlistx = self.distdirtest(fourlistx)
@@ -267,27 +280,56 @@ class RingBufferClass():
 		# NOTE this only returns a bulk of all birds.  It does not loop over groupings. Yet.
 		# TODO make tunable isclose value variables
 
+		## If enabled, color each contour layer.
+		#frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+		#frame = self.color_contours(frame)
+
 		##One list to rule them all
 		if np.size(fourlistx, 0) == 0 and np.size(fourlisty, 0) == 0 and np.size(fourlistz, 0) == 0:
 			gc.collect()
 			return img
 		# TODO be smarter about this vstacking, work it for individual linear ranges.
+		print("x: ", fourlistx.shape, "\ny: ", fourlisty.shape, "\nz: ", fourlistz.shape, "\n")
 		fourlist = np.vstack((fourlistx, fourlisty, fourlistz))
 		del fourlistx, fourlisty, fourlistz
 
-		# Everything past this point is "good"
-		points = np.vstack((points, fourlist[:, 1:3], fourlist[:, 5:7], \
-			fourlist[:, 12:14], fourlist[:, 16:18]))
+		# We just want the XY points, but we still want them grouped up by what they match with.
+		# Our current row is shaped like
+		# T1, X1, Y1, D1,
+		# T2, X2, Y2, D2,
+		# V1, V2, R12,
+		# T3, X3, Y3, D3,
+		# T4, X4, Y4, D4,
+		# V3, V4, R34
+		mask = np.array([[\
+			False, True, True, False, \
+			False, True, True, False,\
+			False, False, False,\
+			False, True, True, False, \
+			False, True, True, False, \
+			False, False, False]])
+		points = np.reshape(fourlist[np.all(mask*[fourlist], axis=0)], (-1, 4, 2))
 		points = np.unique(points, axis=0)
-		# Put points into a simplified x y format so they can be read.
 		points = np.divide(points, 10)
 		points = points.astype('int')
+		# Each grouping of points should be boxed
+		for ppp in points[:]:
+			img = self.draw_rotated_box(img, ppp)
+
+		## Everything past this point is "good"
+		#points = np.vstack((points, fourlist[:, 1:3], fourlist[:, 5:7], \
+			#fourlist[:, 12:14], fourlist[:, 16:18]))
+		#points = np.unique(points, axis=0)
+		## Put points into a simplified x y format so they can be read.
+		#points = np.divide(points, 10)
+		#points = points.astype('int')
 
 		#TEST
+		print("fourlist\n", fourlist)
 		print("points\n", points)
 
-		# draw a box that encloses all of the points
-		img = self.draw_rotated_box(img, points)
+		## draw a box that encloses all of the points
+		#img = self.draw_rotated_box(img, points)
 
 		# Save contour information to file
 		with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
@@ -363,7 +405,7 @@ class RingBufferClass():
 		and pop out just one!
 		'''
 		# Combine columns using the repeat and tile method
-		out = np.column_stack((np.repeat(in1, np.size(in2, 0), axis=0),
+		out = np.column_stack((np.repeat(in1, np.size(in2, 0), axis=0), \
 			np.tile(in2, (np.size(in1, 0), 1))))
 		return out
 
@@ -373,8 +415,10 @@ class RingBufferClass():
 		'''
 		if np.size(inout, 0) < 20:
 			return inout
-		inout = inout[np.isclose(inout[:, 8], inout[:, 19], rtol=2, atol=0.0)]
-		inout = inout[np.isclose(inout[:, 10], inout[:, 21], rtol=2, atol=0.0)]
+		# Test distance
+		inout = inout[np.isclose(inout[:, 8], inout[:, 19], rtol=self.sper, atol=self.spea)]
+		# Test direction
+		inout = inout[np.isclose(inout[:, 10], inout[:, 21], rtol=self.angr, atol=self.anga)]
 		return inout
 
 	def gapinghole(self, inout):
@@ -399,6 +443,17 @@ class RingBufferClass():
 		box = cv2.boxPoints(rect)
 		box = np.int0(box)
 		mask = img
-		cv2.drawContours(mask, [box], 0, (255, 0, 63), -1)
+		cv2.drawContours(mask, [box], 0, (255, 0, 63), 1)
 		added_image = cv2.addWeighted(img, 0.75, mask, 0.25, 0)
 		return added_image
+
+	#def color_contours(self, img):
+		#'''Blah TODO
+		#'''
+		#for i in range(0, 5):
+			#contours = self.procpath + '/Frame_minus_{0}'.format(5-i)+'.npy'
+			#try:
+				#cv2.drawContours(img, contours, -1, (0,(255-(51*i)),255), 1)
+			#except TypeError:
+				#pass
+		#return img
