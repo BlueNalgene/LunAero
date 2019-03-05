@@ -38,7 +38,7 @@ LAST = 5
 # Lazy solution to a start-at-zero problem.
 LAST = LAST + 2
 
-def main(the_file, mode, gui, pos_frame, procpath):
+def main(the_file, gui, pos_frame, procpath):
 	'''main function
 	'''
 
@@ -145,8 +145,6 @@ def get_parser():
 	parser = ArgumentParser(description=__doc__, formatter_class=ArgumentDefaultsHelpFormatter)
 	parser.add_argument("-f", "--file", dest="filename", required=True,\
 		type=lambda x: is_valid_file(parser, x), help="write report to FILE", metavar="FILE")
-	parser.add_argument("-m", "--mode", dest="mode", required=True, type=int,\
-		help="processing mode: 0=none, 1=simple_regression, 2=local_linear, 3=longer_range")
 	parser.add_argument("-g", "--gui", dest="gui", action="store_true", default=False,\
 		help="show the slides as you are processing them.")
 	parser.add_argument("-n", "--nthframe", dest="pos_frame", type=int, default=0,\
@@ -177,7 +175,7 @@ if __name__ == '__main__':
 	ARGS = get_parser().parse_args()
 	print(ARGS.filename)
 	try:
-		main(ARGS.filename, ARGS.mode, ARGS.gui, ARGS.pos_frame, read_proc_number())
+		main(ARGS.filename, ARGS.gui, ARGS.pos_frame, read_proc_number())
 	except KeyboardInterrupt:
 		print("keyboard task kill")
 	finally:
