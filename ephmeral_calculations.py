@@ -15,7 +15,7 @@ import math
 import os
 #import pickle
 import re
-#import time
+import time
 #import numpy as np
 
 import astropy.units as units
@@ -146,20 +146,22 @@ def calculate_ideal_ellipse(mooninfo):
 	# b = polar radius = 6,356,752.314245m
 	axsa = 6378137
 	axsb = 6356752.31424
-	# b/a = e = 0.99664718933
-	# from WGS84, the first eccentricity squared (e^2) = 0.99330562001
-	ecc2 = 0.99330562001
+	# b/a = g = 0.99664718933
+	# e = sqrt(g*(2-g))
+	# from WGS84, the first eccentricity squared (e^2) = 0.006694379991759871
+	eccc = 0.08181919085251253
+	ecc2 = 0.006694379991759871
 	# Need reduced latitude from our geodetic latitude (θg) from our GPS
 	# tan θ = (b/a) tan θg
-	latr = math.atan((0.99664718933)*math.tan(mooninfo.location.lat.value))
+	latr = math.atan((eccc)*math.tan(math.radians(mooninfo.location.lat.value)))
 	# local curvature through the greatarc in the azimutal (φ) direction is:
 	# r   =   a (1 - e2 cos2 φ cos2 θ)3/2 / (1 - e2 [1- sin2 φ cos2 θ])1/2
-	azim = mooninfo.az.value
+	azim = math.radians(mooninfo.az.value)
 	xxxx = math.radians(math.cos(azim)**2)
 	yyyy = math.radians(math.cos(latr)**2)
 	zzzz = math.radians(math.sin(azim)**2)
 	radi = (axsa*(1-(ecc2*xxxx*yyyy))**(3/2))/((1-(ecc2*(1-(zzzz*yyyy))))**(1/2))
-	
+
 
 def is_valid_file(parser, arg):
 	'''
@@ -318,3 +320,18 @@ if __name__ == '__main__':
 	##cv2.imwrite('ephem_12.png', img)
 	##cv2.imshow('image',img)
 	##cv2.waitKey(0)
+
+# Quickie setup
+from datetime import datetime
+import astropy.units as units
+from astropy.time import Time
+from astropy.coordinates import get_moon, EarthLocation, AltAz
+lat = 35
+lon = -97
+elev = 300
+utcoffset = -5
+ucorrtime = 1543593592
+utcoffset = int(utcoffset)*units.hour
+site = EarthLocation(lat=int(lat)*units.deg, lon=int(lon)*units.deg, height=int(elev)*units.m)
+datetag = Time(datetime.utcfromtimestamp(ucorrtime).strftime('%Y-%m-%d %H:%M:%S.%f')) - utcoffset
+mooninfo = get_moon(datetag).transform_to(AltAz(obstime=datetag,location=site))
