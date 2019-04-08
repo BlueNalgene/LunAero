@@ -46,9 +46,11 @@ def main(the_file, gui, pos_frame, procpath):
 	file_datetime = (file_datetime.split('/')[-1].split('outA.'))[0]
 
 	lcv = Manipulations.Manipulations()
-	rbf = RingBuffer.RingBufferClass(pos_frame, LAST, procpath)
+	rbf = RingBuffer.RingBufferClass(LAST, procpath)
 
-	while True:
+	#while True:
+	while pos_frame < 1000:
+		rbf.set_pos_frame(pos_frame)
 		print(pos_frame)
 		cap = cv2.VideoCapture(the_file)
 		#cap = cv2.VideoCapture('/scratch/whoneyc/1535181028stabilized.mp4')
@@ -58,7 +60,7 @@ def main(the_file, gui, pos_frame, procpath):
 
 		if ret:
 			#Necessary cleanup of rbf class
-			rbf.re_init(pos_frame, LAST)
+			rbf.re_init(LAST)
 
 			# Make image gray
 			frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -90,7 +92,7 @@ def main(the_file, gui, pos_frame, procpath):
 			contours = lcv.cv_contour(img, 0, 255)
 
 			if contours:
-				rbf.get_centers(pos_frame, contours)
+				rbf.get_centers(contours)
 
 			##Info for debugging
 			#with open('/scratch/whoneyc/contours_minus_cont_0.p', 'wb') as fff:
@@ -100,12 +102,12 @@ def main(the_file, gui, pos_frame, procpath):
 			img[img > 0] = 1
 
 			# Deal with ringbuffer on LAST frames
-			rbf.ringbuffer_cycle(pos_frame, img, LAST)
-			img = rbf.ringbuffer_process(pos_frame, img, LAST)
-			goodlist = rbf.centers_local(pos_frame)
+			rbf.ringbuffer_cycle(img, LAST)
+			img = rbf.ringbuffer_process(img, LAST)
+			goodlist = rbf.pull_list()
 			# Number of contours limiter
 			if goodlist.size > 0 and goodlist.size < 300:
-				img = rbf.bird_range(pos_frame, img, frame, goodlist, LAST)
+				img = rbf.bird_range(img, frame, goodlist)
 
 			if gui:
 				#img[img < 0] = 255

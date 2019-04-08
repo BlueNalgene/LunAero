@@ -1,16 +1,14 @@
 #!/bin/usr/python3 -B
 # -*- coding: utf-8 -*-
 
-'''This is a buffering class used for the LunAero prototype processor
+'''This is a buffering class used for the LunAero prototype processor.  It does most of the
+heavy lifting in the calculation of bird locations.
 '''
 
 import gc
-import math
 import os
 
 import numpy as np
-# TODO remove me?
-from scipy import stats
 
 import cv2
 
@@ -42,8 +40,9 @@ class RingBufferClass():
 	# For angle of directional vector
 	angr = 1e-3
 	anga = 2e-5 # Should not be zero, because a zero angle is possible
+	pfs = 0
 
-	def __init__(self, pos_frame, last, procpath):
+	def __init__(self, last, procpath):
 		# Set self.procpath to be the path determined in processor.py
 		self.procpath = procpath
 		# Numpy, quit using scientific notation, its painful
@@ -60,14 +59,14 @@ class RingBufferClass():
 		with open(fff, 'w') as fff:
 			fff.write('')
 		# If we are not starting at frame zero, fudge some empty frames in there
-		if pos_frame > 0:
+		if self.pfs > 0:
 			emptyslug = np.zeros((1080, 1920), dtype='uint8')
 			for i in range(0, last):
 				aaa = procpath + '/Frame_minus_{0}'.format(i)+'.npy'
 				np.save(aaa, emptyslug)
 		return
 
-	def re_init(self, pos_frame, last):
+	def re_init(self, last):
 		'''This function is called at the beginning of a main loop to
 		clean up some of the leftovers from a previous frame
 		If we don't call this, the ringbuffer may still have information stored from the previous
@@ -85,22 +84,22 @@ class RingBufferClass():
 		self.xxx = []
 		self.yyy = []
 		for i in enumerate(tempt):
-			if tempt[i[0]] >= (pos_frame - last):
+			if tempt[i[0]] >= (self.pfs - last):
 				self.ttt.append(tempt[i[0]])
 				self.xxx.append(tempx[i[0]])
 				self.yyy.append(tempy[i[0]])
 				self.rrr.append(tempr[i[0]])
 
-	def ringbuffer_cycle(self, pos_frame, img, last):
+	def ringbuffer_cycle(self, img, last):
 		'''Saves the contours from the image in a ring buffer.
 		'''
 		filename = self.procpath + '/Frame_minus_0.npy'
 		np.save(filename, img)
 
 		for i in range(last, 0, -1):
-			if pos_frame == 0:
+			if self.pfs == 0:
 				continue
-			elif (pos_frame - i + 1) >= 0:
+			elif (self.pfs - i + 1) >= 0:
 				try:
 					# Save as name(i) from...the file that used to be name(i-1)
 					self.aaa = self.procpath + '/Frame_minus_{0}'.format(i-2)+'.npy'
@@ -111,14 +110,14 @@ class RingBufferClass():
 					pass
 		return
 
-	def ringbuffer_process(self, pos_frame, img, last):
+	def ringbuffer_process(self, img, last):
 		'''Access the existing ringbuffer to get information about the last frames.
 		Perform actions within.
 		'''
 		self.bbb = np.load(self.procpath + '/Frame_minus_0.npy')
-		if pos_frame == 0:
+		if self.pfs == 0:
 			pass
-		elif pos_frame >= last:
+		elif self.pfs >= last:
 			for i in range(last, 1, -1):
 				try:
 					self.aaa = self.procpath + '/Frame_minus_{0}'.format(i-2)+'.npy'
@@ -140,158 +139,51 @@ class RingBufferClass():
 				img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 		return img
 
-	def get_centers(self, pos_frame, contours):
-		'''Get the contours and centers of them should they exist.
+	def get_centers(self, contours):
+		'''Extract information from the contours including the x,y of the center, radius, and
+		frame.  Exclude contours with perimeters which are very large or very small.
 		'''
 		cnt = contours[0]
 		for cnt in contours:
 			perimeter = cv2.arcLength(cnt, True)
 			if perimeter > 8 and perimeter < 200:
 				(xpos, ypos), radius = cv2.minEnclosingCircle(cnt)
-				self.ttt.append(pos_frame)
+				self.ttt.append(self.pfs)
 				self.rrr.append(radius)
 				self.xxx.append(xpos)
 				self.yyy.append(ypos)
 		return
 
-	def centers_local(self, pos_frame):
-		'''Process local centers as a cyan line.
+	def pull_list(self):
+		'''Repackages the list elements after the ring buffer operates to create a list with
+		the correct formatting.
 		'''
-
-		goodlist = np.empty((0, 4), np.float32)
-
-		# Comparitor counter for individual frames
-		for i in range(0, len(self.xxx)):
-			for j in range(0, len(self.xxx)):
-
-				# Check that we are looking at contours on different frames
-				if self.ttt[i] != self.ttt[j]:
-
-					# Check that the size change of the contours is not drastic.
-					if abs(self.rrr[i] - self.rrr[j]) < 5:
-
-						# Get difference between points
-						pythag = math.sqrt((self.xxx[i] - self.xxx[j])**2 + (self.yyy[i] - self.yyy[j])**2)
-						# Get the ratio between previous number and Frame
-						if pos_frame - self.ttt[i]:
-							pass
-						else:
-							pythag = pythag/((pos_frame - self.ttt[i]) + 1)
-							#print(((pos_frame - self.ttt[i]) + 1), pythag)
-
-							# If the score is good, the relationship passes the test.
-							if pythag >= 5 and pythag <= 300:
-
-								# Add these points to our good list.
-								goodlist = np.append(goodlist, np.array([[\
-									self.ttt[i], self.xxx[i], self.yyy[i], self.rrr[i]]]), axis=0)
-								goodlist = np.append(goodlist, np.array([[\
-									self.ttt[j], self.xxx[j], self.yyy[j], self.rrr[j]]]), axis=0)
-
-		if goodlist.size != 0:
-			goodlist = np.unique(goodlist, axis=0)
+		goodlist = np.column_stack((self.ttt, self.xxx, self.yyy, self.rrr))
 		return goodlist
 
-	def bird_range(self, pos_frame, img, frame, gdl, last):
+	def bird_range(self, img, frame, gdl):
 		'''An adaptable range processor, takes values of each frame, then runs those values vs.
 		previous frame values
 		'''
-
-		# Local constants
-		radii_minimum = 2
-		#radii_maximum = 5000
-		#speed_minimum = 2
-		#speed_maximum = 100
-
 		# No scientific notation please.
 		np.set_printoptions(suppress=True)
-
 		# Process Numpy Array with floats in a format:
 		gdl = np.reshape(gdl, (-1, 4))
 		gdl = np.unique(gdl, axis=0)
-
-		# Multiply rows to increase accuracy
-		# Make an int only array (multiplied by 10 to include significant digit decimal) for x,y
-		# locaions.  Remember the 10x!
-		gdl = (gdl * np.array([1, 10, 10, 10000], np.newaxis)).astype(dtype=int)
-
-		# Remove rows with radii less than a certain size
-		gdl = gdl[np.greater_equal(gdl[:, 3], radii_minimum), :]
-
-		gdlmix = np.column_stack((gdl[:, 1].astype(dtype=int),\
-			gdl[:, 2].astype(dtype=int)))
-		fourlist = np.empty((0, 4), int)
-		for i in range(0, np.size(gdlmix[:, 0])):
-			for j in range(0, np.size(gdlmix[:, 0])):
-				fourlist = np.vstack((fourlist, np.hstack((gdlmix[i], gdlmix[j]))))
-
-		# Group by frame
-		gdlmin0 = gdl[np.equal(gdl[:, 0], pos_frame), :]
-		gdlmin1 = gdl[np.equal(gdl[:, 0], pos_frame-1), :]
-		gdlmin2 = gdl[np.equal(gdl[:, 0], pos_frame-2), :]
-		gdlmin3 = gdl[np.equal(gdl[:, 0], pos_frame-3), :]
-
-		# Generate empty array to hold our final results from the analysis
-		points = np.empty((0, 2), int)
-
-		# Generate empty storage array
-		fourlist = np.empty((0, 9), int)
-
-		# Process each sequential image for distance
-		fourlistx = self.stackdistance(gdlmin0, gdlmin1)
-		fourlisty = self.stackdistance(gdlmin1, gdlmin2)
-		fourlistz = self.stackdistance(gdlmin2, gdlmin3)
-
-		# Cleanup to prevent overeating memory
-		del gdl, gdlmin0, gdlmin1, gdlmin2, gdlmin3
-
-		# Get Speed for each item on the list
-		fourlistx = self.getspeed(fourlistx)
-		fourlisty = self.getspeed(fourlisty)
-		fourlistz = self.getspeed(fourlistz)
-
-		# Get direction for each item on the list
-		fourlistx = self.getdir(fourlistx)
-		fourlisty = self.getdir(fourlisty)
-		fourlistz = self.getdir(fourlistz)
-
-		# Run a size test.  The radius should be relatively constant.
-		fourlistx = fourlistx[np.isclose(fourlistx[:, 3], fourlistx[:, 7], rtol=self.radr, atol=self.rada)]
-		fourlisty = fourlisty[np.isclose(fourlisty[:, 3], fourlisty[:, 7], rtol=self.radr, atol=self.rada)]
-		fourlistz = fourlistz[np.isclose(fourlistz[:, 3], fourlistz[:, 7], rtol=self.radr, atol=self.rada)]
-
-		# Compare the generated lists (second order)
-		fourlistn = self.combineperms(fourlistx, fourlisty)
-		fourlisty = self.combineperms(fourlisty, fourlistz)
-		fourlistz = self.combineperms(fourlistx, fourlistz)
-		fourlistx = fourlistn
-		del fourlistn
-
-		# Test distance/direction
-		fourlistx = self.distdirtest(fourlistx)
-		fourlisty = self.distdirtest(fourlisty)
-		fourlistz = self.distdirtest(fourlistz)
-
-		#If we have empty lists, we need to make them empty with the right size
-		fourlistx = self.gapinghole(fourlistx)
-		fourlisty = self.gapinghole(fourlisty)
-		fourlistz = self.gapinghole(fourlistz)
+		# Run the gauntlet!
+		fltx, flty, fltz = self.gauntlet(gdl)
 
 		# NOTE this only returns a bulk of all birds.  It does not loop over groupings. Yet.
 		# TODO make tunable isclose value variables
 
-		## If enabled, color each contour layer.
-		#frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-		#frame = self.color_contours(frame)
-
 		##One list to rule them all
-		if np.size(fourlistx, 0) == 0 and np.size(fourlisty, 0) == 0 and np.size(fourlistz, 0) == 0:
+		if np.size(fltx, 0) == 0 and np.size(flty, 0) == 0 and np.size(fltz, 0) == 0:
 			gc.collect()
 			return img
 		# TODO be smarter about this vstacking, work it for individual linear ranges.
-		print("x: ", fourlistx.shape, "\ny: ", fourlisty.shape, "\nz: ", fourlistz.shape, "\n")
-		fourlist = np.vstack((fourlistx, fourlisty, fourlistz))
-		del fourlistx, fourlisty, fourlistz
+		print("x: ", fltx.shape, "\ny: ", flty.shape, "\nz: ", fltz.shape, "\n")
+		fourlist = np.vstack((fltx, flty, fltz))
+		del fltx, flty, fltz
 
 		# We just want the XY points, but we still want them grouped up by what they match with.
 		# Our current row is shaped like
@@ -316,43 +208,72 @@ class RingBufferClass():
 		for ppp in points[:]:
 			img = self.draw_rotated_box(img, ppp)
 
-		## Everything past this point is "good"
-		#points = np.vstack((points, fourlist[:, 1:3], fourlist[:, 5:7], \
-			#fourlist[:, 12:14], fourlist[:, 16:18]))
-		#points = np.unique(points, axis=0)
-		## Put points into a simplified x y format so they can be read.
-		#points = np.divide(points, 10)
-		#points = points.astype('int')
-
 		#TEST
 		print("fourlist\n", fourlist)
 		print("points\n", points)
 
-		## draw a box that encloses all of the points
-		#img = self.draw_rotated_box(img, points)
-
 		# Save contour information to file
-		with open(self.procpath + '/longer_range_output.csv', 'a') as fff:
-			outputline = str('%09d' % pos_frame) + '\n'
-			fff.write(outputline)
 		with open(self.procpath + '/longer_range_output.csv', 'ab') as fff:
 			np.savetxt(fff, fourlist, delimiter=",")
 
 		# Save original image which is believed to contain birds
-		cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % pos_frame, frame)
+		cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % self.pfs, frame)
 
 		# Overlay the boxed birds to the original image
 		frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 		added_image = cv2.addWeighted(frame, 0.5, img, 0.5, 0)
 
 		# Save  mixed image to file
-		cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % pos_frame, added_image)
+		cv2.imwrite(self.procpath + '/mixed_contours/contours_%09d.png' % self.pfs, added_image)
 
 		#Cleanup what we have left to free memory
 		del fourlist
 		gc.collect()
 
 		return img
+
+	def gauntlet(self, gdl):
+		'''blah TODO
+		'''
+		# Local constants
+		radii_minimum = 2
+		# Multiply rows to increase accuracy
+		# Make an int only array (multiplied by 10 to include significant digit decimal) for x,y
+		# locaions.  Remember the 10x!
+		gdl = (gdl * np.array([1, 10, 10, 10000], np.newaxis)).astype(dtype=int)
+		# Remove rows with radii less than a certain size
+		gdl = gdl[np.greater_equal(gdl[:, 3], radii_minimum), :]
+		# List of Arays
+		ins = {"gdl0":np.empty((0, 9), int), "gdl1":np.empty((0, 9), int), \
+			"gdl2":np.empty((0, 9), int), "gdl3":np.empty((0, 9), int)}
+		outs = {"fltx":np.empty((0, 9), int), "flty":np.empty((0, 9), int), \
+			"fltz":np.empty((0, 9), int)}
+		inslist = ["gdl0", "gdl1", "gdl2", "gdl3"]
+		outslist = ["fltx", "flty", "fltz"]
+		for i in range(0, 4):
+			ins[inslist[i]] = gdl[np.equal(gdl[:, 0], self.pfs-i), :]
+		for i in range(0, 3):
+			# Process each sequential image for distance
+			outs[outslist[i]] = self.stackdistance(ins[inslist[i]], ins[inslist[i+1]])
+			# Cleanup to prevent overeating memory
+			outs[outslist[i]] = self.getspeed(outs[outslist[i]])
+			# Get direction for each item on the list
+			outs[outslist[i]] = self.getdir(outs[outslist[i]])
+			# Run a size test.  The radius should be relatively constant.
+			outs[outslist[i]] = outs[outslist[i]][np.isclose(outs[outslist[i]][:, 3], \
+				outs[outslist[i]][:, 7], rtol=self.radr, atol=self.rada)]
+		# Compare the generated lists (second order)
+		fltn = self.combineperms(outs["fltx"], outs["flty"])
+		outs["flty"] = self.combineperms(outs["flty"], outs["fltz"])
+		outs["fltz"] = self.combineperms(outs["fltx"], outs["fltz"])
+		outs["fltx"] = fltn
+		# Cleanup
+		for i in range(0, 3):
+			# Test distance/direction
+			outs[outslist[i]] = self.distdirtest(outs[outslist[i]])
+			#If we have empty lists, we need to make them empty with the right size
+			outs[outslist[i]] = self.gapinghole(outs[outslist[i]])
+		return outs["fltx"], outs["flty"], outs["fltz"]
 
 	def stackdistance(self, in1, in2):
 		'''Blah TODO
@@ -383,7 +304,8 @@ class RingBufferClass():
 		return out
 
 	def getspeed(self, inout):
-		'''Blah TODO
+		'''Gets the speed in pixels/frameduration for the contours in a list which appear to be
+		moving.
 		'''
 		if np.size(inout, 0) == 0:
 			return inout
@@ -392,7 +314,8 @@ class RingBufferClass():
 		return inout
 
 	def getdir(self, inout):
-		'''Blah TODO
+		'''Determines the direction in degrees North of East (atan2 type) a moving contour appears
+		to be moving between frames.
 		'''
 		if np.size(inout, 0) == 0:
 			return inout
@@ -428,7 +351,6 @@ class RingBufferClass():
 			inout = np.empty((0, 22), int)
 		return inout
 
-
 	def draw_box(self, img, points):
 		'''Draws a box.
 		'''
@@ -447,13 +369,8 @@ class RingBufferClass():
 		added_image = cv2.addWeighted(img, 0.75, mask, 0.25, 0)
 		return added_image
 
-	#def color_contours(self, img):
-		#'''Blah TODO
-		#'''
-		#for i in range(0, 5):
-			#contours = self.procpath + '/Frame_minus_{0}'.format(5-i)+'.npy'
-			#try:
-				#cv2.drawContours(img, contours, -1, (0,(255-(51*i)),255), 1)
-			#except TypeError:
-				#pass
-		#return img
+	def set_pos_frame(self, pfs):
+		'''functions to set the local version of set_pos_frame
+		'''
+		self.pfs = pfs
+		return

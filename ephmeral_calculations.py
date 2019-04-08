@@ -163,6 +163,13 @@ def calculate_ideal_ellipse(mooninfo):
 	radi = (axsa*(1-(ecc2*xxxx*yyyy))**(3/2))/((1-(ecc2*(1-(zzzz*yyyy))))**(1/2))
 
 
+def csv_to_np(self, infile):
+	''' This function converts a csv file to a numpy array and reports the size as a tuple.
+	The input must be a valid CSV file.
+	'''
+	outfile = np.genfromtext(infile, delimiter=',')
+	return outfile, np.shape(outfile)
+
 def is_valid_file(parser, arg):
 	'''
 	Check if arg is a valid file that already exists on the file system.
