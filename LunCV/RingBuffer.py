@@ -165,8 +165,6 @@ class RingBufferClass():
 		'''An adaptable range processor, takes values of each frame, then runs those values vs.
 		previous frame values
 		'''
-		# No scientific notation please.
-		np.set_printoptions(suppress=True)
 		# Process Numpy Array with floats in a format:
 		gdl = np.reshape(gdl, (-1, 4))
 		gdl = np.unique(gdl, axis=0)
@@ -185,36 +183,13 @@ class RingBufferClass():
 		fourlist = np.vstack((fltx, flty, fltz))
 		del fltx, flty, fltz
 
-		# We just want the XY points, but we still want them grouped up by what they match with.
-		# Our current row is shaped like
-		# T1, X1, Y1, D1,
-		# T2, X2, Y2, D2,
-		# V1, V2, R12,
-		# T3, X3, Y3, D3,
-		# T4, X4, Y4, D4,
-		# V3, V4, R34
-		mask = np.array([[\
-			False, True, True, False, \
-			False, True, True, False,\
-			False, False, False,\
-			False, True, True, False, \
-			False, True, True, False, \
-			False, False, False]])
-		points = np.reshape(fourlist[np.all(mask*[fourlist], axis=0)], (-1, 4, 2))
-		points = np.unique(points, axis=0)
-		points = np.divide(points, 10)
-		points = points.astype('int')
-		# Each grouping of points should be boxed
-		for ppp in points[:]:
-			img = self.draw_rotated_box(img, ppp)
+		img = self.output_points(fourlist, img)
 
 		#TEST
 		print("fourlist\n", fourlist)
-		print("points\n", points)
-
 		# Save contour information to file
 		with open(self.procpath + '/longer_range_output.csv', 'ab') as fff:
-			np.savetxt(fff, fourlist, delimiter=",")
+			np.savetxt(fff, fourlist, delimiter=",", fmt='%0.2f')
 
 		# Save original image which is believed to contain birds
 		cv2.imwrite(self.procpath + '/orig_w_birds/original_%09d.png' % self.pfs, frame)
@@ -230,6 +205,35 @@ class RingBufferClass():
 		del fourlist
 		gc.collect()
 
+		return img
+
+	def output_points(self, infile, img):
+		'''This function converts the input array from the bird finder to points which can be
+		used to draw on the bitmap.
+		'''
+		# We just want the XY points, but we still want them grouped up by what they match with.
+		# Our current row is shaped like
+		# T1, X1, Y1, D1,
+		# T2, X2, Y2, D2,
+		# V1, V2, R12,
+		# T3, X3, Y3, D3,
+		# T4, X4, Y4, D4,
+		# V3, V4, R34
+		mask = np.array([[\
+			False, True, True, False, \
+			False, True, True, False,\
+			False, False, False,\
+			False, True, True, False, \
+			False, True, True, False, \
+			False, False, False]])
+		points = np.reshape(infile[np.all(mask*[infile], axis=0)], (-1, 4, 2))
+		points = np.unique(points, axis=0)
+		points = np.divide(points, 10)
+		points = points.astype('int')
+		# Each grouping of points should be boxed
+		for ppp in points[:]:
+			img = self.draw_rotated_box(img, ppp)
+		print("points\n", points)
 		return img
 
 	def gauntlet(self, gdl):
@@ -267,12 +271,17 @@ class RingBufferClass():
 		outs["flty"] = self.combineperms(outs["flty"], outs["fltz"])
 		outs["fltz"] = self.combineperms(outs["fltx"], outs["fltz"])
 		outs["fltx"] = fltn
-		# Cleanup
 		for i in range(0, 3):
 			# Test distance/direction
 			outs[outslist[i]] = self.distdirtest(outs[outslist[i]])
 			#If we have empty lists, we need to make them empty with the right size
 			outs[outslist[i]] = self.gapinghole(outs[outslist[i]])
+			# Only keep continuous lines
+			outs[outslist[i]] = self.linear_jump(outs[outslist[i]])
+			# Check that we are not bouncing around the same craters
+			outs[outslist[i]] = self.reversal_check(outs[outslist[i]])
+			# Sync up the velocity values
+			outs[outslist[i]] = self.match_speed(outs[outslist[i]])
 		return outs["fltx"], outs["flty"], outs["fltz"]
 
 	def stackdistance(self, in1, in2):
@@ -349,6 +358,26 @@ class RingBufferClass():
 		'''
 		if np.size(inout, 0) == 0:
 			inout = np.empty((0, 22), int)
+		return inout
+
+	def linear_jump(self, inout):
+		'''Tests if the jump between the newly conjoined list matches up.
+		'''
+		inout = inout[np.where(inout[:, 4] == inout[:, 11])]
+		inout = inout[np.where(inout[:, 5] == inout[:, 12])]
+		inout = inout[np.where(inout[:, 6] == inout[:, 13])]
+		return inout
+
+	def reversal_check(self, inout):
+		'''Removes lines where xn,yn are the same as xn-2, yn-2 (bouncing between craters)
+		'''
+		inout = inout[np.where((inout[:, 1] != inout[:, 16]) & (inout[:, 2] != inout[:, 17]))]
+		return inout
+
+	def match_speed(self, inout):
+		'''Checks that the velocity of each side of the jump are the same.
+		'''
+		inout = inout[np.isclose(inout[:, 8], inout[:, 19], rtol=self.sper, atol=self.spea)]
 		return inout
 
 	def draw_box(self, img, points):

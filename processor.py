@@ -49,7 +49,7 @@ def main(the_file, gui, pos_frame, procpath):
 	rbf = RingBuffer.RingBufferClass(LAST, procpath)
 
 	#while True:
-	while pos_frame < 1000:
+	while pos_frame < 1050:
 		rbf.set_pos_frame(pos_frame)
 		print(pos_frame)
 		cap = cv2.VideoCapture(the_file)
