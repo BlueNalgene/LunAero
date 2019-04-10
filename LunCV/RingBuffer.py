@@ -38,7 +38,7 @@ class RingBufferClass():
 	sper = 2
 	spea = 2e-5 # Should not be zero, because a zero speed is possible
 	# For angle of directional vector
-	angr = 1e-3
+	angr = 2e-2
 	anga = 2e-5 # Should not be zero, because a zero angle is possible
 	pfs = 0
 
@@ -222,7 +222,7 @@ class RingBufferClass():
 		mask = np.array([[\
 			False, True, True, False, \
 			False, True, True, False,\
-			False, False, False,\
+			False, False, False, \
 			False, True, True, False, \
 			False, True, True, False, \
 			False, False, False]])
@@ -272,10 +272,10 @@ class RingBufferClass():
 		outs["fltz"] = self.combineperms(outs["fltx"], outs["fltz"])
 		outs["fltx"] = fltn
 		for i in range(0, 3):
-			# Test distance/direction
-			outs[outslist[i]] = self.distdirtest(outs[outslist[i]])
 			#If we have empty lists, we need to make them empty with the right size
 			outs[outslist[i]] = self.gapinghole(outs[outslist[i]])
+			# Test distance/direction
+			outs[outslist[i]] = self.distdirtest(outs[outslist[i]])
 			# Only keep continuous lines
 			outs[outslist[i]] = self.linear_jump(outs[outslist[i]])
 			# Check that we are not bouncing around the same craters
@@ -328,8 +328,8 @@ class RingBufferClass():
 		'''
 		if np.size(inout, 0) == 0:
 			return inout
-		inout = np.column_stack((inout, np.arctan2(np.abs(np.subtract(inout[:, 2], inout[:, 6])), \
-			np.abs(np.subtract(inout[:, 1], inout[:, 5])))*(180/np.pi)))
+		inout = np.column_stack((inout, np.arctan2(np.subtract(inout[:, 2], inout[:, 6]), \
+			np.subtract(inout[:, 1], inout[:, 5]))*(180/np.pi)))
 		return inout
 
 	def combineperms(self, in1, in2):
@@ -345,8 +345,8 @@ class RingBufferClass():
 		'''Tests for distance and direction without bounds for compared list items.
 		Keeps good ones.
 		'''
-		if np.size(inout, 0) < 20:
-			return inout
+		#if np.size(inout, axis=1) < 20:
+			#return inout
 		# Test distance
 		inout = inout[np.isclose(inout[:, 8], inout[:, 19], rtol=self.sper, atol=self.spea)]
 		# Test direction
