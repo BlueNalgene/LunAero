@@ -34,10 +34,6 @@ from LunCV import Manipulations, RingBuffer
 #kalman.errorCovPost = 1. * np.ones((2, 2))
 #kalman.statePost = 0.1 * np.random.randn(2, 1)
 
-LAST = 5
-# Lazy solution to a start-at-zero problem.
-LAST = LAST + 2
-
 def main(the_file, gui, pos_frame, procpath):
 	'''main function
 	'''
@@ -46,7 +42,7 @@ def main(the_file, gui, pos_frame, procpath):
 	file_datetime = (file_datetime.split('/')[-1].split('outA.'))[0]
 
 	lcv = Manipulations.Manipulations()
-	rbf = RingBuffer.RingBufferClass(LAST, procpath)
+	rbf = RingBuffer.RingBufferClass(procpath)
 
 	#while True:
 	while pos_frame < 1050:
@@ -60,7 +56,7 @@ def main(the_file, gui, pos_frame, procpath):
 
 		if ret:
 			#Necessary cleanup of rbf class
-			rbf.re_init(LAST)
+			rbf.re_init()
 
 			# Make image gray
 			frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -101,9 +97,9 @@ def main(the_file, gui, pos_frame, procpath):
 			# Dirty conversion to binary b/w
 			img[img > 0] = 1
 
-			# Deal with ringbuffer on LAST frames
-			rbf.ringbuffer_cycle(img, LAST)
-			img = rbf.ringbuffer_process(img, LAST)
+			# Deal with ringbuffer on frames
+			rbf.ringbuffer_cycle(img)
+			img = rbf.ringbuffer_process(img)
 			goodlist = rbf.pull_list()
 			# Number of contours limiter
 			if goodlist.size > 0 and goodlist.size < 300:
@@ -170,6 +166,14 @@ def read_proc_number():
 	else:
 		with open("./deleteme", 'r') as fff:
 			procpath = fff.read()
+			working = True
+			addon = 1
+			while working:
+				if os.path.exists(procpath):
+					procpath = procpath + "_" + str(addon)
+					addon += 1
+				else:
+					working = False
 			return procpath
 
 
