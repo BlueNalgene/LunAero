@@ -16,7 +16,7 @@ import cv2
 class Manipulations():
 	'''Begin class
 	'''
-	# Background removal based on 
+	# Background removal based on
 	# An improved adaptive background mixture model for real-time tracking with shadow detection"
 	# by P. KadewTraKuPong and R. Bowden in 2001.
 	FGBG = cv2.bgsegm.createBackgroundSubtractorMOG(100, 7, 0.5, 5)
@@ -29,13 +29,14 @@ class Manipulations():
 	def center_moon(self, frame, contours):
 		'''This function finds the light source in a frame and centers it.
 		'''
+		ret = True
 		if contours:
 			# We only care about the BIGGEST contour here
 			ellipse = max(contours, key=cv2.contourArea)
 
 			# We treat it as an ellipse to account for irregularities in shape.
-			# Based on Andrew W Fitzgibbon and Robert B Fisher. A buyer's guide to conic fitting. 
-			# In Proceedings of the 6th British conference on Machine vision (Vol. 2), 
+			# Based on Andrew W Fitzgibbon and Robert B Fisher. A buyer's guide to conic fitting.
+			# In Proceedings of the 6th British conference on Machine vision (Vol. 2),
 			# pages 513–522. BMVA Press, 1995.
 			ellipse = cv2.fitEllipse(ellipse)
 
@@ -46,7 +47,8 @@ class Manipulations():
 			cv2.ellipse(mask, (int(ellipse[0][0]), int(ellipse[0][1])), (int(ellipse[1][0]/2), \
 							int(ellipse[1][1]/2)), int(ellipse[2]), 0, 360, (255, 255, 255), -1, 8)
 			result = frame & mask
-			# Now the mask is shifted such that the center of the ellipse is in the center of the screen.
+			# Now the mask is shifted such that the center of the ellipse is in the center of the
+			# screen.
 			col = len(frame[0])
 			row = len(frame)
 			xdi = (col / 2) - int(ellipse[0][0])
@@ -54,9 +56,8 @@ class Manipulations():
 			mmm = np.float32([[1, 0, xdi], [0, 1, ydi]])
 			result = cv2.warpAffine(result, mmm, (col, row))
 		else:
-			#frame = [] #None?
-			result = [] #None?
-		return ellipse, result
+			ret = False
+		return ret, ellipse, result
 
 
 	def subtract_background(self, result):

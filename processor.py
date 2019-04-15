@@ -71,43 +71,46 @@ def main(the_file, gui, pos_frame, procpath):
 			contours = lcv.cv_contour(frame, lower_thresh, upper_thresh)
 
 			# Center Moon
-			ellipse, frame = lcv.center_moon(frame, contours)
+			rett, ellipse, frame = lcv.center_moon(frame, contours)
 
-			with open(procpath + '/outputellipse.csv', 'a') as fff:
-				outstring = str(pos_frame) + ',' + str(ellipse[0][0]) + ',' + str(ellipse[0][1])\
-					+ ',' + str(ellipse[1][0]) + ',' + str(ellipse[1][1]) + ',' + str(ellipse[2]) + '\n'
-				fff.write(outstring)
+			if rett:
 
-			# Subtract Background
-			img = lcv.subtract_background(frame)
+				with open(procpath + '/outputellipse.csv', 'a') as fff:
+					outstring = str(pos_frame) + ',' + str(ellipse[0][0]) + ',' + \
+						str(ellipse[0][1]) + ',' + str(ellipse[1][0]) + ',' + str(ellipse[1][1])\
+							+ ',' + str(ellipse[2]) + '\n'
+					fff.write(outstring)
 
-			# Remove Halo Noise
-			img = lcv.halo_noise(ellipse, img)
+				# Subtract Background
+				img = lcv.subtract_background(frame)
 
-			# Get Contours Again
-			contours = lcv.cv_contour(img, 0, 255)
+				# Remove Halo Noise
+				img = lcv.halo_noise(ellipse, img)
 
-			if contours:
-				rbf.get_centers(contours)
+				# Get Contours Again
+				contours = lcv.cv_contour(img, 0, 255)
 
-			##Info for debugging
-			#with open('/scratch/whoneyc/contours_minus_cont_0.p', 'wb') as fff:
-				#pickle.dump(contours, fff)
+				if contours:
+					rbf.get_centers(contours)
 
-			# Dirty conversion to binary b/w
-			img[img > 0] = 1
+				##Info for debugging
+				#with open('/scratch/whoneyc/contours_minus_cont_0.p', 'wb') as fff:
+					#pickle.dump(contours, fff)
 
-			# Deal with ringbuffer on frames
-			rbf.ringbuffer_cycle(img)
-			img = rbf.ringbuffer_process(img)
-			goodlist = rbf.pull_list()
-			# Number of contours limiter
-			if goodlist.size > 0 and goodlist.size < 300:
-				img = rbf.bird_range(img, frame, goodlist)
+				# Dirty conversion to binary b/w
+				img[img > 0] = 1
 
-			if gui:
-				#img[img < 0] = 255
-				cv2.imshow('image', img)
+				# Deal with ringbuffer on frames
+				rbf.ringbuffer_cycle(img)
+				img = rbf.ringbuffer_process(img)
+				goodlist = rbf.pull_list()
+				# Number of contours limiter
+				if goodlist.size > 0 and goodlist.size < 300:
+					img = rbf.bird_range(img, frame, goodlist)
+
+				if gui:
+					#img[img < 0] = 255
+					cv2.imshow('image', img)
 
 			cv2.waitKey(1)
 
