@@ -9,7 +9,6 @@ Motor B is right and left
 import io
 import os
 import os.path
-#import subprocess
 import sys
 import time
 
@@ -38,6 +37,11 @@ RED = (255, 0, 0)
 FONT = pygame.font.SysFont('monospace', 25)
 
 SCREEN = pygame.display.set_mode((SWID, SHEI))
+
+# Enable blind mode while tracking.
+# True = don't display tracking window to save cpu cycles
+# False = display visuals (default)
+BLIND = True
 
 
 class TextInput:
@@ -619,12 +623,17 @@ class MotorFunctions():
 
 
 
+
 class CameraFunctions():
 	'''This class provides the camera functions of for LunAero.
 	Requires PILLOW and the default picamera package.
 	'''
+	import subprocess
 	from PIL import Image
 	import picamera
+	iso = 200
+	imgthresh = 125
+	folder = ''
 	def __init__(self):
 		'''
 		Initalize the camera
@@ -637,7 +646,7 @@ class CameraFunctions():
 		# Byte streaming holder
 		#self.stream = io.BytesIO()
 		# Image Processing Values
-		self.imgthresh = 125
+		#self.imgthresh = 125
 		self.lostcount = 0 #Always initialize at 0
 		# Camera information
 		self.camera = self.picamera.PiCamera()
@@ -645,7 +654,7 @@ class CameraFunctions():
 		self.camera.video_stabilization = True
 		self.camera.resolution = (1920, 1080)
 		self.camera.color_effects = (128, 128) # turn camera to black and white
-		self.iso = 200
+		#self.iso = 200
 		# Image surface holder for pygame
 		self.cenx, self.ceny = QWID/4, QHEI/4   #center of image
 		self.prerat = float(QWID)*float(QHEI)
@@ -678,18 +687,23 @@ class CameraFunctions():
 		'''
 		start = time.time()
 		self.stream = io.BytesIO()
-		self.camera.capture(self.stream, use_video_port=True, resize=(800,600), format='rgba')
+		self.camera.capture(self.stream, use_video_port=True, resize=(800, 600), format='rgba')
 		self.stream.seek(0)
 		self.stream.readinto(self.rgb)
 		self.stream.close()
-		self.surf = pygame.image.frombuffer(self.rgb[0:self.rln], (800,600), 'RGBA')
+		self.surf = pygame.image.frombuffer(self.rgb[0:self.rln], (800, 600), 'RGBA')
 		self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
 		self.stream.close()
 		print("getimgtime: ", str(time.time()-start))
 		return
-	def procimg(self, vals=True):
+	def procimg(self, vals=True, scrot=False):
 		start = time.time()
-		prd = pygame.surfarray.array3d(self.surf)
+		if scrot:
+			prd = self.Image.open("/tmp/LunAeroscrot.png")
+			prd.load()
+			prd = np.asarray(prd, dtype="int32")
+		else:
+			prd = pygame.surfarray.array3d(self.surf)
 		prd = np.dot(prd[:, :, :3], [0.299, 0.587, 0.114])
 		prd = np.repeat(prd, 3).reshape((QWID, QHEI, 3))
 		prd = np.where(prd < self.imgthresh, 0, 255)
@@ -725,9 +739,10 @@ class CameraFunctions():
 		'''
 		import uuid
 		value = str(self.camera.exposure_speed) + "\n"
-		folder = folder + '/exposure.txt'
-		with open(folder, "w") as fff:
+		self.folder = folder + '/exposure.txt'
+		with open(self.folder, "w") as fff:
 			fff.write(value + "\n")
+			fff.write("starttime: " + str(time.time()))
 			fff.write("UUID: " + str(uuid.getnode()))
 		return
 	def get_thresh(self):
@@ -764,9 +779,28 @@ class CameraFunctions():
 		#time.sleep(3)
 		##os.system("killall gpicview")
 		#return
-
-
-
+	def stopvid(self):
+		'''stop video and print time'''
+		stop = str(time.time())
+		self.camera.stop_recording()
+		with open(self.folder, "a") as fff:
+			fff.write("stoptime: " + stop)
+		return
+	def startpre(self, xxx, yyy, www, hhh):
+		'''#TODO'''
+		self.camera.start_preview(fullscreen=False, window=(xxx, yyy, www, hhh))
+		return
+	def scrot(self, xxx, yyy, www, hhh):
+		'''#TODO'''
+		xxx = str(xxx)
+		yyy = str(yyy)
+		www = str(www)
+		hhh = str(hhh)
+		filein = "/tmp/LunAeroscrot.png"
+		self.subprocess.call(["scrot", filein])
+		self.subprocess.call(["convert", filein, "-crop", www + "x" + hhh + "+" + xxx + "+" + yyy,\
+			"+repage", filein])
+		return
 
 
 class ManualAdjust():
@@ -901,6 +935,7 @@ class ManualAdjust():
 class TrackingMode():
 	'''Defines behavior and pygame GUI for the moon tracking stage
 	'''
+	ticker = 0
 	def __init__(self):
 		'''
 		Clear the screen on the first pass
@@ -941,13 +976,15 @@ class TrackingMode():
 		SCREEN.blit(FONT.render('  [z] - Decrease thresholding Value', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('  [x] - Increase thresholding Value', True, RED), (self.mrgn, lctn))
-		lcf.img_segue()
-		lcf.getimg()
+		if not BLIND:
+			lcf.img_segue()
+			lcf.getimg()
 		pygame.display.update()
 	def update_run(self, lmf, lcf):
 		'''Updates the screen with the mainscreen and handles keypress events
 		'''
 		lcf.startrecord()
+		lcf.startpre(QWID, 10, QWID, QHEI)
 		trigger = True
 		lmf.setdc(25, 25)
 		while trigger:
@@ -981,26 +1018,32 @@ class TrackingMode():
 			timecount = time.time() - lcf.start
 			if timecount > 40*60:
 				print("restart video")
-				lcf.camera.stop_recording()
+				lcf.stopvid()
 				lcf.startrecord()
-			diffx, diffy, ratio = lcf.procimg()
-			print("timejump: ", time.time()-self.temptime)
-			self.temptime = time.time()
-			if (abs(diffy) > self.vtstart or abs(diffx) > self.htstart or self.check == 0):
-				self.check = lmf.check_move(diffx, diffy, ratio)
-			if self.check == 1:     #Moon successfully centered
-				lcf.holdsurf()
-				print("centered")
-				pygame.time.wait(1500)
-			if self.check == 0:       #centering in progress
-				pygame.time.wait(20)  #sleep for 20ms, observed time for cycle closer to 0.5s
-			if self.check == 2 or ratio < lmf.lostratio:        #moon lost, theshold too low
-				self.lostcount += 1
-				print("moon lost")
-				time.sleep(1)
-				if self.lostcount > 30:
-					print("moon totally lost")
-					trigger = False
+			if self.ticker > 20:
+				#lcf.getimg()
+				lcf.scrot(QWID, 5, QWID, QHEI)
+				diffx, diffy, ratio = lcf.procimg()
+				print("timejump: ", time.time()-self.temptime)
+				self.temptime = time.time()
+				if (abs(diffy) > self.vtstart or abs(diffx) > self.htstart or self.check == 0):
+					self.check = lmf.check_move(diffx, diffy, ratio)
+				if self.check == 1:     #Moon successfully centered
+					lcf.holdsurf()
+					print("centered")
+					pygame.time.wait(1500)
+					self.ticker = 0
+				if self.check == 0:       #centering in progress
+					pygame.time.wait(20)  #sleep for 20ms, observed time for cycle closer to 0.5s
+				if self.check == 2 or ratio < lmf.lostratio:        #moon lost, theshold too low
+					self.lostcount += 1
+					print("moon lost")
+					time.sleep(1)
+					if self.lostcount > 30:
+						print("moon totally lost")
+						trigger = False
+			else:
+				self.ticker += 1
 		return
 
 
@@ -1038,7 +1081,7 @@ def main():
 	finally:
 		lmf.motstop("B")
 		pygame.time.wait(1000)
-		lcf.camera.stop_recording()
+		lcf.stopvid()
 		with open("/home/pi/Documents/LunAero_endlog.log", 'a') as file:
 			file.write(str(time.time()) + " , " + str(time.strftime('%Y-%m-%d %H:%M:%S',\
 				time.localtime())) + '\n')
