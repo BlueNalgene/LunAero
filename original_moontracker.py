@@ -762,6 +762,7 @@ class CameraFunctions():
 		'''sets the iso value
 		'''
 		self.iso = val
+		self.camera.iso = self.iso
 		return
 	def get_exp(self):
 		'''returns the exposure value
@@ -879,12 +880,13 @@ class ManualAdjust():
 						print("stop")
 						lmf.motstop("B")
 					elif event.key == pygame.K_i:
-						iso = lcf.get_iso()
+						iso = lcf.iso
 						if iso < 800:
 							iso = iso * 2
 						else:
 							iso = 100
 						lcf.camera.iso = iso
+						lcf.iso = iso
 						print("iso set to ", iso)
 					elif event.key == pygame.K_g:
 						exp = lcf.get_exp()
@@ -979,6 +981,8 @@ class TrackingMode():
 		if not BLIND:
 			lcf.img_segue()
 			lcf.getimg()
+		else:
+			lcf.scrot(QWID, 5, QWID, QHEI)
 		pygame.display.update()
 	def update_run(self, lmf, lcf):
 		'''Updates the screen with the mainscreen and handles keypress events
@@ -1005,7 +1009,7 @@ class TrackingMode():
 						trigger = False
 						print("quitting tracker")
 					elif event.key == pygame.K_i:
-						iso = lcf.get_iso()
+						iso = lcf.iso
 						if iso < 800:
 							iso = iso * 2
 						else:
@@ -1022,8 +1026,10 @@ class TrackingMode():
 				lcf.startrecord()
 			if self.ticker > 20:
 				#lcf.getimg()
-				lcf.scrot(QWID, 5, QWID, QHEI)
-				diffx, diffy, ratio = lcf.procimg()
+				if not BLIND:
+					diffx, diffy, ratio = lcf.procimg()
+				else:
+					diffx, diffy, ratio = lcf.procimg(scrot=True)
 				print("timejump: ", time.time()-self.temptime)
 				self.temptime = time.time()
 				if (abs(diffy) > self.vtstart or abs(diffx) > self.htstart or self.check == 0):
