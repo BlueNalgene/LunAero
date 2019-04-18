@@ -606,6 +606,7 @@ class MotorFunctions():
 			print("speedup", direct, self.dcb)
 		return
 	def setdc(self, ina, inb):
+		'''#TODO'''
 		self.dca = ina
 		self.dcb = inb
 		return
@@ -696,14 +697,9 @@ class CameraFunctions():
 		self.stream.close()
 		print("getimgtime: ", str(time.time()-start))
 		return
-	def procimg(self, vals=True, scrot=False):
+	def procimg(self, vals=True):
 		start = time.time()
-		if scrot:
-			prd = self.Image.open("/tmp/LunAeroscrot.png")
-			prd.load()
-			prd = np.asarray(prd, dtype="int32")
-		else:
-			prd = pygame.surfarray.array3d(self.surf)
+		prd = pygame.surfarray.array3d(self.surf)
 		prd = np.dot(prd[:, :, :3], [0.299, 0.587, 0.114])
 		prd = np.repeat(prd, 3).reshape((QWID, QHEI, 3))
 		prd = np.where(prd < self.imgthresh, 0, 255)
@@ -786,21 +782,6 @@ class CameraFunctions():
 		self.camera.stop_recording()
 		with open(self.folder, "a") as fff:
 			fff.write("stoptime: " + stop)
-		return
-	def startpre(self, xxx, yyy, www, hhh):
-		'''#TODO'''
-		self.camera.start_preview(fullscreen=False, window=(xxx, yyy, www, hhh))
-		return
-	def scrot(self, xxx, yyy, www, hhh):
-		'''#TODO'''
-		xxx = str(xxx)
-		yyy = str(yyy)
-		www = str(www)
-		hhh = str(hhh)
-		filein = "/tmp/LunAeroscrot.png"
-		self.subprocess.call(["scrot", filein])
-		self.subprocess.call(["convert", filein, "-crop", www + "x" + hhh + "+" + xxx + "+" + yyy,\
-			"+repage", filein])
 		return
 
 
@@ -981,14 +962,11 @@ class TrackingMode():
 		if not BLIND:
 			lcf.img_segue()
 			lcf.getimg()
-		else:
-			lcf.scrot(QWID, 5, QWID, QHEI)
 		pygame.display.update()
 	def update_run(self, lmf, lcf):
 		'''Updates the screen with the mainscreen and handles keypress events
 		'''
 		lcf.startrecord()
-		lcf.startpre(QWID, 10, QWID, QHEI)
 		trigger = True
 		lmf.setdc(25, 25)
 		while trigger:
@@ -996,14 +974,14 @@ class TrackingMode():
 			for event in pygame.event.get():
 				if event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_z:
-						imgthresh = lcf.get_thresh()
+						imgthresh = lcf.imgthresh
 						if imgthresh > 10:
-							lcf.set_thresh = imgthresh - 10
+							lcf.imgthresh = imgthresh - 10
 						print("decrease thresholding to ", imgthresh)
 					elif event.key == pygame.K_x:
-						imgthresh = lcf.get_thresh()
+						imgthresh = lcf.imgthresh
 						if imgthresh < 245:
-							lcf.set_thresh = imgthresh + 10
+							lcf.imgthresh = imgthresh + 10
 						print("increase thresholding to ", imgthresh)
 					elif event.key == pygame.K_q:
 						trigger = False
@@ -1014,7 +992,8 @@ class TrackingMode():
 							iso = iso * 2
 						else:
 							iso = 100
-						lcf.set_iso = iso
+						lcf.camera.iso = iso
+						lcf.iso = iso
 						print("iso set to ", iso)
 				if event.type == pygame.QUIT:
 					trigger = False
@@ -1025,11 +1004,12 @@ class TrackingMode():
 				lcf.stopvid()
 				lcf.startrecord()
 			if self.ticker > 20:
-				#lcf.getimg()
 				if not BLIND:
+					lcf.getimg()
 					diffx, diffy, ratio = lcf.procimg()
 				else:
-					diffx, diffy, ratio = lcf.procimg(scrot=True)
+					lcf.getimg()
+					diffx, diffy, ratio = lcf.procimg()
 				print("timejump: ", time.time()-self.temptime)
 				self.temptime = time.time()
 				if (abs(diffy) > self.vtstart or abs(diffx) > self.htstart or self.check == 0):
