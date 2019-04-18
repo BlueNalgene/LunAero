@@ -824,6 +824,13 @@ class ManualAdjust():
 		SCREEN.blit(FONT.render('  [n] - Fine decrease exposure', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('  [p] - Clear Night threshold', True, RED), (self.mrgn, lctn))
+		lctn = lctn + self.ftsz + self.mrgn
+		SCREEN.blit(FONT.render('-------------------------------------', True, RED), \
+			(self.mrgn, lctn))
+		lctn = lctn + self.ftsz + self.mrgn
+		SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
+		lctn = lctn + self.ftsz + self.mrgn
+		SCREEN.blit(FONT.render('Exp: ' + str(lcf.get_exp()), True, RED), (self.mrgn, lctn))
 		lcf.img_segue()
 		lcf.getimg()
 		pygame.display.update()
@@ -959,6 +966,12 @@ class TrackingMode():
 		SCREEN.blit(FONT.render('  [z] - Decrease thresholding Value', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('  [x] - Increase thresholding Value', True, RED), (self.mrgn, lctn))
+		SCREEN.blit(FONT.render('-------------------------------------', True, RED), \
+			(self.mrgn, lctn))
+		lctn = lctn + self.ftsz + self.mrgn
+		SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
+		lctn = lctn + self.ftsz + self.mrgn
+		SCREEN.blit(FONT.render('Thresh: ' + str(lcf.imgthresh), True, RED), (self.mrgn, lctn))
 		if not BLIND:
 			lcf.img_segue()
 			lcf.getimg()
