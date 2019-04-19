@@ -43,6 +43,10 @@ SCREEN = pygame.display.set_mode((SWID, SHEI))
 # False = display visuals (default)
 BLIND = True
 
+# Toggle switch for RPi tells the program whether to use the packages unique to a raspberry pi
+# or to go with the USB computer mode.
+RPI = True
+
 
 class TextInput:
 	"""
@@ -407,7 +411,11 @@ def thetime():
 class MotorFunctions():
 	'''Functions which are unique to the motor control system used in LunAero
 	'''
-	import RPi.GPIO as GPIO
+	if RPI:
+		import RPi.GPIO as GPIO
+	else:
+		import Adafruit_GPIO as GPIO
+		import Adafruit_GPIO.FT232H as FT232H
 	def __init__(self):
 		'''Initialize the GPIO pins by associating the values of the pins we are using to variable.
 		Initalize two pins with software controlled PWM with requisite duty cycles and freq.
@@ -416,21 +424,38 @@ class MotorFunctions():
 '		'''
 		# Defines the pins being used for the GPIO pins.
 		print("Defining GPIO pins")
-		self.GPIO.setmode(self.GPIO.BCM)
-		self.apinp = 17  #Pulse width pin for motor A (up and down)
-		self.apin1 = 27  #Motor control - high for up
-		self.apin2 = 22  #Motor control - high for down
-		self.bpin1 = 10  #Motor control - high for left
-		self.bpin2 = 9   #Motor control - high for right
-		self.bpinp = 11  #Pulse width pin for motor B (right and left)
-		# Setup GPIO and start them with 'off' values
-		pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
-		for i in pins:
-			self.GPIO.setup(i, self.GPIO.OUT)
-			if i != self.apinp or self.bpinp:
-				self.GPIO.output(i, self.GPIO.LOW)
-			else:
-				self.GPIO.output(i, self.GPIO.HIGH)
+		if RPI:
+			self.GPIO.setmode(self.GPIO.BCM)
+			self.apinp = 17  #Pulse width pin for motor A (up and down)
+			self.apin1 = 27  #Motor control - high for up
+			self.apin2 = 22  #Motor control - high for down
+			self.bpin1 = 10  #Motor control - high for left
+			self.bpin2 = 9   #Motor control - high for right
+			self.bpinp = 11  #Pulse width pin for motor B (right and left)
+			# Setup GPIO and start them with 'off' values
+			pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
+			for i in pins:
+				self.GPIO.setup(i, self.GPIO.OUT)
+				if i != self.apinp or self.bpinp:
+					self.GPIO.output(i, self.GPIO.LOW)
+				else:
+					self.GPIO.output(i, self.GPIO.HIGH)
+		else:
+			self.FT232H.use_FT232H()
+			self.ft232h = self.FT232H.FT232H()
+			self.apinp = 0  #Pulse width pin for motor A (up and down)
+			self.apin1 = 1  #Motor control - high for up
+			self.apin2 = 2  #Motor control - high for down
+			self.bpin1 = 3  #Motor control - high for left
+			self.bpin2 = 4   #Motor control - high for right
+			self.bpinp = 5  #Pulse width pin for motor B (right and left)
+			pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
+			for i in pins:
+				self.ft232h.setup(i, self.GPIO.OUT)
+				if i != self.apinp or self.bpinp:
+					self.GPIO.output(i, self.GPIO.LOW)
+				else:
+					self.GPIO.output(i, self.GPIO.HIGH)
 		freq = 10000                              # Set here instead of explicit, easy to change.
 		self.pwma = self.GPIO.PWM(self.apinp, freq)   # Initialize PWM on pwmPins
 		self.pwmb = self.GPIO.PWM(self.bpinp, freq)
@@ -452,16 +477,24 @@ class MotorFunctions():
 		Gives some extra umph when changing direction for the looser horizontal gear
 		'''
 		print("Left Right power move")
-		self.dcb = 100
-		self.pwmb.ChangeDutyCycle(self.dcb)
+		if RPI:
+			self.dcb = 100
+			self.pwmb.ChangeDutyCycle(self.dcb)
+		else:
+			#TODO USB
+			pass
 		# Sets movement in opposite direction, remember that this will be backwards!
 		if self.olddir == 1:
 			self.motright()
 		elif self.olddir == 2:
 			self.motleft()
 		pygame.time.wait(3000)
-		self.dcb = 25
-		self.pwmb.ChangeDutyCycle(self.dcb)
+		if RPI:
+			self.dcb = 25
+			self.pwmb.ChangeDutyCycle(self.dcb)
+		else:
+			#TODO USB
+			pass
 	def check_move(self, diffx, diffy, ratio):
 		'''
 		Check the values for the difference between x and y of the observed image to the
