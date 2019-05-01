@@ -1,9 +1,9 @@
-'''
+"""
 Motor control and recording for Lunaero
 
 Motor A is up and down
 Motor B is right and left
-'''
+"""
 
 # Standard imports
 import io
@@ -13,6 +13,7 @@ import sys
 import time
 
 # Non-standard imports
+import multiprocessing as mp
 import pygame
 
 # Third Party imports
@@ -20,6 +21,8 @@ import numpy as np
 
 # Special Mode Imports
 from _datetime import datetime
+
+# Local Imports
 
 #position = (620, 20)
 #os.environ['SDL_VIDEO_WINDOW_POS'] = str(position[0]) + "," + str(position[1])
@@ -41,11 +44,11 @@ SCREEN = pygame.display.set_mode((SWID, SHEI))
 # Enable blind mode while tracking.
 # True = don't display tracking window to save cpu cycles
 # False = display visuals (default)
-BLIND = True
+BLIND = False
 
 # Toggle switch for RPi tells the program whether to use the packages unique to a raspberry pi
 # or to go with the USB computer mode.
-RPI = True
+RPI = False
 
 
 class TextInput:
@@ -61,7 +64,8 @@ class TextInput:
 			repeat_keys_interval_ms=35):
 		"""
 		:param initial_string: Initial text to be displayed
-		:param font_family: name or list of names for font (see pygame.font.match_font for precise format)
+		:param font_family: name or list of names for font (see pygame.font.match_font
+		for precise format)
 		:param font_size:  Size of font in pixels
 		:param antialias: Determines if antialias is applied to font (uses more processing power)
 		:param text_color: Color of text (duh)
@@ -95,8 +99,8 @@ class TextInput:
 		# Init clock
 		self.clock = pygame.time.Clock()
 	def update(self, events):
-		'''Update the values in the box
-		'''
+		"""Update the values in the box
+		"""
 		for event in events:
 			if event.type == pygame.QUIT:
 				sys.exit()
@@ -132,7 +136,8 @@ class TextInput:
 						event.unicode + self.input_string[self.cursor_position:])
 					self.cursor_position += len(event.unicode)  # Some are empty, e.g. K_UP
 			elif event.type == pygame.KEYUP:
-				# *** Because KEYUP doesn't include event.unicode, this dict is stored in such a weird way
+				# *** Because KEYUP doesn't include event.unicode,
+				#this dict is stored in such a weird way
 				if event.key in self.keyrepeat_counters:
 					del self.keyrepeat_counters[event.key]
 		# Update key counters:
@@ -143,7 +148,8 @@ class TextInput:
 				self.keyrepeat_counters[key][0] = (self.keyrepeat_intial_interval_ms - \
 					self.keyrepeat_interval_ms)
 				event_key, event_unicode = key, self.keyrepeat_counters[key][1]
-				pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=event_key, unicode=event_unicode))
+				pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=event_key,\
+					unicode=event_unicode))
 		# Re-render text surface:
 		self.surface = self.font_object.render(self.input_string, self.antialias, self.text_color)
 		# Update self.cursor_visible
@@ -160,60 +166,60 @@ class TextInput:
 		self.clock.tick()
 		return False
 	def get_surface(self):
-		'''
+		"""
 		Called to get the surface
-		'''
+		"""
 		return self.surface
 	def get_text(self):
-		'''
+		"""
 		Called to get the text string
-		'''
+		"""
 		return self.input_string
 	def get_cursor_position(self):
-		'''
+		"""
 		Called to get the cursor position
-		'''
+		"""
 		return self.cursor_position
 	def set_text_color(self, color):
-		'''
+		"""
 		Called to set the color of the text
-		'''
+		"""
 		self.text_color = color
 	def set_cursor_color(self, color):
-		'''
+		"""
 		Called to set the color of the mouse cursor
-		'''
+		"""
 		self.cursor_surface.fill(color)
 	def clear_text(self):
-		'''
+		"""
 		Called to clear the text string.
-		'''
+		"""
 		self.input_string = ""
 		self.cursor_position = 0
 
 class TimeLoop():
-	'''
+	"""
 	This class contains screens which ask the user to verify the time listed on the raspberry pi.
 	The intended use is to provide for instances when the pi is not able to auto sync the clock
 	with an internet connection, yet not use an RTC.
-	'''
+	"""
 	tix = TextInput()
 	def __init__(self):
-		'''
+		"""
 		:param startup: Toggle switch for while loop
 		:param timetuple: Empty tuple to hold time values
 		:param mrgn: Margin around text to act as padding
 		:param ftsz: Font size in points
-		'''
+		"""
 		self.startup = True
 		self.timetuple = ()
 		self.mrgn = 10
 		self.ftsz = 25
 
 	def firstcheck(self):
-		'''
+		"""
 		Ask the user to confirm that the time is correct
-		'''
+		"""
 		timetuple = ()
 		while self.startup:
 			SCREEN.fill((0, 0, 0))
@@ -225,8 +231,8 @@ class TimeLoop():
 			SCREEN.blit(FONT.render('        Does this time seem correct?         ', True, RED),\
 				(hpos, lctn))
 			lctn = lctn + self.ftsz + self.mrgn
-			hpos = QWID - round(len(thetime())/2)*(self.ftsz-self.mrgn)
-			SCREEN.blit(FONT.render(str(thetime()), True, RED), (hpos, lctn))
+			hpos = QWID - round(len(self.thetime())/2)*(self.ftsz-self.mrgn)
+			SCREEN.blit(FONT.render(str(self.thetime()), True, RED), (hpos, lctn))
 			lctn = lctn + self.ftsz + self.mrgn
 			hpos = QWID - 22*(self.ftsz-self.mrgn)
 			SCREEN.blit(FONT.render('          Press: [y]es or [n]o....           ', True, RED),\
@@ -255,9 +261,9 @@ class TimeLoop():
 		return timetuple
 
 	def timeinput(self, ith):
-		'''
+		"""
 		Pygame.  Constructs a tuple of date values to use when setting the date and time
-		'''
+		"""
 		while True:
 			SCREEN.fill((0, 0, 0))
 			lctn = self.mrgn + self.ftsz
@@ -297,10 +303,10 @@ class TimeLoop():
 			pygame.display.update()
 
 	def badinput(self, blah):
-		'''
+		"""
 		Pygame.  Complains to the user if they input an invalid string for the date values and
 		prompts them to try again.
-		'''
+		"""
 		trigger = True
 		while trigger:
 			lctn = blah + self.ftsz + self.mrgn
@@ -324,15 +330,16 @@ class TimeLoop():
 		return
 
 	def tzpick(self):
-		'''
+		"""
 		Pygame.  Multiple choice selection for timezone
 		Sets the timezone when finished.
-		'''
+		"""
 		trigger = True
 		SCREEN.fill((0, 0, 0))
 		lctn = self.mrgn + self.ftsz
 		hpos = QWID - 22*(self.ftsz-self.mrgn)
-		SCREEN.blit(FONT.render('Which timezone are you in right now?         ', True, RED), (hpos, lctn))
+		SCREEN.blit(FONT.render('Which timezone are you in right now?         ', \
+			True, RED), (hpos, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		hpos = QWID - 11*(self.ftsz-self.mrgn)
 		SCREEN.blit(FONT.render('[a] - UTC', True, RED), (hpos, lctn))
@@ -369,59 +376,72 @@ class TimeLoop():
 		time.tzset()
 		return True
 
-def _linux_setdate(time_tuple):
-	'''
-	This function sets the time of the system based on a tuple of values.
-	:param time_tuple: This is the tuple which represents the target time setting.  Subvalues are:
-		Year (needs to be 4 digits)
-		Month (the rest are 2 digits)
-		Day
-		Hour
-		Minute
-		Second
-		Millisecond
-	'''
-	import subprocess
-	import shlex
-	time_string = datetime(*time_tuple).isoformat()
-	#subprocess.call(shlex.split("timedatectl set-ntp false"))  # May be necessary
-	subprocess.call(shlex.split("sudo date -s '%s'" % time_string))
-	#subprocess.call(shlex.split("sudo hwclock -w"))
-	return
+	def thetime(self):
+		"""
+		This function simply grabs the current time with the time zone and returns it.
 
-def thetime():
-	'''
-	This function simply grabs the current time with the time zone and returns it.
-	'''
-	foobar = time.time()
-	foobar = datetime.fromtimestamp(foobar)
-	foobar = foobar.strftime('%Y-%m-%d %H:%M:%S')
-	foobar = str(foobar) + "  " + str(time.localtime().tm_zone)
-	return foobar
+		:returns: - outval - time formatted as a string with the timezone included
+		"""
+		outval = time.time()
+		outval = datetime.fromtimestamp(outval)
+		outval = outval.strftime('%Y-%m-%d %H:%M:%S')
+		outval = str(outval) + "  " + str(time.localtime().tm_zone)
+		return outval
 
+	def timeloop_running(self):
+		"""
+		Executes a time loop function.  Use as a while loop threshold until it returns false.
 
+		:returns: - False - when finished
+		"""
+		timeval = self.firstcheck()
+		while not timeval:
+			pass
+		if isinstance(timeval, tuple):
+			self._linux_setdate(timeval)
+			pygame.time.wait(500)
+		return False
 
-
-
-
-
-
+	def _linux_setdate(self, time_tuple):
+		"""
+		This function sets the time of the system based on a tuple of values.
+		:param time_tuple: This is the tuple which represents the target time setting.
+		Subvalues are:
+			Year (needs to be 4 digits)
+			Month (the rest are 2 digits)
+			Day
+			Hour
+			Minute
+			Second
+			Millisecond
+		"""
+		import subprocess
+		import shlex
+		time_string = datetime(*time_tuple).isoformat()
+		#subprocess.call(shlex.split("timedatectl set-ntp false"))  # May be necessary
+		subprocess.call(shlex.split("sudo date -s '%s'" % time_string))
+		#subprocess.call(shlex.split("sudo hwclock -w"))
+		return
 
 
 class MotorFunctions():
-	'''Functions which are unique to the motor control system used in LunAero
-	'''
+	"""
+	Functions which are unique to the motor control system used in LunAero
+	"""
 	if RPI:
 		import RPi.GPIO as GPIO
 	else:
 		import Adafruit_GPIO as GPIO
 		import Adafruit_GPIO.FT232H as FT232H
+		# Local Imports
+		from Moontracker_Classes import rpt_control
+		rpt = rpt_control.RPTControl()
 	def __init__(self):
-		'''Initialize the GPIO pins by associating the values of the pins we are using to variable.
+		"""Initialize the GPIO pins by associating the values of the pins we are using to variable.
 		Initalize two pins with software controlled PWM with requisite duty cycles and freq.
 		Start these PWM when they are ready.
 		Assign values to the motion and ratio thresholds
-'		'''
+'		"""
 		# Defines the pins being used for the GPIO pins.
 		print("Defining GPIO pins")
 		if RPI:
@@ -441,65 +461,94 @@ class MotorFunctions():
 				else:
 					self.GPIO.output(i, self.GPIO.HIGH)
 		else:
-			self.FT232H.use_FT232H()
-			self.ft232h = self.FT232H.FT232H()
+			self.rpt.set_pwm_freq_precisely(70)
+			self.rpt.set_pwm_freq(4000)
 			self.apinp = 0  #Pulse width pin for motor A (up and down)
 			self.apin1 = 1  #Motor control - high for up
 			self.apin2 = 2  #Motor control - high for down
 			self.bpin1 = 3  #Motor control - high for left
 			self.bpin2 = 4   #Motor control - high for right
 			self.bpinp = 5  #Pulse width pin for motor B (right and left)
-			pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
-			for i in pins:
-				self.ft232h.setup(i, self.GPIO.OUT)
-				if i != self.apinp or self.bpinp:
-					self.GPIO.output(i, self.GPIO.LOW)
-				else:
-					self.GPIO.output(i, self.GPIO.HIGH)
-		freq = 10000                              # Set here instead of explicit, easy to change.
-		self.pwma = self.GPIO.PWM(self.apinp, freq)   # Initialize PWM on pwmPins
-		self.pwmb = self.GPIO.PWM(self.bpinp, freq)
+		freq = 10000
 		self.dca = 0                             # Set duty cycle variable to zero at first
-		self.dcb = 0                             # Set duty cycle variable to zero at first
-		self.pwma.start(self.dca)                # Start pulse width at 0 (pin held low)
-		self.pwmb.start(self.dcb)                # Start pulse width at 0 (pin held low)
+		self.dcb = 0
+		if RPI:
+			self.pwma = self.pwm(self.apinp, freq)   # Initialize PWM on pwmPins
+			self.pwmb = self.pwm(self.bpinp, freq)
+			self.pwma.start(self.dca)                # Start pulse width at 0 (pin held low)
+			self.pwmb.start(self.dcb)                # Start pulse width at 0 (pin held low)
 		self.acount = 0
 		self.bcount = 0
 		self.olddir = 0                          # Stores old movement direction; 1 left, 2 right
 		self.aspect = QWID/QHEI
 		# the moon must be displaced by this amount for movement to occur.
 		self.lostratio = 0.001                   # a percentage of frame height
-		self.vtstop = 0.05 * QHEI   #offset to stop vertical movement (must be < Start)
-		self.htstop = 0.1 * QWID     #image offset to stop horizontal movement (must be < Start)
+		self.vtstop = 0.04 * QHEI   #offset to stop vertical movement (must be < Start)
+		self.htstop = 0.05 * QWID     #image offset to stop horizontal movement (must be < Start)
 		return
-	def loose_wheel(self):
-		'''
-		Gives some extra umph when changing direction for the looser horizontal gear
-		'''
-		print("Left Right power move")
+	def pinhigh(self, channel):
+		"""
+		Pulls a pin high based on the method for the RPi or computer controls
+
+		:param channel: - Channel/pin to set high.
+		"""
 		if RPI:
-			self.dcb = 100
-			self.pwmb.ChangeDutyCycle(self.dcb)
+			self.GPIO.output(channel, self.GPIO.HIGH)
 		else:
-			#TODO USB
-			pass
+			self.rpt.set_pwm(channel, 4096, 0)
+		return
+	def pinlow(self, channel):
+		"""
+		Pulls a pin low based on the method for the RPi or computer controls
+
+		:param channel: - Channel/pin to set low.
+		"""
+		if RPI:
+			self.GPIO.output(channel, self.GPIO.LOW)
+		else:
+			self.rpt.set_pwm(channel, 0, 4096)
+		return
+	def setduty(self, motor):
+		"""
+		Sets a duty cycle of a pin based on the method for the RPi or computer controls
+
+		:param motor: - byte letter (python format string) used to denote which motor we want
+		to control.  Either 'A' or 'B'.
+		"""
+		if RPI:
+			if motor == 'A':
+				self.pwma.ChangeDutyCycle(self.dca)
+			elif motor == 'B':
+				self.pwmb.ChangeDutyCycle(self.dcb)
+			else:
+				raise RuntimeError("asked to set duty cycle for non-existant motor")
+		else:
+			if motor == 'A':
+				self.rpt.set_pwm(self.apinp, 1, self.rpt.perc_to_pulse(self.dca))
+			elif motor == 'B':
+				self.rpt.set_pwm(self.bpinp, 1, self.rpt.perc_to_pulse(self.dcb))
+			else:
+				raise RuntimeError("asked to set duty cycle for non-existant motor")
+	def loose_wheel(self):
+		"""
+		Gives some extra umph when changing direction for the looser horizontal gear
+		"""
+		print("Left Right power move")
+		self.dcb = 100
+		self.setduty('B')
 		# Sets movement in opposite direction, remember that this will be backwards!
 		if self.olddir == 1:
 			self.motright()
 		elif self.olddir == 2:
 			self.motleft()
 		pygame.time.wait(3000)
-		if RPI:
-			self.dcb = 25
-			self.pwmb.ChangeDutyCycle(self.dcb)
-		else:
-			#TODO USB
-			pass
+		self.dcb = 25
+		self.setduty('B')
 	def check_move(self, diffx, diffy, ratio):
-		'''
+		"""
 		Check the values for the difference between x and y of the observed image to the
 		perfect center of the screen and move the camera to center the image
-		'''
+		"""
 		if ratio < self.lostratio:
 			return 2
 		else:
@@ -533,10 +582,10 @@ class MotorFunctions():
 			self.motstop("B")
 			return 1
 	def motstop(self, direct):
-		'''
+		"""
 		Stops the motors in an intelligent way
 		:param direct: Which directional motor are you stopping? X, Y, or Both?
-		'''
+		"""
 		print("stopping", direct)
 		if direct == "B":
 			while self.dca > 0 or self.dcb > 0:
@@ -548,69 +597,69 @@ class MotorFunctions():
 					self.dcb = 10
 				else:
 					self.dcb = self.dcb - 1
-				self.pwma.ChangeDutyCycle(self.dca)
-				self.pwmb.ChangeDutyCycle(self.dcb)
+				self.setduty('A')
+				self.setduty('B')
 				time.sleep(.005)
-			self.GPIO.output(self.apin1, self.GPIO.LOW)
-			self.GPIO.output(self.apin2, self.GPIO.LOW)
-			self.GPIO.output(self.bpin1, self.GPIO.LOW)
-			self.GPIO.output(self.bpin2, self.GPIO.LOW)
+			self.pinlow(self.apin1)
+			self.pinlow(self.apin2)
+			self.pinlow(self.bpin1)
+			self.pinlow(self.bpin2)
 		elif direct == "Y":
 			while self.dca > 0:
 				self.dca = self.dca - 1
-				self.pwma.ChangeDutyCycle(self.dca)
+				self.setduty('A')
 				time.sleep(.01)
-			self.GPIO.output(self.apin1, self.GPIO.LOW)
-			self.GPIO.output(self.apin2, self.GPIO.LOW)
+			self.pinlow(self.apin1)
+			self.pinlow(self.apin2)
 		elif direct == "X":
 			while self.dcb > 0:
 				self.dcb = self.dcb - 1
-				self.pwmb.ChangeDutyCycle(self.dcb)
+				self.setduty('B')
 				time.sleep(.01)
-			self.GPIO.output(self.bpin1, self.GPIO.LOW)
-			self.GPIO.output(self.bpin2, self.GPIO.LOW)
+			self.pinlow(self.bpin1)
+			self.pinlow(self.bpin2)
 		return
 	def motdown(self):
-		'''
+		"""
 		Move motors to point scope DOWN
-		'''
+		"""
 		print("moving down")
-		self.GPIO.output(self.apin1, self.GPIO.HIGH)
-		self.GPIO.output(self.apin2, self.GPIO.LOW)
+		self.pinhigh(self.apin1)
+		self.pinlow(self.apin2)
 		return
 	def motup(self):
-		'''
+		"""
 		Move motors to point scope UP
-		'''
+		"""
 		print("moving up")
-		self.GPIO.output(self.apin1, self.GPIO.LOW)
-		self.GPIO.output(self.apin2, self.GPIO.HIGH)
+		self.pinlow(self.apin1)
+		self.pinhigh(self.apin2)
 		return
 	def motright(self):
-		'''
+		"""
 		Move motors to point scope RIGHT
-		'''
+		"""
 		print("moving right")
 		self.olddir = 2
-		self.GPIO.output(self.bpin1, self.GPIO.HIGH)
-		self.GPIO.output(self.bpin2, self.GPIO.LOW)
+		self.pinhigh(self.bpin1)
+		self.pinlow(self.bpin2)
 		return
 	def motleft(self):
-		'''
+		"""
 		Move motors to point scope LEFT
-		'''
+		"""
 		print("moving left")
 		self.olddir = 1
-		self.GPIO.output(self.bpin1, self.GPIO.LOW)
-		self.GPIO.output(self.bpin2, self.GPIO.HIGH)
+		self.pinlow(self.bpin1)
+		self.pinhigh(self.bpin2)
 		return
 	def speedup(self, direct):
-		'''
+		"""
 		Increase the motor speed by altering the duty cycle of the motor
 		:param direct: Which motor? X or Y?
 		The acount/bcount switch increases speed at a slower rate for already high speeds,
 		this prevents zooming about too much.
-		'''
+		"""
 		if direct == "Y":
 			if self.dca < 10:
 				self.dca = 10
@@ -622,7 +671,7 @@ class MotorFunctions():
 					self.acount = 0
 				else:
 					self.acount += 1
-			self.pwma.ChangeDutyCycle(self.dca)
+			self.setduty('A')
 			print("speedup ", direct, self.dca)
 		elif direct == "X":
 			if self.dcb < 10:
@@ -635,18 +684,45 @@ class MotorFunctions():
 					self.bcount = 0
 				else:
 					self.bcount += 1
-			self.pwmb.ChangeDutyCycle(self.dcb)
+			self.setduty('B')
 			print("speedup", direct, self.dcb)
 		return
 	def setdc(self, ina, inb):
-		'''#TODO'''
+		"""
+		Used to set the dutycycle from outside the class
+
+		:param ina: the input value for the duty cycle setting for motor A
+		:param inb: the input value for the duty cycle setting for motor B
+		"""
 		self.dca = ina
 		self.dcb = inb
 		return
+	def wait_timer(self):
+		"""This function checks the current move speed of the motor and outputs a value for
+		pygame.wait which has an inverse relationship to the speed.
+		returns - val - ms delay period for pygame.wait function
+		"""
+		from math import exp
+		speed = max(self.dca, self.dcb)
+		val = int(2560*exp(-.1386*speed))
+		return val
 	def cleanup(self):
-		''' Required to be called at end of program
-		'''
-		self.GPIO.cleanup()
+		""" Required to be called at end of program
+		"""
+		if RPI:
+			self.GPIO.cleanup()
+		else:
+			self.rpt.pwm.set_all_pwm(4096, 0)
+		return
+	def demo_on(self):
+		self.pinhigh(13)
+		self.pinlow(14)
+		self.rpt.set_pwm(15, 1, self.rpt.perc_to_pulse(25))
+		return
+	def demo_off(self):
+		self.pinlow(13)
+		self.pinlow(14)
+		self.pinlow(15)
 		return
 
 
@@ -659,35 +735,84 @@ class MotorFunctions():
 
 
 class CameraFunctions():
-	'''This class provides the camera functions of for LunAero.
+	"""This class provides the camera functions of for LunAero.
 	Requires PILLOW and the default picamera package.
-	'''
-	import subprocess
+	"""
+	import glob
+	if RPI:
+		import picamera
+	else:
+		import subprocess
+		import cv2
 	from PIL import Image
-	import picamera
-	iso = 200
-	imgthresh = 125
-	folder = ''
+	clist = [ \
+		"brightness", \
+		"contrast", \
+		"saturation", \
+		"hue", \
+		"white_balance_temperature_auto", \
+		"gamma", \
+		"gain", \
+		"power_line_frequency", \
+		"white_balance_temperature", \
+		"sharpness", \
+		"backlight_compensation", \
+		"exposure_auto", \
+		"exposure_absolute", \
+		"exposure_auto_priority" \
+		]
 	def __init__(self):
-		'''
+		"""
 		Initalize the camera
 		Get some important values about the image from the camera
 		Create some placeholders for the byte stream
 		Get screen information locally and create a byte array to hold some more data.
-		'''
-		self.start = ''
+		"""
+		self.start = time.time()
 		self.surf = ''
+		self.vwr = None
+		self.iso = 200
+		self.imgthresh = 125
+		self.oldx = None
+		self.oldy = None
+		self.frame = None
+		self.framecnt = 0
 		# Byte streaming holder
 		#self.stream = io.BytesIO()
 		# Image Processing Values
 		#self.imgthresh = 125
 		self.lostcount = 0 #Always initialize at 0
 		# Camera information
-		self.camera = self.picamera.PiCamera()
-		self.camera.led = False
-		self.camera.video_stabilization = True
-		self.camera.resolution = (1920, 1080)
-		self.camera.color_effects = (128, 128) # turn camera to black and white
+		if RPI:
+			self.folder = "/media/pi/MOON1/" + str(int(self.start))
+		else:
+			self.folder = "/scratch/whoneyc/" + str(int(self.start))
+		os.makedirs(self.folder)
+		print(self.start)
+		print("Preparing outfile")
+		if RPI:
+			self.camera = self.picamera.PiCamera()
+			self.camera.led = False
+			self.camera.video_stabilization = True
+			self.camera.resolution = (1920, 1080)
+			self.camera.color_effects = (128, 128) # turn camera to black and white
+		else:
+			list_of_cameras = self.glob.glob("/dev/video*")
+			for i in list_of_cameras:
+				ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
+				if "USB 2.0 Camera: HD USB Camera" in ppp:
+					self.camstring = i
+			if self.camstring == '':
+				raise RuntimeError("No USB camera matching description found")
+			self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
+				"width=1024,height=768,pixelformat=MJPG"])
+			print(self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-V"]))
+			self.camera = self.cv2.VideoCapture(int(self.camstring.strip("/dev/video")))
+			self.camera.set(self.cv2.CAP_PROP_FOURCC, self.cv2.VideoWriter_fourcc(*'MJPG'))
+			self.camera.set(self.cv2.CAP_PROP_FRAME_WIDTH, 1024)
+			self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 768)
+			self.camera.set(self.cv2.CAP_PROP_FPS, 30)
+			self.camera.set(self.cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 		#self.iso = 200
 		# Image surface holder for pygame
 		self.cenx, self.ceny = QWID/4, QHEI/4   #center of image
@@ -696,110 +821,229 @@ class CameraFunctions():
 		self.rln = len(self.rgb)
 		# Fresh Image
 		self.getimg()
+		self.surfit()
 		return
+	def set_v4l2_cam(self, arg, val):
+		"""Syntax for the linux expression to change a setting using v4l2-ctl
+		:param arg: - The setting we are changing.  Must be an int which refers to the correct
+		value in the clist.
+		:param val: - The value we want to change arg to
+		"""
+		self.subprocess.check_call([\
+			"v4l2-ctl",\
+			"-d", self.camstring,\
+			"-c", self.clist[arg] + "=" + str(val)])
+		return
+	def get_v4l2_cam(self, arg):
+		"""Syntax for the linux expression to fetch a setting using v4l2-ctl
+		:param arg: - The setting we are fetching.  Must be an int which refers to the correct
+		value in the clist.
+		"""
+		ret = self.subprocess.check_output([\
+			"v4l2-ctl",\
+			"-d", self.camstring,\
+			"-C", self.clist[arg]])
+		return ret
 	def startrecord(self):
-		'''
+		"""
 		Tell the picamera to start recording whatever we are looking at to file.  This outputs raw
 		video with a non-standard framerate.  The framerate must be calculated from the exposure
 		setting of the camera.
-		'''
+		"""
 		self.start = time.time()
-		folder = "/media/pi/MOON1/" + str(int(self.start))
-		os.makedirs(folder)
-		print(self.start)
-		print("Preparing outfile")
-		self.get_exposure_folder(folder)
-		outfile = str(int(self.start)) + 'outA.h264'
-		outfile = os.path.join(folder, outfile)
-		print(str(outfile))
-		self.camera.start_recording(outfile)
+		self.get_exposure_folder()
+		if RPI:
+			outfile = str(int(self.start)) + 'outA.h264'
+			outfile = os.path.join(self.folder, outfile)
+			print(str(outfile))
+			self.camera.start_recording(outfile)
+		else:
+			outfile = str(int(self.start)) + 'outA.avi'
+			outfile = os.path.join(self.folder, outfile)
+			print(str(outfile))
+			fourcc = self.cv2.VideoWriter_fourcc(*'MJPG')
+			self.vwr = self.cv2.VideoWriter(outfile, fourcc, 25, (1024, 768))
+			#self.vwr = self.cv2.VideoWriter(outfile, 0x21, 30, (1024, 768))
 		time.sleep(1)
 		return
-	def getimg(self):
-		'''
+	def getimg(self, rec=False):
+		"""
 		Capture an image and see how close it is to center
-		'''
+		"""
 		start = time.time()
-		self.stream = io.BytesIO()
-		self.camera.capture(self.stream, use_video_port=True, resize=(800, 600), format='rgba')
-		self.stream.seek(0)
-		self.stream.readinto(self.rgb)
-		self.stream.close()
-		self.surf = pygame.image.frombuffer(self.rgb[0:self.rln], (800, 600), 'RGBA')
-		self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
-		self.stream.close()
+		if RPI:
+			self.stream = io.BytesIO()
+			self.camera.capture(self.stream, use_video_port=True, resize=(800, 600),\
+				format='rgba')
+			self.stream.seek(0)
+			self.stream.readinto(self.rgb)
+			self.stream.close()
+		else:
+			if self.camera.isOpened(): # try to get the first frame
+				_, self.frame = self.camera.read()
+				if rec:
+					self.vwr.write(self.frame)
+			self.cv2.waitKey(1)
+		self.framecnt += 1
 		print("getimgtime: ", str(time.time()-start))
 		return
-	def procimg(self, vals=True):
+	def surfit(self):
+		"""
+		Converts the current image stored in the frame buffer to a pygame surface that fits the
+		screen.  Different methods are required for different input mechanisms.  No params, no
+		returns.
+		"""
+		if RPI:
+			self.surf = pygame.image.frombuffer(self.rgb[0:self.rln], (800, 600), 'RGBA')
+			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
+		else:
+			self.surf = self.cv2.resize(self.frame, (800, 600))
+			#self.surf = self.surf.torstring()
+			self.surf = self.cv2.cvtColor(self.surf, self.cv2.COLOR_BGR2RGB)
+			self.surf = pygame.image.frombuffer(self.surf, (800, 600), 'RGB')
+			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
+		return
+	def procimg(self):
+		"""
+		Process the image stored in the local pygame surface to a black and white np array.
+		Use this np array to determine the center of the bright spot on the frame, then determine
+		the difference from that point to the true frame center.
+
+		:returns: - diffx - The directional difference of the reported central bright spot of the
+		image to the true center of the frame in the 'x' direction.
+		- diffy - The directional difference of the reported central bright spot of the image to
+		the true center of the frame in the 'y' direction.
+		- ratio - The percentage brightness ratio of white pixels to black pixels.
+		"""
 		start = time.time()
 		prd = pygame.surfarray.array3d(self.surf)
 		prd = np.dot(prd[:, :, :3], [0.299, 0.587, 0.114])
 		prd = np.repeat(prd, 3).reshape((QWID, QHEI, 3))
 		prd = np.where(prd < self.imgthresh, 0, 255)
 		print("procfunctime: ", str(time.time()-start))
-		if vals:
-			oldx = float(np.nanmean(np.nonzero(np.sum(prd, axis=1))))
-			oldy = float(np.nanmean(np.nonzero(np.sum(prd, axis=0))))
-			diffx = self.cenx - oldx  #horz center of frame - moon
-			diffy = self.ceny - oldy  #vert center of frame - moon
-			ratio = np.sum(prd, dtype=np.int32)/self.prerat     #ratio of white:black
-			print("ratio ", ratio)
-			print("hdiff: ", self.cenx, "-", oldx, "=", diffx)
-			print("vdiff: ", self.ceny, "-", oldy, "=", diffy)
-			return diffx, diffy, ratio
+		self.oldx = float(np.nanmean(np.nonzero(np.sum(prd, axis=1))))
+		self.oldy = float(np.nanmean(np.nonzero(np.sum(prd, axis=0))))
+		diffx = self.cenx - int(self.cenx*0.2) - self.oldx  #horz center of frame - moon
+		diffy = self.ceny - self.oldy  #vert center of frame - moon
+		ratio = np.sum(prd, dtype=np.int32)/self.prerat     #ratio of white:black
+		print("ratio ", ratio)
+		print("hdiff: ", self.cenx, "-", self.oldx, "=", diffx)
+		print("vdiff: ", self.ceny, "-", self.oldy, "=", diffy)
+		return diffx, diffy, ratio
+	def procimg_dumb(self):
+		"""
+		Process the image stored in the local pygame surface to a black and white np array.  Only
+		output the image.
+
+		:returns: - prd - the thresholded image product (black and white np array)
+		"""
+		start = time.time()
+		prd = pygame.surfarray.array3d(self.surf)
+		prd = np.dot(prd[:, :, :3], [0.299, 0.587, 0.114])
+		prd = np.repeat(prd, 3).reshape((QWID, QHEI, 3))
+		prd = np.where(prd < self.imgthresh, 0, 255)
+		print("procfunctime: ", str(time.time()-start))
 		return prd
 	def img_segue(self):
-		'''Creates an image which displays the computer vision version of the video stream
-		'''
+		"""Creates an image which displays the computer vision version of the video stream
+		"""
 		SCREEN.blit(self.surf, (QWID, 0))
 		return
 	def holdsurf(self):
-		'''This function presents the surface from getimg
-		'''
+		"""This function presents the surface from getimg
+		"""
 		start = time.time()
-		surf = self.procimg(False)
+		surf = self.procimg_dumb()
 		surf = pygame.surfarray.make_surface(surf)
-		SCREEN.blit(surf, (QWID, QHEI))
-		pygame.display.update()
+		self.drawtarget()
 		print("surftime: ", str(time.time()-start))
-	def get_exposure_folder(self, folder):
-		'''Fetch the camera exposure and print it to a file.  This is necessary to determine the
+		return surf
+	def get_exposure_folder(self):
+		"""Fetch the camera exposure and print it to a file.  This is necessary to determine the
 		fps of the video captured
-		'''
+		"""
 		import uuid
-		value = str(self.camera.exposure_speed) + "\n"
-		self.folder = folder + '/exposure.txt'
-		with open(self.folder, "w") as fff:
+		if RPI:
+			value = str(self.camera.exposure_speed) + "\n"
+		else:
+			value = str(self.get_v4l2_cam(12), 'UTF-8') + "\n"
+		folder = self.folder + "/" + str(int(self.start)) + "exposure.txt"
+		with open(folder, "w") as fff:
 			fff.write(value + "\n")
-			fff.write("starttime: " + str(time.time()))
-			fff.write("UUID: " + str(uuid.getnode()))
+			fff.write("starttime: " + str(int(self.start)) + "\n")
+			fff.write("startframe: " + str(self.framecnt) + "\n")
+			fff.write("UUID: " + str(uuid.getnode()) + "\n")
+			if not RPI:
+				fff.write("Camera Control Values:")
+				for i in self.clist:
+					ppp = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
+						i]).decode('utf-8')
+					fff.write("    " + str(ppp))
 		return
-	def get_thresh(self):
-		'''returns threshold value
-		'''
-		return self.imgthresh
-	def set_thresh(self, val):
-		'''sets threshold value
-		'''
-		self.imgthresh = val
+	def clear_mem(self):
+		"""
+		Call this function to clear most of the weighty variables and collect garbage
+		"""
+		import gc
+		self.frame = None
+		gc.collect()
 		return
-	def get_iso(self):
-		'''returns the iso value
-		'''
-		return self.iso
+	#def get_thresh(self):
+		#"""returns threshold value
+		#"""
+		#return self.imgthresh
+	#def set_thresh(self, val):
+		#"""sets threshold value
+		#"""
+		#self.imgthresh = val
+		#return
+	#def get_iso(self):
+		#"""returns the iso value
+		#"""
+		#return self.iso
 	def set_iso(self, val):
-		'''sets the iso value
-		'''
-		self.iso = val
-		self.camera.iso = self.iso
-		return
+		"""sets the iso value
+		"""
+		if RPI:
+			self.iso = val
+			self.camera.iso = self.iso
+		return self.iso
 	def get_exp(self):
-		'''returns the exposure value
-		'''
-		return self.camera.exposure_speed
+		"""
+		Returns the exposure value appropriate to the hardware.
+
+		:returns: - ret - The exposure value reported by the camera firmware.
+		"""
+		import re
+		if RPI:
+			ret = self.camera.exposure_speed
+		else:
+			ret = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
+				self.clist[12]]).decode()
+			ret = int(re.sub('[^0-9]', '', ret))
+		return ret
+	def set_exp(self, val):
+		"""
+		Sets the exposure of the camera in an appropriate manner for the declared hardware
+
+		:param val: Value which the exposure should be set to.
+		:returns: - ret - Confirmation value.  This should be exactly the same as what you put
+		in.
+		"""
+		if RPI:
+			self.camera.shutter_speed = val
+			ret = self.get_exp()
+		else:
+			self.set_v4l2_cam(12, val)
+			print("set via v4l2")
+			#self.camera.set(self.cv2.CAP_PROP_EXPOSURE, val)
+			#print("set via cv2")
+			ret = self.get_exp()
+			print(ret, "vs.", val)
+		return ret
 	#def converter(self):
-		#'''A simple image converter using PIL.
-		#'''
+		#"""A simple image converter using PIL.
+		#"""
 		#print("centered")
 		#img = self.Image.open(self.stream)
 		#img = img.convert('L')
@@ -809,30 +1053,66 @@ class CameraFunctions():
 		#time.sleep(3)
 		##os.system("killall gpicview")
 		#return
-	def stopvid(self):
-		'''stop video and print time'''
+	def drawtarget(self):
+		"""
+		Experimental function to draw a target reticle on the processed image to indicate the
+		central bright spot of the averaged b/w image.
+		"""
+		from math import isnan
+		self.procimg()
+		if isnan(self.oldx):
+			self.oldx = 0
+		if isnan(self.oldy):
+			self.oldy = 0
+		print(QWID, self.oldy, SWID, self.oldy)
+		print(QWID + self.oldx, QHEI, QWID + self.oldx, SHEI)
+		pygame.draw.line(SCREEN, RED, [QWID, self.oldy], [SWID, self.oldy], 2)
+		pygame.draw.line(SCREEN, RED, [QWID + self.oldx, 0], [QWID + self.oldx, QHEI], 2)
+		return
+	def stopvid(self, arg=False):
+		"""stop video and print time
+		:param arg: - causes camera to be released completely for non-RPI conditions.
+		"""
 		stop = str(time.time())
-		self.camera.stop_recording()
-		with open(self.folder, "a") as fff:
-			fff.write("stoptime: " + stop)
+		if RPI:
+			self.camera.stop_recording()
+		else:
+			if arg:
+				self.camera.release()
+			try:
+				self.vwr.release()
+			except AttributeError:
+				pass
+		with open(self.folder + "/" + str(int(self.start)) + "exposure.txt", "a") as fff:
+			fff.write("stoptime: " + stop + "\n")
+			fff.write("stopframe: " + str(self.framecnt) + "\n")
 		return
 
 
 class ManualAdjust():
-	'''Defines behavior and pygame GUI for the manual control stage
-	'''
+	"""
+	Defines behavior and pygame GUI for the manual control stage
+	"""
+	if RPI:
+		bgj = 1000
+		ltl = 100
+	else:
+		bgj = 100
+		ltl = 10
 	def __init__(self):
-		'''
+		"""
 		:param mrgn: Margin around text to act as padding
 		:param ftsz: Font size in points
-		'''
+		"""
 		self.mrgn = 10
 		self.ftsz = 25
+		self.cenx, self.ceny = QWID/4, QHEI/4
 		return
 	def main_screen(self, lcf):
-		'''Directions to the user
-		'''
-		SCREEN.fill((0, 0, 0))
+		"""
+		Directions to the user
+		"""
+		from math import pi
 		pygame.display.set_caption('Manual control')
 		lctn = self.mrgn + self.ftsz
 		SCREEN.blit(FONT.render('-----------MANUAL  CONTROL-----------', True, RED),\
@@ -861,18 +1141,30 @@ class ManualAdjust():
 		SCREEN.blit(FONT.render('-------------------------------------', True, RED), \
 			(self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
+		if RPI:
+			SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
+		else:
+			SCREEN.blit(FONT.render('ISO: N/A', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('Exp: ' + str(lcf.get_exp()), True, RED), (self.mrgn, lctn))
-		lcf.img_segue()
-		lcf.getimg()
+		pygame.draw.arc(SCREEN, RED, [\
+			QWID + int(self.cenx*0.3), \
+			int(1*QHEI/6), \
+			int(QWID/2), \
+			int(QHEI/1.5)], \
+			0, 2*pi, 1)
 		pygame.display.update()
 		return
 	def update_run(self, lmf, lcf):
-		'''Updates the screen with the mainscreen and handles keypress events
-		'''
+		"""
+		Updates the screen with the mainscreen and handles keypress events
+		"""
 		trigger = True
 		while trigger:
+			SCREEN.fill((0, 0, 0))
+			lcf.img_segue()
+			lcf.getimg()
+			lcf.surfit()
 			start = time.time()
 			self.main_screen(lcf)
 			print("screenrendertime: ", str(time.time()-start))
@@ -883,60 +1175,94 @@ class ManualAdjust():
 				# check if key is pressed
 				# if you use event.key here it will give you error at runtime
 				if event.type == pygame.KEYDOWN:
-					dca = 100
-					dcb = 100
+					lmf.setdc(100, 100)
 					if event.key == pygame.K_LEFT:
-						lmf.pwmb.ChangeDutyCycle(dca)
+						lmf.setduty('B')
 						lmf.motleft()
 					elif event.key == pygame.K_RIGHT:
-						lmf.pwmb.ChangeDutyCycle(dca)
+						lmf.setduty('B')
 						lmf.motright()
 					elif event.key == pygame.K_UP:
-						lmf.pwma.ChangeDutyCycle(dcb)
+						lmf.setduty('A')
 						lmf.motup()
 					elif event.key == pygame.K_DOWN:
-						lmf.pwma.ChangeDutyCycle(dcb)
+						lmf.setduty('A')
 						lmf.motdown()
 					elif event.key == pygame.K_SPACE:
 						print("stop")
 						lmf.motstop("B")
+					elif event.key == pygame.K_q:
+						raise SystemExit("quitting tracker")
 					elif event.key == pygame.K_i:
 						iso = lcf.iso
 						if iso < 800:
 							iso = iso * 2
 						else:
 							iso = 100
-						lcf.camera.iso = iso
-						lcf.iso = iso
+						#lcf.camera.iso = iso
+						#lcf.iso = iso
+						check = lcf.set_iso(iso)
+						if check == iso:
+							raise RuntimeError("failed to properly set ISO")
 						print("iso set to ", iso)
 					elif event.key == pygame.K_g:
 						exp = lcf.get_exp()
-						exp = exp - 1000
-						lcf.camera.shutter_speed = exp
+						exp = exp - self.bgj
+						if exp < 5:
+							exp = 5
+						check = lcf.set_exp(exp)
+						if check != exp:
+							raise RuntimeError("failed to properly set Exposure Time")
 						print("exposure time set to ", exp)
 					elif event.key == pygame.K_b:
 						exp = lcf.get_exp()
-						exp = exp + 1000
-						lcf.camera.shutter_speed = exp
+						exp = exp + self.bgj
+						if RPI:
+							if exp > 33000:
+								exp = 33000
+						else:
+							if exp > 5000:
+								exp = 4999
+						check = lcf.set_exp(exp)
+						if check != exp:
+							raise RuntimeError("failed to properly set Exposure Time")
 						print("exposure time set to ", exp)
 					elif event.key == pygame.K_h:
 						exp = lcf.get_exp()
-						exp = exp - 100
-						lcf.camera.shutter_speed = exp
+						exp = exp - self.ltl
+						if exp < 5:
+							exp = 5
+						check = lcf.set_exp(exp)
+						if check != exp:
+							raise RuntimeError("failed to properly set Exposure Time")
 						print("exposure time set to ", exp)
 					elif event.key == pygame.K_n:
 						exp = lcf.get_exp()
-						exp = exp + 100
-						lcf.camera.shutter_speed = exp
+						exp = exp + self.ltl
+						if RPI:
+							if exp > 33000:
+								exp = 33000
+						else:
+							if exp > 5000:
+								exp = 4999
+						check = lcf.set_exp(exp)
+						if check != exp:
+							raise RuntimeError("failed to properly set Exposure Time")
 						print("exposure time set to ", exp)
 					elif event.key == pygame.K_p:
-						exp = 1000
+						exp = self.bgj
 						iso = 100
-						lcf.camera.iso = iso
-						lcf.camera.shutter_speed = exp
+						check = lcf.set_iso(iso)
+						if check == iso:
+							raise RuntimeError("failed to properly set ISO")
+						check = lcf.set_exp(exp)
+						if check != exp:
+							raise RuntimeError("failed to properly set Exposure Time")
 					elif event.key == pygame.K_v:
 						#_, _, _ = lcf.procimg()
-						lcf.holdsurf()
+						surf = lcf.holdsurf()
+						SCREEN.blit(surf, (QWID, QHEI))
+						pygame.display.update()
 						pygame.time.wait(1500)
 					elif event.key == pygame.K_r:
 						print("run tracker")
@@ -956,29 +1282,33 @@ class ManualAdjust():
 
 
 class TrackingMode():
-	'''Defines behavior and pygame GUI for the moon tracking stage
-	'''
+	"""
+	Defines behavior and pygame GUI for the moon tracking stage
+	"""
 	ticker = 0
-	def __init__(self):
-		'''
+	def __init__(self, lcf):
+		"""
 		Clear the screen on the first pass
 		:param lostcount: the number of seconds the moon has been lost, default 0
 		:param mrgn: Margin around text to act as padding
 		:param ftsz: Font size in points
-		'''
+		"""
 		SCREEN.fill((0, 0, 0))
 		pygame.display.update()
 		self.mrgn = 10
 		self.ftsz = 25
 		self.lostcount = 0
 		self.check = 1
-		self.vtstart = 0.085 * QHEI   #image offset for verticle movement
-		self.htstart = 0.175 * QWID     #image offset for horizontal movement
+		self.vtstart = 0.075 * QHEI   #image offset for verticle movement
+		self.htstart = 0.075 * QWID     #image offset for horizontal movement
 		self.temptime = time.time()
+		self.bwimg = None
+		mp.Process(target=lcf.startrecord()).start()
 		return
 	def main_screen(self, lcf):
-		'''Directions to the user
-		'''
+		"""
+		Directions to the user
+		"""
 		SCREEN.fill((0, 0, 0))
 		pygame.display.set_caption('Tracking Moon')
 		lctn = self.mrgn + self.ftsz
@@ -990,29 +1320,40 @@ class TrackingMode():
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('  [q] - quit', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		SCREEN.blit(FONT.render('(Or just close this window to to quit)', True, RED), (self.mrgn, lctn))
+		SCREEN.blit(FONT.render('(Or just close this window to to quit)', True, RED), \
+			(self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('(it might take a few seconds)', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('  [i] - Cycle camera ISO mode', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		SCREEN.blit(FONT.render('  [z] - Decrease thresholding Value', True, RED), (self.mrgn, lctn))
+		SCREEN.blit(FONT.render('  [z] - Decrease thresholding Value', True, RED), \
+			(self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		SCREEN.blit(FONT.render('  [x] - Increase thresholding Value', True, RED), (self.mrgn, lctn))
+		SCREEN.blit(FONT.render('  [x] - Increase thresholding Value', True, RED), \
+			(self.mrgn, lctn))
+		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('-------------------------------------', True, RED), \
 			(self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
+		if RPI:
+			SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
+		else:
+			SCREEN.blit(FONT.render('ISO: N/A', True, RED), (self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('Thresh: ' + str(lcf.imgthresh), True, RED), (self.mrgn, lctn))
+		if self.ticker < 10 and self.bwimg:
+			SCREEN.blit(self.bwimg, (QWID, QHEI))
 		if not BLIND:
 			lcf.img_segue()
-			lcf.getimg()
+			lcf.getimg(rec=True)
+			lcf.surfit()
 		pygame.display.update()
+		#lcf.clear_mem()
 	def update_run(self, lmf, lcf):
-		'''Updates the screen with the mainscreen and handles keypress events
-		'''
-		lcf.startrecord()
+		"""
+		Updates the screen with the mainscreen and handles keypress events
+		"""
 		trigger = True
 		lmf.setdc(25, 25)
 		while trigger:
@@ -1038,35 +1379,40 @@ class TrackingMode():
 							iso = iso * 2
 						else:
 							iso = 100
-						lcf.camera.iso = iso
-						lcf.iso = iso
+						#lcf.camera.iso = iso
+						#lcf.iso = iso
+						check = lcf.set_iso(iso)
+						if check == iso:
+							raise RuntimeError("failed to properly set ISO")
 						print("iso set to ", iso)
 				if event.type == pygame.QUIT:
 					trigger = False
 			#check the time to restart camera every hour or so
 			timecount = time.time() - lcf.start
-			if timecount > 40*60:
+			if timecount > 15*60:
 				print("restart video")
 				lcf.stopvid()
 				lcf.startrecord()
 			if self.ticker > 20:
 				if not BLIND:
 					lcf.getimg()
+					lcf.surfit()
 					diffx, diffy, ratio = lcf.procimg()
 				else:
 					lcf.getimg()
 					diffx, diffy, ratio = lcf.procimg()
 				print("timejump: ", time.time()-self.temptime)
 				self.temptime = time.time()
+				#TODO move vtstart/htstart to motor or image class.
 				if (abs(diffy) > self.vtstart or abs(diffx) > self.htstart or self.check == 0):
 					self.check = lmf.check_move(diffx, diffy, ratio)
 				if self.check == 1:     #Moon successfully centered
-					lcf.holdsurf()
+					self.bwimg = lcf.holdsurf()
 					print("centered")
-					pygame.time.wait(1500)
+					#pygame.time.wait(1500)
 					self.ticker = 0
 				if self.check == 0:       #centering in progress
-					pygame.time.wait(20)  #sleep for 20ms, observed time for cycle closer to 0.5s
+					pygame.time.wait(lmf.wait_timer())  #sleep for 20ms, observed time for cycle closer to 0.5s
 				if self.check == 2 or ratio < lmf.lostratio:        #moon lost, theshold too low
 					self.lostcount += 1
 					print("moon lost")
@@ -1080,19 +1426,12 @@ class TrackingMode():
 
 
 def main():
-	'''
+	"""
 	main
-	'''
-	while True:
-		ltl = TimeLoop()
-		timeval = ltl.firstcheck()
-		while not timeval:
-			pass
-		if type(timeval) == tuple:
-			_linux_setdate(timeval)
-			pygame.time.wait(500)
-		else:
-			break
+	"""
+	ltl = TimeLoop()
+	while ltl.timeloop_running():
+		pass
 	SCREEN.fill((0, 0, 0))
 	pygame.display.update()
 	lcf = CameraFunctions()
@@ -1101,26 +1440,22 @@ def main():
 	try:
 		lma = ManualAdjust()
 		lma.update_run(lmf, lcf)
-		ltm = TrackingMode()
+		ltm = TrackingMode(lcf)
+		lmf.demo_on()
 		print("Screen width: ", SWID, " Quad width: ", QWID)
 		print("Screen height: ", SHEI, " Quad height: ", QHEI)
 		print("Horz Start: ", ltm.htstart, " Horz Stop: ", lmf.htstop)
 		print("Vert Start: ", ltm.vtstart, "Vert Stop: ", lmf.vtstop)
-		ltm.update_run(lmf, lcf)
+		callcores = mp.Process(target=ltm.update_run(lmf, lcf))
+		callcores.start()
 	except:
 		print("Unexpected error:", sys.exc_info()[0])
 		raise
 	finally:
+		lmf.demo_off()
+		lcf.stopvid(True)
 		lmf.motstop("B")
 		pygame.time.wait(1000)
-		lcf.stopvid()
-		with open("/home/pi/Documents/LunAero_endlog.log", 'a') as file:
-			file.write(str(time.time()) + " , " + str(time.strftime('%Y-%m-%d %H:%M:%S',\
-				time.localtime())) + '\n')
-			file.write('\n')
-			file.write(str(os.popen('journalctl -n 10 | cat').read()))
-			file.write('\n')
-		#os.system("killall gpicview")
 		pygame.quit()
 		lmf.cleanup()
 
