@@ -51,7 +51,7 @@ BLIND = False
 # Linux Computer with USB Camera: 1
 # WiringPi Compatible Computer (Odroid N2) with USB Camera: 2
 # TODO detect hardware
-DEV = 1
+DEV = 2
 
 
 class TextInput:
@@ -440,7 +440,7 @@ class MotorFunctions():
 		from Moontracker_Classes import rpt_control
 		rpt = rpt_control.RPTControl()
 	elif DEV == 2:
-		#TODO
+		import wiringpi as wpi
 		pass
 	else:
 		raise IOError("Invalid Hardware Selected")
@@ -471,15 +471,28 @@ class MotorFunctions():
 		elif DEV == 1:
 			self.rpt.set_pwm_freq_precisely(70)
 			self.rpt.set_pwm_freq(4000)
-			self.apinp = 0  #Pulse width pin for motor A (up and down)
-			self.apin1 = 1  #Motor control - high for up
-			self.apin2 = 2  #Motor control - high for down
-			self.bpin1 = 3  #Motor control - high for left
+			self.apinp = 0   #Pulse width pin for motor A (up and down)
+			self.apin1 = 1   #Motor control - high for up
+			self.apin2 = 2   #Motor control - high for down
+			self.bpin1 = 3   #Motor control - high for left
 			self.bpin2 = 4   #Motor control - high for right
-			self.bpinp = 5  #Pulse width pin for motor B (right and left)
+			self.bpinp = 5   #Pulse width pin for motor B (right and left)
 		elif DEV == 2:
-			#TODO
-			pass
+			self.wpi.wiringPiSetup()
+			self.apinp = 0   #Pulse width pin for motor A (up and down)
+			self.apin1 = 2   #Motor control - high for up
+			self.apin2 = 3   #Motor control - high for down
+			self.bpin1 = 12  #Motor control - high for left
+			self.bpin2 = 13  #Motor control - high for right
+			self.bpinp = 14  #Pulse width pin for motor B (right and left)
+			# Setup GPIO and start them with 'off' values
+			pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
+			for i in pins:
+				self.wpi.pinMode(i, 1)
+				if i != self.apinp or self.bpinp:
+					self.wpi.digitalWrite(i, 0)
+				else:
+					self.wpi.softPwmCreate(i, 0, 100)
 		else:
 			raise IOError("Invalid Hardware Selected")
 		freq = 10000
@@ -490,6 +503,9 @@ class MotorFunctions():
 			self.pwmb = self.pwm(self.bpinp, freq)
 			self.pwma.start(self.dca)                # Start pulse width at 0 (pin held low)
 			self.pwmb.start(self.dcb)                # Start pulse width at 0 (pin held low)
+		elif DEV== 2:
+			self.wpi.softPwmWrite(self.apinp, self.dca)
+			self.wpi.softPwmWrite(self.bpinp, self.dcb)
 		self.acount = 0
 		self.bcount = 0
 		self.olddir = 0                          # Stores old movement direction; 1 left, 2 right
@@ -510,8 +526,7 @@ class MotorFunctions():
 		elif DEV == 1:
 			self.rpt.set_pwm(channel, 4096, 0)
 		elif DEV == 2:
-			#TODO
-			pass
+			self.wpi.digitalWrite(channel, 1)
 		else:
 			raise IOError("Invalid Hardware Selected")
 		return
@@ -526,8 +541,7 @@ class MotorFunctions():
 		elif DEV == 1:
 			self.rpt.set_pwm(channel, 0, 4096)
 		elif DEV == 2:
-			#TODO
-			pass
+			self.wpi.digitalWrite(channel, 0)
 		else:
 			raise IOError("Invalid Hardware Selected")
 		return
@@ -553,8 +567,12 @@ class MotorFunctions():
 			else:
 				raise RuntimeError("asked to set duty cycle for non-existant motor")
 		elif DEV == 2:
-			#TODO
-			pass
+			if motor == 'A':
+				self.wpi.softPwmWrite(self.apinp, self.dca)
+			elif motor == 'B':
+				self.wpi.softPwmWrite(self.bpinp, self.dcb)
+			else:
+				raise RuntimeError("asked to set duty cycle for non-existant motor")
 		else:
 			raise IOError("Invalid Hardware Selected")
 	def loose_wheel(self):
@@ -742,8 +760,10 @@ class MotorFunctions():
 		elif DEV == 1:
 			self.rpt.pwm.set_all_pwm(4096, 0)
 		elif DEV == 2:
-			#TODO
-			pass
+			self.wpi.softPwmWrite(self.apinp, 0)
+			self.wpi.softPwmWrite(self.bpinp, 0)
+			for i in (self.apin1, self.apin2, self.bpin1, self.bpin2):
+				self.pinlow(i)
 		else:
 			raise IOError("Invalid Hardware Selected")
 		return
@@ -823,8 +843,7 @@ class CameraFunctions():
 		elif DEV == 1:
 			self.folder = "/scratch/whoneyc/" + str(int(self.start))
 		elif DEV == 2:
-			#TODO
-			pass
+			self.folder = "~/Documents/Vids_LunAero/" + str(int(self.start))
 		else:
 			raise IOError("Invalid Hardware Selected")
 		os.makedirs(self.folder)
