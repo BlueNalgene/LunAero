@@ -28,7 +28,7 @@ class RingBufferClass():
 	# This is a local framecounter.
 	pfs = 0
 
-	def __init__(self, procpath, radr=10, rada=0.0, sper=2, spea=2e-5, angr=2e-2, anga=2e-5, \
+	def __init__(self, procpath, radr=10, rada=0.0, sper=2, spea=2e-5, angr=7e-2, anga=2e-5, \
 		fill=(255, 0, 63), width=1, last=5):
 		"""
 		Initialize the class with the following commands.  It may be called with
@@ -377,8 +377,10 @@ class RingBufferClass():
 		"""
 		if np.size(inout, 0) == 0:
 			return inout
-		inout = np.column_stack((inout, np.arctan2(np.subtract(inout[:, 2], inout[:, 6]), \
-			np.subtract(inout[:, 1], inout[:, 5]))*(180/np.pi)))
+		inout = np.column_stack((inout, np.arctan(np.divide(np.subtract(inout[:, 2], inout[:, 6]),\
+			np.subtract(inout[:, 1], inout[:, 5])))*(180/np.pi)))
+		#inout = np.column_stack((inout, np.arctan2(np.subtract(inout[:, 2], inout[:, 6]), \
+			#np.subtract(inout[:, 1], inout[:, 5]))*(180/np.pi)))
 		return inout
 
 	def combineperms(self, in1, in2):
