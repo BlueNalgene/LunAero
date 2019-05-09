@@ -489,12 +489,9 @@ class MotorFunctions():
 			pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
 			for i in pins:
 				self.wpi.pinMode(i, 1)
-				print("setting wpi pin", i, "as output")
-				if i != self.apinp or self.bpinp:
-					print("setting wpi pin", i, "low")
+				if i not in (self.apinp, self.bpinp):
 					self.wpi.digitalWrite(i, 0)
 				else:
-					print("setting wpi pin", i, "to be a soft pwm")
 					self.wpi.softPwmCreate(i, 0, 100)
 		else:
 			raise IOError("Invalid Hardware Selected")
