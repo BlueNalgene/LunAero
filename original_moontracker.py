@@ -46,9 +46,12 @@ SCREEN = pygame.display.set_mode((SWID, SHEI))
 # False = display visuals (default)
 BLIND = False
 
-# Toggle switch for RPi tells the program whether to use the packages unique to a raspberry pi
-# or to go with the USB computer mode.
-RPI = False
+# Select the device you are using.
+# Raspberry Pi with Raspberry Pi Camera: 0
+# Linux Computer with USB Camera: 1
+# WiringPi Compatible Computer (Odroid N2) with USB Camera: 2
+# TODO detect hardware
+DEV = 1
 
 
 class TextInput:
@@ -428,14 +431,19 @@ class MotorFunctions():
 	"""
 	Functions which are unique to the motor control system used in LunAero
 	"""
-	if RPI:
+	if DEV == 0:
 		import RPi.GPIO as GPIO
-	else:
+	elif DEV == 1:
 		import Adafruit_GPIO as GPIO
 		import Adafruit_GPIO.FT232H as FT232H
 		# Local Imports
 		from Moontracker_Classes import rpt_control
 		rpt = rpt_control.RPTControl()
+	elif DEV == 2:
+		#TODO
+		pass
+	else:
+		raise IOError("Invalid Hardware Selected")
 	def __init__(self):
 		"""Initialize the GPIO pins by associating the values of the pins we are using to variable.
 		Initalize two pins with software controlled PWM with requisite duty cycles and freq.
@@ -444,7 +452,7 @@ class MotorFunctions():
 '		"""
 		# Defines the pins being used for the GPIO pins.
 		print("Defining GPIO pins")
-		if RPI:
+		if DEV == 0:
 			self.GPIO.setmode(self.GPIO.BCM)
 			self.apinp = 17  #Pulse width pin for motor A (up and down)
 			self.apin1 = 27  #Motor control - high for up
@@ -460,7 +468,7 @@ class MotorFunctions():
 					self.GPIO.output(i, self.GPIO.LOW)
 				else:
 					self.GPIO.output(i, self.GPIO.HIGH)
-		else:
+		elif DEV == 1:
 			self.rpt.set_pwm_freq_precisely(70)
 			self.rpt.set_pwm_freq(4000)
 			self.apinp = 0  #Pulse width pin for motor A (up and down)
@@ -469,10 +477,15 @@ class MotorFunctions():
 			self.bpin1 = 3  #Motor control - high for left
 			self.bpin2 = 4   #Motor control - high for right
 			self.bpinp = 5  #Pulse width pin for motor B (right and left)
+		elif DEV == 2:
+			#TODO
+			pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 		freq = 10000
 		self.dca = 0                             # Set duty cycle variable to zero at first
 		self.dcb = 0
-		if RPI:
+		if DEV == 0:
 			self.pwma = self.pwm(self.apinp, freq)   # Initialize PWM on pwmPins
 			self.pwmb = self.pwm(self.bpinp, freq)
 			self.pwma.start(self.dca)                # Start pulse width at 0 (pin held low)
@@ -492,10 +505,15 @@ class MotorFunctions():
 
 		:param channel: - Channel/pin to set high.
 		"""
-		if RPI:
+		if DEV == 0:
 			self.GPIO.output(channel, self.GPIO.HIGH)
-		else:
+		elif DEV == 1:
 			self.rpt.set_pwm(channel, 4096, 0)
+		elif DEV == 2:
+			#TODO
+			pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 		return
 	def pinlow(self, channel):
 		"""
@@ -503,10 +521,15 @@ class MotorFunctions():
 
 		:param channel: - Channel/pin to set low.
 		"""
-		if RPI:
+		if DEV == 0:
 			self.GPIO.output(channel, self.GPIO.LOW)
-		else:
+		elif DEV == 1:
 			self.rpt.set_pwm(channel, 0, 4096)
+		elif DEV == 2:
+			#TODO
+			pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 		return
 	def setduty(self, motor):
 		"""
@@ -515,20 +538,25 @@ class MotorFunctions():
 		:param motor: - byte letter (python format string) used to denote which motor we want
 		to control.  Either 'A' or 'B'.
 		"""
-		if RPI:
+		if DEV == 0:
 			if motor == 'A':
 				self.pwma.ChangeDutyCycle(self.dca)
 			elif motor == 'B':
 				self.pwmb.ChangeDutyCycle(self.dcb)
 			else:
 				raise RuntimeError("asked to set duty cycle for non-existant motor")
-		else:
+		elif DEV == 1:
 			if motor == 'A':
 				self.rpt.set_pwm(self.apinp, 1, self.rpt.perc_to_pulse(self.dca))
 			elif motor == 'B':
 				self.rpt.set_pwm(self.bpinp, 1, self.rpt.perc_to_pulse(self.dcb))
 			else:
 				raise RuntimeError("asked to set duty cycle for non-existant motor")
+		elif DEV == 2:
+			#TODO
+			pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 	def loose_wheel(self):
 		"""
 		Gives some extra umph when changing direction for the looser horizontal gear
@@ -709,10 +737,15 @@ class MotorFunctions():
 	def cleanup(self):
 		""" Required to be called at end of program
 		"""
-		if RPI:
+		if DEV == 0:
 			self.GPIO.cleanup()
-		else:
+		elif DEV == 1:
 			self.rpt.pwm.set_all_pwm(4096, 0)
+		elif DEV == 2:
+			#TODO
+			pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 		return
 	def demo_on(self):
 		self.pinhigh(13)
@@ -739,11 +772,13 @@ class CameraFunctions():
 	Requires PILLOW and the default picamera package.
 	"""
 	import glob
-	if RPI:
+	if DEV == 0:
 		import picamera
-	else:
+	elif DEV in (1, 2):
 		import subprocess
 		import cv2
+	else:
+		raise IOError("Invalid Hardware Selected")
 	from PIL import Image
 	clist = [ \
 		"brightness", \
@@ -783,20 +818,25 @@ class CameraFunctions():
 		#self.imgthresh = 125
 		self.lostcount = 0 #Always initialize at 0
 		# Camera information
-		if RPI:
+		if DEV == 0:
 			self.folder = "/media/pi/MOON1/" + str(int(self.start))
-		else:
+		elif DEV == 1:
 			self.folder = "/scratch/whoneyc/" + str(int(self.start))
+		elif DEV == 2:
+			#TODO
+			pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 		os.makedirs(self.folder)
 		print(self.start)
 		print("Preparing outfile")
-		if RPI:
+		if DEV == 0:
 			self.camera = self.picamera.PiCamera()
 			self.camera.led = False
 			self.camera.video_stabilization = True
 			self.camera.resolution = (1920, 1080)
 			self.camera.color_effects = (128, 128) # turn camera to black and white
-		else:
+		elif DEV in (1, 2):
 			list_of_cameras = self.glob.glob("/dev/video*")
 			for i in list_of_cameras:
 				ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
@@ -813,6 +853,8 @@ class CameraFunctions():
 			self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 768)
 			self.camera.set(self.cv2.CAP_PROP_FPS, 30)
 			self.camera.set(self.cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+		else:
+			raise IOError("Invalid Hardware Selected")
 		#self.iso = 200
 		# Image surface holder for pygame
 		self.cenx, self.ceny = QWID/4, QHEI/4   #center of image
@@ -852,12 +894,12 @@ class CameraFunctions():
 		"""
 		self.start = time.time()
 		self.get_exposure_folder()
-		if RPI:
+		if DEV == 0:
 			outfile = str(int(self.start)) + 'outA.h264'
 			outfile = os.path.join(self.folder, outfile)
 			print(str(outfile))
 			self.camera.start_recording(outfile)
-		else:
+		elif DEV in (1, 2):
 			outfile = str(int(self.start)) + 'outA.avi'
 			outfile = os.path.join(self.folder, outfile)
 			print(str(outfile))
@@ -871,19 +913,21 @@ class CameraFunctions():
 		Capture an image and see how close it is to center
 		"""
 		start = time.time()
-		if RPI:
+		if DEV == 0:
 			self.stream = io.BytesIO()
 			self.camera.capture(self.stream, use_video_port=True, resize=(800, 600),\
 				format='rgba')
 			self.stream.seek(0)
 			self.stream.readinto(self.rgb)
 			self.stream.close()
-		else:
+		elif DEV in (1, 2):
 			if self.camera.isOpened(): # try to get the first frame
 				_, self.frame = self.camera.read()
 				if rec:
 					self.vwr.write(self.frame)
 			self.cv2.waitKey(1)
+		else:
+			raise IOError("Invalid Hardware Selected")
 		self.framecnt += 1
 		print("getimgtime: ", str(time.time()-start))
 		return
@@ -893,15 +937,17 @@ class CameraFunctions():
 		screen.  Different methods are required for different input mechanisms.  No params, no
 		returns.
 		"""
-		if RPI:
+		if DEV == 0:
 			self.surf = pygame.image.frombuffer(self.rgb[0:self.rln], (800, 600), 'RGBA')
 			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
-		else:
+		elif DEV in (1, 2):
 			self.surf = self.cv2.resize(self.frame, (800, 600))
 			#self.surf = self.surf.torstring()
 			self.surf = self.cv2.cvtColor(self.surf, self.cv2.COLOR_BGR2RGB)
 			self.surf = pygame.image.frombuffer(self.surf, (800, 600), 'RGB')
 			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
+		else:
+			raise IOError("Invalid Hardware Selected")
 		return
 	def procimg(self):
 		"""
@@ -963,22 +1009,26 @@ class CameraFunctions():
 		fps of the video captured
 		"""
 		import uuid
-		if RPI:
+		if DEV == 0:
 			value = str(self.camera.exposure_speed) + "\n"
-		else:
+		elif DEV in (1, 2):
 			value = str(self.get_v4l2_cam(12), 'UTF-8') + "\n"
+		else:
+			raise IOError("Invalid Hardware Selected")
 		folder = self.folder + "/" + str(int(self.start)) + "exposure.txt"
 		with open(folder, "w") as fff:
 			fff.write(value + "\n")
 			fff.write("starttime: " + str(int(self.start)) + "\n")
 			fff.write("startframe: " + str(self.framecnt) + "\n")
 			fff.write("UUID: " + str(uuid.getnode()) + "\n")
-			if not RPI:
+			if DEV in (1, 2):
 				fff.write("Camera Control Values:")
 				for i in self.clist:
 					ppp = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
 						i]).decode('utf-8')
 					fff.write("    " + str(ppp))
+			else:
+				raise IOError("Invalid Hardware Selected")
 		return
 	def clear_mem(self):
 		"""
@@ -1004,7 +1054,7 @@ class CameraFunctions():
 	def set_iso(self, val):
 		"""sets the iso value
 		"""
-		if RPI:
+		if DEV == 0:
 			self.iso = val
 			self.camera.iso = self.iso
 		return self.iso
@@ -1015,9 +1065,9 @@ class CameraFunctions():
 		:returns: - ret - The exposure value reported by the camera firmware.
 		"""
 		import re
-		if RPI:
+		if DEV == 0:
 			ret = self.camera.exposure_speed
-		else:
+		elif DEV in (1, 2):
 			ret = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
 				self.clist[12]]).decode()
 			ret = int(re.sub('[^0-9]', '', ret))
@@ -1030,16 +1080,18 @@ class CameraFunctions():
 		:returns: - ret - Confirmation value.  This should be exactly the same as what you put
 		in.
 		"""
-		if RPI:
+		if DEV == 0:
 			self.camera.shutter_speed = val
 			ret = self.get_exp()
-		else:
+		elif DEV in (1, 2):
 			self.set_v4l2_cam(12, val)
 			print("set via v4l2")
 			#self.camera.set(self.cv2.CAP_PROP_EXPOSURE, val)
 			#print("set via cv2")
 			ret = self.get_exp()
 			print(ret, "vs.", val)
+		else:
+			raise IOError("Invalid Hardware Selected")
 		return ret
 	#def converter(self):
 		#"""A simple image converter using PIL.
@@ -1071,18 +1123,20 @@ class CameraFunctions():
 		return
 	def stopvid(self, arg=False):
 		"""stop video and print time
-		:param arg: - causes camera to be released completely for non-RPI conditions.
+		:param arg: - causes camera to be released completely for USB conditions.
 		"""
 		stop = str(time.time())
-		if RPI:
+		if DEV == 0:
 			self.camera.stop_recording()
-		else:
+		elif DEV in (1, 2):
 			if arg:
 				self.camera.release()
 			try:
 				self.vwr.release()
 			except AttributeError:
 				pass
+		else:
+			raise IOError("Invalid Hardware Selected")
 		with open(self.folder + "/" + str(int(self.start)) + "exposure.txt", "a") as fff:
 			fff.write("stoptime: " + stop + "\n")
 			fff.write("stopframe: " + str(self.framecnt) + "\n")
@@ -1093,12 +1147,14 @@ class ManualAdjust():
 	"""
 	Defines behavior and pygame GUI for the manual control stage
 	"""
-	if RPI:
+	if DEV == 0:
 		bgj = 1000
 		ltl = 100
-	else:
+	elif DEV in (1, 2):
 		bgj = 100
 		ltl = 10
+	else:
+		raise IOError("Invalid Hardware Selected")
 	def __init__(self):
 		"""
 		:param mrgn: Margin around text to act as padding
@@ -1141,10 +1197,12 @@ class ManualAdjust():
 		SCREEN.blit(FONT.render('-------------------------------------', True, RED), \
 			(self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		if RPI:
+		if DEV == 0:
 			SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
-		else:
+		elif DEV in (1, 2):
 			SCREEN.blit(FONT.render('ISO: N/A', True, RED), (self.mrgn, lctn))
+		else:
+			raise IOError("Invalid Hardware Selected")
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('Exp: ' + str(lcf.get_exp()), True, RED), (self.mrgn, lctn))
 		pygame.draw.arc(SCREEN, RED, [\
@@ -1217,12 +1275,14 @@ class ManualAdjust():
 					elif event.key == pygame.K_b:
 						exp = lcf.get_exp()
 						exp = exp + self.bgj
-						if RPI:
+						if DEV == 0:
 							if exp > 33000:
 								exp = 33000
-						else:
+						elif DEV in (1, 2):
 							if exp > 5000:
 								exp = 4999
+						else:
+							raise IOError("Invalid Hardware Selected")
 						check = lcf.set_exp(exp)
 						if check != exp:
 							raise RuntimeError("failed to properly set Exposure Time")
@@ -1239,12 +1299,14 @@ class ManualAdjust():
 					elif event.key == pygame.K_n:
 						exp = lcf.get_exp()
 						exp = exp + self.ltl
-						if RPI:
+						if DEV == 0:
 							if exp > 33000:
 								exp = 33000
-						else:
+						elif DEV in (1, 2):
 							if exp > 5000:
 								exp = 4999
+						else:
+							raise IOError("Invalid Hardware Selected")
 						check = lcf.set_exp(exp)
 						if check != exp:
 							raise RuntimeError("failed to properly set Exposure Time")
@@ -1336,10 +1398,12 @@ class TrackingMode():
 		SCREEN.blit(FONT.render('-------------------------------------', True, RED), \
 			(self.mrgn, lctn))
 		lctn = lctn + self.ftsz + self.mrgn
-		if RPI:
+		if DEV == 0:
 			SCREEN.blit(FONT.render('ISO: ' + str(lcf.iso), True, RED), (self.mrgn, lctn))
-		else:
+		elif DEV in (1, 2):
 			SCREEN.blit(FONT.render('ISO: N/A', True, RED), (self.mrgn, lctn))
+		else:
+			raise IOError("Invalid Hardware Selected")
 		lctn = lctn + self.ftsz + self.mrgn
 		SCREEN.blit(FONT.render('Thresh: ' + str(lcf.imgthresh), True, RED), (self.mrgn, lctn))
 		if self.ticker < 10 and self.bwimg:
