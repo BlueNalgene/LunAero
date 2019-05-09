@@ -859,7 +859,7 @@ class CameraFunctions():
 			list_of_cameras = self.glob.glob("/dev/video*")
 			for i in list_of_cameras:
 				ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
-				if "USB 2.0 Camera: HD USB Camera" in ppp:
+				if "USB 2.0 Camera" in ppp:
 					self.camstring = i
 			if self.camstring == '':
 				raise RuntimeError("No USB camera matching description found")
