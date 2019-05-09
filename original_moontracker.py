@@ -489,9 +489,12 @@ class MotorFunctions():
 			pins = (self.apin1, self.apin2, self.apinp, self.bpin1, self.bpin2, self.bpinp)
 			for i in pins:
 				self.wpi.pinMode(i, 1)
+				print("setting wpi pin", i, "as output")
 				if i != self.apinp or self.bpinp:
+					print("setting wpi pin", i, "low")
 					self.wpi.digitalWrite(i, 0)
 				else:
+					print("setting wpi pin", i, "to be a soft pwm")
 					self.wpi.softPwmCreate(i, 0, 100)
 		else:
 			raise IOError("Invalid Hardware Selected")
@@ -843,7 +846,7 @@ class CameraFunctions():
 		elif DEV == 1:
 			self.folder = "/scratch/whoneyc/" + str(int(self.start))
 		elif DEV == 2:
-			self.folder = "~/Documents/Vids_LunAero/" + str(int(self.start))
+			self.folder = "/home/odroid/Documents/Vids_LunAero/" + str(int(self.start))
 		else:
 			raise IOError("Invalid Hardware Selected")
 		os.makedirs(self.folder)
@@ -1524,7 +1527,7 @@ def main():
 		lma = ManualAdjust()
 		lma.update_run(lmf, lcf)
 		ltm = TrackingMode(lcf)
-		lmf.demo_on()
+		#lmf.demo_on()
 		print("Screen width: ", SWID, " Quad width: ", QWID)
 		print("Screen height: ", SHEI, " Quad height: ", QHEI)
 		print("Horz Start: ", ltm.htstart, " Horz Stop: ", lmf.htstop)
@@ -1535,7 +1538,7 @@ def main():
 		print("Unexpected error:", sys.exc_info()[0])
 		raise
 	finally:
-		lmf.demo_off()
+		#lmf.demo_off()
 		lcf.stopvid(True)
 		lmf.motstop("B")
 		pygame.time.wait(1000)
