@@ -1047,9 +1047,12 @@ class CameraFunctions():
 			if DEV in (1, 2):
 				fff.write("Camera Control Values:")
 				for i in self.clist:
-					ppp = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
-						i]).decode('utf-8')
-					fff.write("    " + str(ppp))
+					try:
+						ppp = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, \
+							"-C", i]).decode('utf-8')
+						fff.write("    " + str(ppp))
+					except self.subprocess.CalledProcessError:
+						fff.write("    " + "clist entry not valid for this camera")
 			else:
 				raise IOError("Invalid Hardware Selected")
 		return
