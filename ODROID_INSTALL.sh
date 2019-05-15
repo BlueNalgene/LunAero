@@ -23,9 +23,9 @@ sudo curl https://gist.githubusercontent.com/BlueNalgene/f2324cbb7bd9b3060b46ebc
 cd /home/odroid/Documents
 git clone --recursive https://github.com/hardkernel/WiringPi2-Python
 cd WiringPi2-Python
-sudo python3 setup.py
+sudo python3 setup.py install
 cd ../
 sudo rm -r /home/odroid/Documents/libftdi1-1.3
 sudo rm -r /home/odroid/Documents/pygame
-sudo rm -r /home/odroid/Documnets/WiringPi2-Python
+sudo rm -r /home/odroid/Documents/WiringPi2-Python
 rm /home/odroid/Documents/libftdi1-1.3.tar.bz2
