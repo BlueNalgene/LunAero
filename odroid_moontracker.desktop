@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=LunAero Moontracker
+Comment=Launcher for the LunAero moontracking program
+Icon=/usr/share/pixmaps/python3.xpm
+Exec=sudo python3 /home/odroid/Documents/LunAero/original_moontracker.py 2>&1 | tee /home/odroid/log_lunaero.log
+Type=Application
+Encoding=UTF-8
+Terminal=true
