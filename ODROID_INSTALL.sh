@@ -29,5 +29,3 @@ sudo rm -r /home/$USER/Documents/libftdi1-1.3
 sudo rm -r /home/$USER/Documents/pygame
 sudo rm -r /home/$USER/Documnets/WiringPi2-Python
 rm /home/$USER/Documents/libftdi1-1.3.tar.bz2
-sudo chown odroid /dev/gpiomem
-sudo chmod g+rw /dev/gpiomem
