@@ -51,7 +51,7 @@ BLIND = False
 # Linux Computer with USB Camera: 1
 # WiringPi Compatible Computer (Odroid N2) with USB Camera: 2
 # TODO detect hardware
-DEV = 2
+DEV = 1
 
 
 class TextInput:
@@ -472,8 +472,8 @@ class MotorFunctions():
 			self.rpt.set_pwm_freq_precisely(70)
 			self.rpt.set_pwm_freq(4000)
 			self.apinp = 0   #Pulse width pin for motor A (up and down)
-			self.apin1 = 1   #Motor control - high for up
-			self.apin2 = 2   #Motor control - high for down
+			self.apin1 = 2   #Motor control - high for up
+			self.apin2 = 1   #Motor control - high for down
 			self.bpin1 = 3   #Motor control - high for left
 			self.bpin2 = 4   #Motor control - high for right
 			self.bpinp = 5   #Pulse width pin for motor B (right and left)
@@ -859,12 +859,20 @@ class CameraFunctions():
 			list_of_cameras = self.glob.glob("/dev/video*")
 			for i in list_of_cameras:
 				ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
-				if "3.0 USB Camera" in ppp:
+				if "USB Camera" in ppp:
 					self.camstring = i
+					if "2.0" in ppp:
+						self.camtoggle = 2
+					elif "3.0" in ppp:
+						self.camtoggle = 3
 			if self.camstring == '':
 				raise RuntimeError("No USB camera matching description found")
-			self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
-				"width=1920,height=1080,pixelformat=MJPG -p 60"])
+			if self.camtoggle == 2:
+				self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
+					"width=1024,height=768,pixelformat=MJPG -p 30"])
+			elif self.camtoggle == 3:
+				self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
+					"width=1920,height=1080,pixelformat=MJPG -p 60"])
 			# Set powerline to 60Hz
 			self.set_v4l2_cam(7, 2)
 			# Set manual exposure mode
@@ -872,8 +880,12 @@ class CameraFunctions():
 			print(self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-V"]))
 			self.camera = self.cv2.VideoCapture(int(self.camstring.strip("/dev/video")))
 			self.camera.set(self.cv2.CAP_PROP_FOURCC, self.cv2.VideoWriter_fourcc(*'MJPG'))
-			self.camera.set(self.cv2.CAP_PROP_FRAME_WIDTH, 1920)
-			self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+			if self.camtoggle == 3:
+				self.camera.set(self.cv2.CAP_PROP_FRAME_WIDTH, 1920)
+				self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+			elif self.camtoggle == 2:
+				self.camera.set(self.cv2.CAP_PROP_FRAME_WIDTH, 1024)
+				self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 768)
 			self.camera.set(self.cv2.CAP_PROP_FPS, 30)
 			self.camera.set(self.cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 		else:
@@ -927,7 +939,10 @@ class CameraFunctions():
 			outfile = os.path.join(self.folder, outfile)
 			print(str(outfile))
 			fourcc = self.cv2.VideoWriter_fourcc(*'MJPG')
-			self.vwr = self.cv2.VideoWriter(outfile, fourcc, 25, (1920, 1080))
+			if self.camtoggle == 2:
+				self.vwr = self.cv2.VideoWriter(outfile, fourcc, 25, (1024, 768))
+			elif self.camtoggle == 3:
+				self.vwr = self.cv2.VideoWriter(outfile, fourcc, 25, (1920, 1080))
 			#self.vwr = self.cv2.VideoWriter(outfile, 0x21, 30, (1024, 768))
 		time.sleep(1)
 		return
