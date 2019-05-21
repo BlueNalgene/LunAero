@@ -19,7 +19,7 @@ sudo -H pip3 install Adafruit-blinka
 sudo -H pip3 install Adafruit-PCA9685
 sudo mv /usr/local/lib/python3.6/dist-packages/Adafruit-GPIO/FT232H.py /usr/local/lib/python3.6/dist-packages/Adafruit-GPIO/FT232H.py.old
 sudo rm /usr/local/lib/python3.6/dist-packages/Adafruit-GPIO/FT232H.py
-sudo curl https://gist.githubusercontent.com/BlueNalgene/f2324cbb7bd9b3060b46ebcaaf7d8a15/raw/4a5fdfc4f0a064d2b7a8a75724b49a78662af108/gistfile1.txt > FT232H.py
+sudo curl https://gist.githubusercontent.com/BlueNalgene/f2324cbb7bd9b3060b46ebcaaf7d8a15/raw/4a5fdfc4f0a064d2b7a8a75724b49a78662af108/gistfile1.txt > /usr/local/lib/python3.6/dist-packages/Adafruit-GPIO/FT232H.py
 cd /home/odroid/Documents
 git clone --recursive https://github.com/hardkernel/WiringPi2-Python
 cd WiringPi2-Python
