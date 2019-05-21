@@ -52,7 +52,7 @@ class RPTControl():
 		Initialize class
 		"""
 		# Temporarily disable FTDI serial drivers.
-		self.FT232H.use_FT232H()
+		#self.FT232H.use_FT232H()
 		# Find the first FT232H device.
 		ft232h = self.FT232H.FT232H()
 		# Create an I2C device at address 0x70.
