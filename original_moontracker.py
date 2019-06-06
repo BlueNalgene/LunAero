@@ -512,7 +512,7 @@ class MotorFunctions():
 		self.aspect = QWID/QHEI
 		# the moon must be displaced by this amount for movement to occur.
 		self.lostratio = 0.001                   # a percentage of frame height
-		self.vtstop = 0.04 * QHEI   #offset to stop vertical movement (must be < Start)
+		self.vtstop = 0.055 * QHEI   #offset to stop vertical movement (must be < Start)
 		self.htstop = 0.05 * QWID     #image offset to stop horizontal movement (must be < Start)
 		return
 	def pinhigh(self, channel):
