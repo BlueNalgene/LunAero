@@ -1,7 +1,8 @@
 #!/bin/usr/python3 -B
 # -*- coding: utf-8 -*-
 
-"""This is a buffering class used for the LunAero prototype processor.  It does most of the
+"""
+This is a buffering class used for the LunAero prototype processor.  It does most of the
 heavy lifting in the calculation of bird locations.
 """
 
@@ -85,7 +86,8 @@ class RingBufferClass():
 		return
 
 	def re_init(self):
-		"""This function is called at the beginning of a main loop to
+		"""
+		This function is called at the beginning of a main loop to
 		clean up some of the leftovers from a previous frame
 		If we don't call this, the ringbuffer may still have information stored from the previous
 		run, and this can mess up our results.
@@ -109,7 +111,8 @@ class RingBufferClass():
 				self.rad.append(tempr[i[0]])
 
 	def ringbuffer_cycle(self, img):
-		"""Saves the contours from the image in a ring buffer.
+		"""
+		Saves the contours from the image in a ring buffer.
 		"""
 		filename = self.procpath + '/Frame_minus_0.npy'
 		np.save(filename, img)
@@ -129,7 +132,8 @@ class RingBufferClass():
 		return
 
 	def ringbuffer_process(self, img):
-		"""Access the existing ringbuffer to get information about the last frames.
+		"""
+		Access the existing ringbuffer to get information about the last frames.
 		Perform actions within.
 		"""
 		self.bbb = np.load(self.procpath + '/Frame_minus_0.npy')
@@ -158,7 +162,8 @@ class RingBufferClass():
 		return img
 
 	def get_centers(self, contours):
-		"""Extract information from the contours including the x,y of the center, radius, and
+		"""
+		Extract information from the contours including the x,y of the center, radius, and
 		frame.  Exclude contours with perimeters which are very large or very small.
 		"""
 		cnt = contours[0]
@@ -173,32 +178,50 @@ class RingBufferClass():
 		return
 
 	def pull_list(self):
-		"""Repackages the list elements after the ring buffer operates to create a list with
+		"""
+		Repackages the list elements after the ring buffer operates to create a list with
 		the correct formatting.
 		"""
 		goodlist = np.column_stack((self.tim, self.xxx, self.yyy, self.rad))
 		return goodlist
 
 	def bird_range(self, img, frame, gdl):
-		"""An adaptable range processor, takes values of each frame, then runs those values vs.
-		previous frame values
+		"""
+		An adaptable range processor, takes values of each frame, then runs those values vs.
+		previous frame values. Workflow of toplevel functions:
+		gauntlet->collect->test->save/imgwrite
 		"""
 		# Process Numpy Array with floats in a format:
 		gdl = np.reshape(gdl, (-1, 4))
 		gdl = np.unique(gdl, axis=0)
+
+		# Remove sneaky uniques hiding in the same XY coordinates
+		_, gval = np.unique(np.column_stack((gdl[:, 0], gdl[:, 1], gdl[:, 2])), axis=0, \
+			return_inverse=True)
+		gval = np.pad(np.bincount(gval), (0, gdl.shape[0]-np.bincount(gval).shape[0]), "constant")
+		newgdl = np.empty((0, 4))
+		for i, j in enumerate(gval):
+			if j == 1:
+				newgdl = np.vstack((newgdl, gdl[i]))
+			if j == 0:
+				pass
+			if j > 1:
+				temp = np.max(gdl[np.where(np.logical_and(gdl[:, 0] == gdl[i, 0], \
+					gdl[:, 1] == gdl[i, 1], gdl[:, 2] == gdl[i, 2]), True, False)][:, 3])
+				newgdl = np.vstack((newgdl, np.array((gdl[i, 0], gdl[i, 1], gdl[i, 2], temp))))
+
 		# Run the gauntlet!
 		fltx, flty, fltz = self.gauntlet(gdl)
 
 		# TODO make tunable isclose value variables
 
 		##One list to rule them all
+		# Quick copout for 0 length lists.
 		if np.size(fltx, 0) == 0 and np.size(flty, 0) == 0 and np.size(fltz, 0) == 0:
 			gc.collect()
 			return img
 
-		#TEST
-		print("x: ", fltx.shape, "\ny: ", flty.shape, "\nz: ", fltz.shape, "\n")
-
+		# Combine our compared lists into a single master list.  Remove the old variables
 		fourlist = np.vstack((fltx, flty, fltz))
 		del fltx, flty, fltz
 
@@ -294,23 +317,29 @@ class RingBufferClass():
 		for i in range(0, 3):
 			# Process each sequential image for distance
 			outs[outslist[i]] = self.stackdistance(ins[inslist[i]], ins[inslist[i+1]])
-			# Cleanup to prevent overeating memory
+			# Get speed of each item on the list
 			outs[outslist[i]] = self.getspeed(outs[outslist[i]])
 			# Get direction for each item on the list
 			outs[outslist[i]] = self.getdir(outs[outslist[i]])
 			# Run a size test.  The radius should be relatively constant.
 			outs[outslist[i]] = outs[outslist[i]][np.isclose(outs[outslist[i]][:, 3], \
 				outs[outslist[i]][:, 7], rtol=self.radr, atol=self.rada)]
+			# Run a size test.  Nothing larger than x radius
+			outs[outslist[i]] = self.sizetest(outs[outslist[i]])
 		# Compare the generated lists (second order)
 		fltn = self.combineperms(outs["fltx"], outs["flty"])
 		outs["flty"] = self.combineperms(outs["flty"], outs["fltz"])
 		outs["fltz"] = self.combineperms(outs["fltx"], outs["fltz"])
 		outs["fltx"] = fltn
 		for i in range(0, 3):
+			# If the direction and location puts it near the edge, print a special code
+			self.edgecheck(outs[outslist[i]])
 			#If we have empty lists, we need to make them empty with the right size
 			outs[outslist[i]] = self.gapinghole(outs[outslist[i]])
 			# Test distance/direction
 			outs[outslist[i]] = self.distdirtest(outs[outslist[i]])
+			# Run a speed test.  Nothing faster than our threshold
+			outs[outslist[i]] = self.speedtest(outs[outslist[i]])
 			# Only keep continuous lines
 			outs[outslist[i]] = self.linear_jump(outs[outslist[i]])
 			# Check that we are not bouncing around the same craters
@@ -353,6 +382,7 @@ class RingBufferClass():
 		"""
 		Gets the speed in pixels/frameduration for the contours in a list which appear to be
 		moving.
+		v = d/(fn-f(n-1))
 
 		:param inout: Numpy array input.  Must have size [:, 8]
 
@@ -361,14 +391,14 @@ class RingBufferClass():
 		"""
 		if np.size(inout, 0) == 0:
 			return inout
-		inout = np.column_stack((inout, np.divide(inout[:, 8], np.abs(np.subtract(inout[:, 0], \
-			inout[:, 4])))))
+		inout = np.column_stack((inout, np.divide(inout[:, 8], np.subtract(inout[:, 0], \
+			inout[:, 4]))))
 		return inout
 
 	def getdir(self, inout):
 		"""
-		Determines the direction in degrees North of East (atan2 type) a moving contour appears
-		to be moving between frames.
+		Determines the direction in degrees North of West (clockwise from West) a moving contour
+		appears to be moving between frames.
 
 		:param inout: Numpy array input.  Must have size [:, 8]
 
@@ -384,7 +414,8 @@ class RingBufferClass():
 		return inout
 
 	def combineperms(self, in1, in2):
-		"""Combines numpy arrays in a row-by-row type of permutation.  Put two arrays in,
+		"""
+		Combines numpy arrays in a row-by-row type of permutation.  Put two arrays in,
 		and pop out just one!
 		"""
 		# Combine columns using the repeat and tile method
@@ -410,6 +441,29 @@ class RingBufferClass():
 		inout = inout[np.isclose(inout[:, 10], inout[:, 21], rtol=self.angr, atol=self.anga)]
 		return inout
 
+	def speedtest(self, inout):
+		"""
+		Tests the speed recorded for a threshold.  If something is moving too fast, we will ignore
+		it.
+		"""
+		# Threshold determined experimentally by Alyse's stats tests as the max speed
+		threshmax = 450
+		inout = inout[np.where(inout[:, 9] < threshmax)]
+		inout = inout[np.where(inout[:, 20] < threshmax)]
+		# Keep only lines with similar speed values
+		inout = inout[np.isclose(inout[:, 9], inout[:, 20], rtol=self.sper, atol=self.spea)]
+		return inout
+
+	def sizetest(self, inout):
+		"""
+		Tests the size recorded for a threshold.  If something is too big, we will ignore it.
+		"""
+		# Threshold determined experimentally by Alyse's stats tests as the too big thresh
+		threshmax = 316000
+		inout = inout[np.where(inout[:, 3] < threshmax)]
+		inout = inout[np.where(inout[:, 7] < threshmax)]
+		return inout
+
 	def gapinghole(self, inout):
 		"""
 		If it is empty, make it empty with the right size
@@ -423,8 +477,30 @@ class RingBufferClass():
 			inout = np.empty((0, 22), int)
 		return inout
 
+	def edgecheck(self, inout):
+		"""
+		"""
+		# Find heading of center of image to contour.
+		testarr = np.arctan2((np.abs(inout[:, 2]-inout[:, 6])/10)-540, \
+			(np.abs(inout[:, 1]-inout[:, 5])/10)-960)
+		# Modulus of the difference in heading from center and bird track angle with 90
+		# This checks for perpendicular paths with respect to the center (tangent to circle).
+		testarr = np.where(np.isclose(np.mod(np.abs(testarr[:] - inout[:, 10]), 90), 0, 1, .01), \
+			True, False)
+		# Find distance of contour from center of image and check against a size guess for the moon
+		testarr2 = np.where(np.sqrt(((np.abs(inout[:, 2]-inout[:, 6])/10)-540)**2+\
+			((np.abs(inout[:, 1]-inout[:, 5])/10)-960)**2) > 200, \
+				True, False)
+		# If something remains, we record the frame in a note to check by human later
+		if np.sum(inout[testarr & testarr2]) > 0:
+			with open(self.procpath + '/edgecheck.csv', 'ab') as fff:
+				fff.write(inout[0][0])
+		return
+
+
 	def linear_jump(self, inout):
-		"""Tests if the jump between the newly conjoined list matches up.
+		"""
+		Tests if the jump between the newly conjoined list matches up.
 
 		:param inout: Numpy array input.  Must have size [:, 22]
 
