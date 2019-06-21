@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=LunAero Moontracker
-Comment=Launcher for the LunAero moontracking program
-Icon=/usr/share/pixmaps/openbox.xpm
-Exec=python3 /home/pi/Documents/LunAero/original_moontracker.py
-Type=Application
-Encoding=UTF-8
-Terminal=true
