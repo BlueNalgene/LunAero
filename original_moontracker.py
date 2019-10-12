@@ -55,6 +55,9 @@ BLIND = False
 # TODO detect hardware
 DEV = 3
 
+#Enable logs with True, disable with False:
+LOGS = False
+
 
 class TextInput:
 	"""
@@ -251,7 +254,8 @@ class TimeLoop():
 					if event.key == pygame.K_y:
 						return True
 					if event.key == pygame.K_n:
-						print("changing time")
+						if LOGS:
+							print("changing time")
 						pygame.time.wait(100)
 						i = 0
 						while i < 6:
@@ -259,7 +263,8 @@ class TimeLoop():
 							i += 1
 						# Add milliseconds
 						timetuple += (0,)
-						print(timetuple)
+						if LOGS:
+							print(timetuple)
 						while not self.tzpick():
 							pass
 						self.startup = not self.startup
@@ -531,7 +536,8 @@ class MotorFunctions():
 		Assign values to the motion and ratio thresholds
 '		"""
 		# Defines the pins being used for the GPIO pins.
-		print("Defining GPIO pins")
+		if LOGS:
+			print("Defining GPIO pins")
 		if DEV in (0, 4):
 			self.GPIO.setmode(self.GPIO.BCM)
 			self.apinp = 17  #Pulse width pin for motor A (up and down)
@@ -659,7 +665,8 @@ class MotorFunctions():
 		"""
 		Gives some extra umph when changing direction for the looser horizontal gear
 		"""
-		print("Left Right power move")
+		if LOGS:
+			print("Left Right power move")
 		self.dcb = 100
 		self.setduty('B')
 		# Sets movement in opposite direction, remember that this will be backwards!
@@ -712,7 +719,8 @@ class MotorFunctions():
 		Stops the motors in an intelligent way
 		:param direct: Which directional motor are you stopping? X, Y, or Both?
 		"""
-		print("stopping", direct)
+		if LOGS:
+			print("stopping", direct)
 		if direct == "B":
 			while self.dca > 0 or self.dcb > 0:
 				if self.dca > 10:
@@ -749,7 +757,8 @@ class MotorFunctions():
 		"""
 		Move motors to point scope DOWN
 		"""
-		print("moving down")
+		if LOGS:
+			print("moving down")
 		self.pinhigh(self.apin1)
 		self.pinlow(self.apin2)
 		return
@@ -757,7 +766,8 @@ class MotorFunctions():
 		"""
 		Move motors to point scope UP
 		"""
-		print("moving up")
+		if LOGS:
+			print("moving up")
 		self.pinlow(self.apin1)
 		self.pinhigh(self.apin2)
 		return
@@ -765,7 +775,8 @@ class MotorFunctions():
 		"""
 		Move motors to point scope RIGHT
 		"""
-		print("moving right")
+		if LOGS:
+			print("moving right")
 		self.olddir = 2
 		self.pinhigh(self.bpin1)
 		self.pinlow(self.bpin2)
@@ -774,7 +785,8 @@ class MotorFunctions():
 		"""
 		Move motors to point scope LEFT
 		"""
-		print("moving left")
+		if LOGS:
+			print("moving left")
 		self.olddir = 1
 		self.pinlow(self.bpin1)
 		self.pinhigh(self.bpin2)
@@ -847,18 +859,18 @@ class MotorFunctions():
 		else:
 			raise IOError("Invalid Hardware Selected")
 		return
-	def demo_on(self):
-		#TEST Remove this portion if you are done with it.
-		self.pinhigh(13)
-		self.pinlow(14)
-		self.rpt.set_pwm(15, 1, self.rpt.perc_to_pulse(25))
-		return
-	def demo_off(self):
-		#TEST Remove this portion if you are done with it.
-		self.pinlow(13)
-		self.pinlow(14)
-		self.pinlow(15)
-		return
+	#def demo_on(self):
+		##TEST Remove this portion if you are done with it.
+		#self.pinhigh(13)
+		#self.pinlow(14)
+		#self.rpt.set_pwm(15, 1, self.rpt.perc_to_pulse(25))
+		#return
+	#def demo_off(self):
+		##TEST Remove this portion if you are done with it.
+		#self.pinlow(13)
+		#self.pinlow(14)
+		#self.pinlow(15)
+		#return
 
 
 
@@ -941,13 +953,16 @@ class CameraFunctions():
 		elif DEV in (1, 2):
 			list_of_cameras = self.glob.glob("/dev/video*")
 			for i in list_of_cameras:
-				ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
-				if "USB Camera" in ppp:
-					self.camstring = i
-					if "2.0" in ppp:
-						self.camtoggle = 2
-					elif "3.0" in ppp:
-						self.camtoggle = 3
+				try:
+					ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
+					if "USB Camera" in ppp:
+						self.camstring = i
+						if "2.0" in ppp:
+							self.camtoggle = 2
+						elif "3.0" in ppp:
+							self.camtoggle = 3
+				except self.subprocess.CalledProcessError:
+					pass
 			if self.camstring == '':
 				raise RuntimeError("No USB camera matching description found")
 			if self.camtoggle == 2:
@@ -1039,7 +1054,8 @@ class CameraFunctions():
 		"""
 		Capture an image and see how close it is to center
 		"""
-		start = time.time()
+		if LOGS:
+			start = time.time()
 		if DEV == 0:
 			self.stream = io.BytesIO()
 			self.camera.capture(self.stream, use_video_port=True, resize=(800, 600),\
@@ -1061,7 +1077,10 @@ class CameraFunctions():
 		else:
 			raise IOError("Invalid Hardware Selected")
 		self.framecnt += 1
-		print("getimgtime: ", str(time.time()-start))
+		if LOGS:
+			gitt = time.time()-start
+			if gitt > 0.5:
+				print("getimgtime: ", str(gitt), "at", str(time.time()))
 		return
 	def surfit(self):
 		"""
@@ -1098,20 +1117,25 @@ class CameraFunctions():
 		the true center of the frame in the 'y' direction.
 		- ratio - The percentage brightness ratio of white pixels to black pixels.
 		"""
-		start = time.time()
+		if LOGS:
+			start = time.time()
 		prd = pygame.surfarray.array3d(self.surf)
 		prd = np.dot(prd[:, :, :3], [0.299, 0.587, 0.114])
 		prd = np.repeat(prd, 3).reshape((QWID, QHEI, 3))
 		prd = np.where(prd < self.imgthresh, 0, 255)
-		print("procfunctime: ", str(time.time()-start))
+		if LOGS:
+			pftt = time.time()-start
+			if pftt > 0.5:
+				print("procfunctime: ", str(pftt), "at", str(time.time()))
 		self.oldx = float(np.nanmean(np.nonzero(np.sum(prd, axis=1))))
 		self.oldy = float(np.nanmean(np.nonzero(np.sum(prd, axis=0))))
 		diffx = self.cenx - int(self.cenx*0.2) - self.oldx  #horz center of frame - moon
 		diffy = self.ceny - self.oldy  #vert center of frame - moon
 		ratio = np.sum(prd, dtype=np.int32)/self.prerat     #ratio of white:black
-		print("ratio ", ratio)
-		print("hdiff: ", self.cenx, "-", self.oldx, "=", diffx)
-		print("vdiff: ", self.ceny, "-", self.oldy, "=", diffy)
+		if LOGS:
+			print("ratio ", ratio)
+			print("hdiff: ", self.cenx, "-", self.oldx, "=", diffx)
+			print("vdiff: ", self.ceny, "-", self.oldy, "=", diffy)
 		return diffx, diffy, ratio
 	def procimg_dumb(self):
 		"""
@@ -1120,12 +1144,16 @@ class CameraFunctions():
 
 		:returns: - prd - the thresholded image product (black and white np array)
 		"""
-		start = time.time()
+		if LOGS:
+			start = time.time()
 		prd = pygame.surfarray.array3d(self.surf)
 		prd = np.dot(prd[:, :, :3], [0.299, 0.587, 0.114])
 		prd = np.repeat(prd, 3).reshape((QWID, QHEI, 3))
 		prd = np.where(prd < self.imgthresh, 0, 255)
-		print("procfunctime: ", str(time.time()-start))
+		if LOGS:
+			pftt = time.time()-start
+			if pftt > 0.5:
+				print("procfunctime: ", str(pftt), "at", str(time.time()))
 		return prd
 	def img_segue(self):
 		"""Creates an image which displays the computer vision version of the video stream
@@ -1135,11 +1163,15 @@ class CameraFunctions():
 	def holdsurf(self):
 		"""This function presents the surface from getimg
 		"""
-		start = time.time()
+		if LOGS:
+			start = time.time()
 		surf = self.procimg_dumb()
 		surf = pygame.surfarray.make_surface(surf)
 		self.drawtarget()
-		print("surftime: ", str(time.time()-start))
+		if LOGS:
+			sftt = time.time()-start
+			if sftt > 0.5:
+				print("surftime: ", str(sftt), "at", str(time.time()))
 		return surf
 	def get_exposure_folder(self):
 		"""Fetch the camera exposure and print it to a file.  This is necessary to determine the
@@ -1304,6 +1336,8 @@ class ManualAdjust():
 	elif DEV in (1, 2):
 		bgj = 100
 		ltl = 10
+	elif DEV in (3, 4):
+		pass
 	else:
 		raise IOError("Invalid Hardware Selected")
 	def __init__(self):
@@ -1376,7 +1410,8 @@ class ManualAdjust():
 			lcf.surfit()
 			start = time.time()
 			self.main_screen(lcf)
-			print("screenrendertime: ", str(time.time()-start))
+			if LOGS:
+				print("screenrendertime: ", str(time.time()-start))
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					lmf.motstop("B")
@@ -1398,7 +1433,8 @@ class ManualAdjust():
 						lmf.setduty('A')
 						lmf.motdown()
 					elif event.key == pygame.K_SPACE:
-						print("stop")
+						if LOGS:
+							print("stop")
 						lmf.motstop("B")
 					elif event.key == pygame.K_q:
 						raise SystemExit("quitting tracker")
@@ -1414,7 +1450,8 @@ class ManualAdjust():
 							check = lcf.set_iso(iso)
 							if check == iso:
 								raise RuntimeError("failed to properly set ISO")
-							print("iso set to ", iso)
+							if LOGS:
+								print("iso set to ", iso)
 					elif event.key == pygame.K_g:
 						if DEV not in (3, 4):
 							exp = lcf.get_exp()
@@ -1424,7 +1461,8 @@ class ManualAdjust():
 							check = lcf.set_exp(exp)
 							if check != exp:
 								raise RuntimeError("failed to properly set Exposure Time")
-							print("exposure time set to ", exp)
+							if LOGS:
+								print("exposure time set to ", exp)
 					elif event.key == pygame.K_b:
 						if DEV not in (3, 4):
 							exp = lcf.get_exp()
@@ -1440,7 +1478,8 @@ class ManualAdjust():
 							check = lcf.set_exp(exp)
 							if check != exp:
 								raise RuntimeError("failed to properly set Exposure Time")
-							print("exposure time set to ", exp)
+							if LOGS:
+								print("exposure time set to ", exp)
 					elif event.key == pygame.K_h:
 						if DEV not in (3, 4):
 							exp = lcf.get_exp()
@@ -1450,7 +1489,8 @@ class ManualAdjust():
 							check = lcf.set_exp(exp)
 							if check != exp:
 								raise RuntimeError("failed to properly set Exposure Time")
-							print("exposure time set to ", exp)
+							if LOGS:
+								print("exposure time set to ", exp)
 					elif event.key == pygame.K_n:
 						exp = lcf.get_exp()
 						exp = exp + self.ltl
@@ -1468,7 +1508,8 @@ class ManualAdjust():
 							check = lcf.set_exp(exp)
 							if check != exp:
 								raise RuntimeError("failed to properly set Exposure Time")
-							print("exposure time set to ", exp)
+							if LOGS:
+								print("exposure time set to ", exp)
 					elif event.key == pygame.K_p:
 						if DEV not in (3, 4):
 							exp = self.bgj
@@ -1486,14 +1527,17 @@ class ManualAdjust():
 						pygame.display.update()
 						pygame.time.wait(1500)
 					elif event.key == pygame.K_r:
-						print("run tracker")
+						if LOGS:
+							print("run tracker")
 						lmf.motstop("B")
 						trigger = False
 					elif event.key == pygame.K_RETURN:
-						print("run tracker")
+						if LOGS:
+							print("run tracker")
 						lmf.motstop("B")
 						trigger = False
-		print("quitting manual control, switching to tracking")
+		if LOGS:
+			print("quitting manual control, switching to tracking")
 		return
 
 
@@ -1587,15 +1631,18 @@ class TrackingMode():
 						imgthresh = lcf.imgthresh
 						if imgthresh > 10:
 							lcf.imgthresh = imgthresh - 10
-						print("decrease thresholding to ", imgthresh)
+						if LOGS:
+							print("decrease thresholding to ", imgthresh)
 					elif event.key == pygame.K_x:
 						imgthresh = lcf.imgthresh
 						if imgthresh < 245:
 							lcf.imgthresh = imgthresh + 10
-						print("increase thresholding to ", imgthresh)
+						if LOGS:
+							print("increase thresholding to ", imgthresh)
 					elif event.key == pygame.K_q:
 						trigger = False
-						print("quitting tracker")
+						if LOGS:
+							print("quitting tracker")
 					elif event.key == pygame.K_i:
 						iso = lcf.iso
 						if iso < 800:
@@ -1607,13 +1654,15 @@ class TrackingMode():
 						check = lcf.set_iso(iso)
 						if check == iso:
 							raise RuntimeError("failed to properly set ISO")
-						print("iso set to ", iso)
+						if LOGS:
+							print("iso set to ", iso)
 				if event.type == pygame.QUIT:
 					trigger = False
 			#check the time to restart camera every hour or so
 			timecount = time.time() - lcf.start
 			if timecount > 15*60:
-				print("restart video")
+				if LOGS:
+					print("restart video")
 				lcf.stopvid()
 				lcf.startrecord()
 			if self.ticker > 20:
@@ -1624,24 +1673,28 @@ class TrackingMode():
 				else:
 					lcf.getimg()
 					diffx, diffy, ratio = lcf.procimg()
-				print("timejump: ", time.time()-self.temptime)
+				if LOGS:
+					print("timejump: ", time.time()-self.temptime)
 				self.temptime = time.time()
 				#TODO move vtstart/htstart to motor or image class.
 				if (abs(diffy) > self.vtstart or abs(diffx) > self.htstart or self.check == 0):
 					self.check = lmf.check_move(diffx, diffy, ratio)
 				if self.check == 1:     #Moon successfully centered
 					self.bwimg = lcf.holdsurf()
-					print("centered")
+					if LOGS:
+						print("centered")
 					#pygame.time.wait(1500)
 					self.ticker = 0
 				if self.check == 0:       #centering in progress
 					pygame.time.wait(lmf.wait_timer())  #sleep for 20ms, observed time for cycle closer to 0.5s
 				if self.check == 2 or ratio < lmf.lostratio:        #moon lost, theshold too low
 					self.lostcount += 1
-					print("moon lost")
+					if LOGS:
+						print("moon lost")
 					time.sleep(1)
 					if self.lostcount > 30:
-						print("moon totally lost")
+						if LOGS:
+							print("moon totally lost")
 						trigger = False
 			else:
 				self.ticker += 1
@@ -1673,10 +1726,11 @@ def main():
 		lma.update_run(lmf, lcf)
 		ltm = TrackingMode(lcf)
 		#lmf.demo_on()
-		print("Screen width: ", SWID, " Quad width: ", QWID)
-		print("Screen height: ", SHEI, " Quad height: ", QHEI)
-		print("Horz Start: ", ltm.htstart, " Horz Stop: ", lmf.htstop)
-		print("Vert Start: ", ltm.vtstart, "Vert Stop: ", lmf.vtstop)
+		if LOGS:
+			print("Screen width: ", SWID, " Quad width: ", QWID)
+			print("Screen height: ", SHEI, " Quad height: ", QHEI)
+			print("Horz Start: ", ltm.htstart, " Horz Stop: ", lmf.htstop)
+			print("Vert Start: ", ltm.vtstart, "Vert Stop: ", lmf.vtstop)
 		callcores = mp.Process(target=ltm.update_run(lmf, lcf))
 		callcores.start()
 	except:
@@ -1685,7 +1739,8 @@ def main():
 	finally:
 		#lmf.demo_off()
 		lcf.stopvid(True)
-		rtsp.kill()
+		if DEV in (3, 4):
+			rtsp.kill()
 		lmf.motstop("B")
 		pygame.time.wait(1000)
 		pygame.quit()
