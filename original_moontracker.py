@@ -7,13 +7,16 @@ Motor B is right and left
 
 # Standard imports
 import io
+import multiprocessing as mp
 import os
 import os.path
+import subprocess
 import sys
+import threading
 import time
 
 # Non-standard imports
-import multiprocessing as mp
+import cv2
 import pygame
 
 # Third Party imports
@@ -53,10 +56,13 @@ BLIND = False
 # WiringPi Compatible Computer (Odroid N2) with ActionCam: 3
 # Raspberry Pi with ActionCam: 4
 # TODO detect hardware
-DEV = 3
+DEV = 2
 
 #Enable logs with True, disable with False:
 LOGS = False
+
+#Asychronous Recording
+ASYNC = True
 
 
 class TextInput:
@@ -425,7 +431,6 @@ class TimeLoop():
 			Second
 			Millisecond
 		"""
-		import subprocess
 		import shlex
 		time_string = datetime(*time_tuple).isoformat()
 		#subprocess.call(shlex.split("timedatectl set-ntp false"))  # May be necessary
@@ -441,8 +446,6 @@ class FFmpegVideoCapture():
 	By:
 	Emanuele Ruffaldi 2016
 	"""
-	import cv2
-	import subprocess
 	def __init__(self, source="rtsp://127.0.0.1:8554", width=640, height=360):
 		"""
 		Initialize the FFMPEG hack stream
@@ -454,8 +457,8 @@ class FFmpegVideoCapture():
 		self.gopath = str(self.goget())
 		self.gopath = self.gopath + "/bin/actioncam"
 		# Run FFMPEG to capture the stream
-		self.ffmpeg = self.subprocess.Popen(["ffmpeg", "-i", source, "-f", "rawvideo", "-pix_fmt",\
-			"yuv420p", "-"], stdout=self.subprocess.PIPE)
+		self.ffmpeg = subprocess.Popen(["ffmpeg", "-i", source, "-f", "rawvideo", "-pix_fmt",\
+			"yuv420p", "-"], stdout=subprocess.PIPE)
 		# Local Size Variables
 		self.width = width
 		self.height = height
@@ -467,7 +470,6 @@ class FFmpegVideoCapture():
 	def read(self):
 		"""
 		This function reads the image from the buffer stream.
-		
 		:returns: - ret - Confirmation that this captured an image
 		- result - The image that was pulled (w=640, h=360, bgr)
 		"""
@@ -487,23 +489,23 @@ class FFmpegVideoCapture():
 		vvv = np.frombuffer(out[area+int(area/4):], \
 			dtype=np.uint8).reshape((self.halfh, self.halfw))
 		# Resize the shrunken u and v streams to meet the y size
-		uuu = self.cv2.resize(uuu, (self.width, self.height))
-		vvv = self.cv2.resize(vvv, (self.width, self.height))
+		uuu = cv2.resize(uuu, (self.width, self.height))
+		vvv = cv2.resize(vvv, (self.width, self.height))
 		# Merge the yuv and convert to the more useful BGR
-		result = self.cv2.merge((yyy, uuu, vvv))
-		result = self.cv2.cvtColor(result, self.cv2.COLOR_YUV2BGR)
+		result = cv2.merge((yyy, uuu, vvv))
+		result = cv2.cvtColor(result, cv2.COLOR_YUV2BGR)
 		return True, result
 	def goget(self):
 		"""
 		This function returns the golang environmental path for the system
 		"""
-		return self.subprocess.check_output(["go", "env", "GOPATH"]).decode().strip('\n')
+		return subprocess.check_output(["go", "env", "GOPATH"]).decode().strip('\n')
 	def start_server(self):
 		"""
 		This function starts the RTSP server.  It must be run using a non-blocking method.
 		"""
-		proc = self.subprocess.Popen([self.gopath, "rtsp", "192.168.100.1"],\
-			stdout=self.subprocess.PIPE, stderr=self.subprocess.PIPE)
+		proc = subprocess.Popen([self.gopath, "rtsp", "192.168.100.1"],\
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		#out, err = proc.communicate()
 		return proc
 	def killcamera(self):
@@ -810,7 +812,8 @@ class MotorFunctions():
 				else:
 					self.acount += 1
 			self.setduty('A')
-			print("speedup ", direct, self.dca)
+			if LOGS:
+				print("speedup ", direct, self.dca)
 		elif direct == "X":
 			if self.dcb < 10:
 				self.dcb = 10
@@ -873,7 +876,73 @@ class MotorFunctions():
 		#return
 
 
+class VideoCaptureAsync:
+	"""
+	from http://blog.blitzblit.com/2017/12/24/asynchronous-video-capture-in-python-with-opencv/
+	"""
+	def __init__(self, src=0, width=1920, height=1080):
+		"""
+		:param src: - Source of stream for cv2.VideoCapture
+		:param width: - width of stream
+		:param height: - height of stream
+		"""
+		self.src = src
+		self.cap = cv2.VideoCapture(self.src)
+		self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+		self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+		self.grabbed, self.frame = self.cap.read()
+		self.started = False
+		self.read_lock = threading.Lock()
 
+	def set(self, var1, var2):
+		"""
+		Sets the variables you input
+		"""
+		self.cap.set(var1, var2)
+
+	def start(self):
+		"""
+		Start the threaded stream
+		"""
+		if self.started:
+			print('[!] Asynchroneous video capturing has already been started.')
+			return None
+		self.started = True
+		self.thread = threading.Thread(target=self.update, args=())
+		self.thread.start()
+		return self
+
+	def update(self):
+		"""
+		Update the threaded stream
+		"""
+		while self.started:
+			grabbed, frame = self.cap.read()
+			with self.read_lock:
+				self.grabbed = grabbed
+				self.frame = frame
+
+	def read(self):
+		"""
+		Read from the stream
+		"""
+		with self.read_lock:
+			frame = self.frame.copy()
+			grabbed = self.grabbed
+		return grabbed, frame
+
+	def stop(self):
+		"""
+		Stop the stream
+		"""
+		self.started = False
+		self.thread.join()
+
+	def __exit__(self, exec_type, exc_value, traceback):
+		"""
+		Graceful Exit
+		"""
+		self.cap.release()
 
 
 
@@ -889,8 +958,7 @@ class CameraFunctions():
 	if DEV == 0:
 		import picamera
 	elif DEV in (1, 2, 3, 4):
-		import subprocess
-		import cv2
+		pass
 	else:
 		raise IOError("Invalid Hardware Selected")
 	from PIL import Image
@@ -954,38 +1022,41 @@ class CameraFunctions():
 			list_of_cameras = self.glob.glob("/dev/video*")
 			for i in list_of_cameras:
 				try:
-					ppp = str(self.subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
+					ppp = str(subprocess.check_output(["v4l2-ctl", "-d", i, "--info"]))
 					if "USB Camera" in ppp:
 						self.camstring = i
 						if "2.0" in ppp:
 							self.camtoggle = 2
 						elif "3.0" in ppp:
 							self.camtoggle = 3
-				except self.subprocess.CalledProcessError:
+				except subprocess.CalledProcessError:
 					pass
 			if self.camstring == '':
 				raise RuntimeError("No USB camera matching description found")
 			if self.camtoggle == 2:
-				self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
+				subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
 					"width=1024,height=768,pixelformat=MJPG -p 30"])
 			elif self.camtoggle == 3:
-				self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
+				subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-v",\
 					"width=1920,height=1080,pixelformat=MJPG -p 60"])
 			# Set powerline to 60Hz
 			self.set_v4l2_cam(7, 2)
 			# Set manual exposure mode
 			self.set_v4l2_cam(11, 1)
-			print(self.subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-V"]))
-			self.camera = self.cv2.VideoCapture(int(self.camstring.strip("/dev/video")))
-			self.camera.set(self.cv2.CAP_PROP_FOURCC, self.cv2.VideoWriter_fourcc(*'MJPG'))
+			print(subprocess.check_call(["v4l2-ctl", "-d", self.camstring, "-V"]))
+			if ASYNC:
+				self.camera = VideoCaptureAsync(int(self.camstring.strip("/dev/video")))
+			else:
+				self.camera = cv2.VideoCapture(int(self.camstring.strip("/dev/video")))
+			self.camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 			if self.camtoggle == 3:
-				self.camera.set(self.cv2.CAP_PROP_FRAME_WIDTH, 1920)
-				self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+				self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+				self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 			elif self.camtoggle == 2:
-				self.camera.set(self.cv2.CAP_PROP_FRAME_WIDTH, 1024)
-				self.camera.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 768)
-			self.camera.set(self.cv2.CAP_PROP_FPS, 30)
-			self.camera.set(self.cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+				self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
+				self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
+			self.camera.set(cv2.CAP_PROP_FPS, 30)
+			self.camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 		elif DEV in (3, 4):
 			# We don't need to do anything fancy for the ActionCam
 			pass
@@ -1007,7 +1078,7 @@ class CameraFunctions():
 		value in the clist.
 		:param val: - The value we want to change arg to
 		"""
-		self.subprocess.check_call([\
+		subprocess.check_call([\
 			"v4l2-ctl",\
 			"-d", self.camstring,\
 			"-c", self.clist[arg] + "=" + str(val)])
@@ -1017,7 +1088,7 @@ class CameraFunctions():
 		:param arg: - The setting we are fetching.  Must be an int which refers to the correct
 		value in the clist.
 		"""
-		ret = self.subprocess.check_output([\
+		ret = subprocess.check_output([\
 			"v4l2-ctl",\
 			"-d", self.camstring,\
 			"-C", self.clist[arg]])
@@ -1039,12 +1110,14 @@ class CameraFunctions():
 			outfile = str(int(self.start)) + 'outA.avi'
 			outfile = os.path.join(self.folder, outfile)
 			print(str(outfile))
-			fourcc = self.cv2.VideoWriter_fourcc(*'MJPG')
+			fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 			if self.camtoggle == 2:
-				self.vwr = self.cv2.VideoWriter(outfile, fourcc, 25, (1024, 768))
+				self.vwr = cv2.VideoWriter(outfile, fourcc, 25, (1024, 768))
 			elif self.camtoggle == 3:
-				self.vwr = self.cv2.VideoWriter(outfile, fourcc, 25, (1920, 1080))
-			#self.vwr = self.cv2.VideoWriter(outfile, 0x21, 30, (1024, 768))
+				self.vwr = cv2.VideoWriter(outfile, fourcc, 25, (1920, 1080))
+			if ASYNC:
+				self.camera.start()
+			#self.vwr = cv2.VideoWriter(outfile, 0x21, 30, (1024, 768))
 		elif DEV in (3, 4):
 			# We don't record video in this case
 			pass
@@ -1064,16 +1137,23 @@ class CameraFunctions():
 			self.stream.readinto(self.rgb)
 			self.stream.close()
 		elif DEV in (1, 2):
-			if self.camera.isOpened(): # try to get the first frame
+			if ASYNC:
 				_, self.frame = self.camera.read()
 				if rec:
 					self.vwr.write(self.frame)
-			self.cv2.waitKey(1)
+				else:
+					self.camera.update()
+			else:
+				if self.camera.isOpened(): # try to get the first frame
+					_, self.frame = self.camera.read()
+					if rec:
+						self.vwr.write(self.frame)
+			cv2.waitKey(1)
 		elif DEV in (3, 4):
 			ret, self.frame = self.ffh.read()
 			if not ret:
 				print("Failed to get image from camera, something is wrong")
-			self.cv2.waitKey(1)
+			cv2.waitKey(1)
 		else:
 			raise IOError("Invalid Hardware Selected")
 		self.framecnt += 1
@@ -1092,14 +1172,14 @@ class CameraFunctions():
 			self.surf = pygame.image.frombuffer(self.rgb[0:self.rln], (800, 600), 'RGBA')
 			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
 		elif DEV in (1, 2):
-			self.surf = self.cv2.resize(self.frame, (800, 600))
+			self.surf = cv2.resize(self.frame, (800, 600))
 			#self.surf = self.surf.torstring()
-			self.surf = self.cv2.cvtColor(self.surf, self.cv2.COLOR_BGR2RGB)
+			self.surf = cv2.cvtColor(self.surf, cv2.COLOR_BGR2RGB)
 			self.surf = pygame.image.frombuffer(self.surf, (800, 600), 'RGB')
 			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
 		elif DEV in (3, 4):
-			self.surf = self.cv2.resize(self.frame, (800, 600))
-			self.surf = self.cv2.cvtColor(self.surf, self.cv2.COLOR_BGR2RGB)
+			self.surf = cv2.resize(self.frame, (800, 600))
+			self.surf = cv2.cvtColor(self.surf, cv2.COLOR_BGR2RGB)
 			self.surf = pygame.image.frombuffer(self.surf, (800, 600), 'RGB')
 			self.surf = pygame.transform.scale(self.surf, (QWID, QHEI))
 		else:
@@ -1198,10 +1278,10 @@ class CameraFunctions():
 				fff.write("Camera Control Values:\n")
 				for i in self.clist:
 					try:
-						ppp = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, \
+						ppp = subprocess.check_output(["v4l2-ctl", "-d", self.camstring, \
 							"-C", i]).decode('utf-8')
 						fff.write("    " + str(ppp) + "\n")
-					except self.subprocess.CalledProcessError:
+					except subprocess.CalledProcessError:
 						fff.write("    " + "clist entry not valid for this camera\n")
 			elif DEV in (3, 4):
 				pass
@@ -1246,7 +1326,7 @@ class CameraFunctions():
 		if DEV == 0:
 			ret = self.camera.exposure_speed
 		elif DEV in (1, 2):
-			ret = self.subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
+			ret = subprocess.check_output(["v4l2-ctl", "-d", self.camstring, "-C",\
 				self.clist[12]]).decode()
 			ret = int(re.sub('[^0-9]', '', ret))
 		elif DEV in (3, 4):
@@ -1266,7 +1346,7 @@ class CameraFunctions():
 		elif DEV in (1, 2):
 			self.set_v4l2_cam(12, val)
 			print("set via v4l2")
-			#self.camera.set(self.cv2.CAP_PROP_EXPOSURE, val)
+			#self.camera.set(cv2.CAP_PROP_EXPOSURE, val)
 			#print("set via cv2")
 			ret = self.get_exp()
 		elif DEV in (3, 4):
@@ -1310,7 +1390,9 @@ class CameraFunctions():
 		if DEV == 0:
 			self.camera.stop_recording()
 		elif DEV in (1, 2):
-			if arg:
+			if ASYNC:
+				self.camera.stop()
+			elif arg:
 				self.camera.release()
 			try:
 				self.vwr.release()
