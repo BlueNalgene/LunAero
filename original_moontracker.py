@@ -56,7 +56,7 @@ BLIND = False
 # WiringPi Compatible Computer (Odroid N2) with ActionCam: 3
 # Raspberry Pi with ActionCam: 4
 # TODO detect hardware
-DEV = 2
+DEV = 0
 
 #Enable logs with True, disable with False:
 LOGS = False
@@ -602,6 +602,12 @@ class MotorFunctions():
 		self.lostratio = 0.001                   # a percentage of frame height
 		self.vtstop = 0.055 * QHEI   #offset to stop vertical movement (must be < Start)
 		self.htstop = 0.05 * QWID     #image offset to stop horizontal movement (must be < Start)
+		# Set a counter to ensure we don't move in the same direction too long
+		self.move_count_x = 0
+		self.move_count_y = 0
+		self.prev_dir_x = 0
+		self.prev_dir_y = 0
+		self.move_count_thresh = 200
 		return
 	def pinhigh(self, channel):
 		"""
@@ -679,6 +685,37 @@ class MotorFunctions():
 		pygame.time.wait(3000)
 		self.dcb = 25
 		self.setduty('B')
+	def sustained_movement(self, direct):
+		"""
+		Check to see if we are still moving in the same direciton
+		If so, add to a counter
+		If we surpass a threshold, crash.
+		
+		:param direct: - the direction we are currently moving (0 null, 1 up, 2 down, 3 left, 4 right, 12 neither up nor down, 34 neither left nor right))
+		"""
+		if direct == (1, 2):
+			if self.prev_dir_y == direct:
+				self.move_count_y += 1
+			else:
+				self.move_count_y = 0
+			if self.move_count_y > self.move_count_thresh:
+				raise RuntimeError("moving in the same direction too long (y)")
+			self.prev_dir_y = direct
+		elif direct == (3, 4):
+			if self.prev_dir_x == direct:
+				self.move_count_x += 1
+			else:
+				self.move_count_x = 0
+			if self.move_count_x > self.move_count_thresh:
+				raise RuntimeError("moving in the same direction too long (x)")
+			self.prev_dir_x = direct
+		elif direct == 12:
+			self.prev_dir_y = 0
+			self.move_count_y = 0
+		elif direct == 34:
+			self.prev_dir_x = 0
+			self.move_count_x = 0
+		return
 	def check_move(self, diffx, diffy, ratio):
 		"""
 		Check the values for the difference between x and y of the observed image to the
@@ -691,8 +728,10 @@ class MotorFunctions():
 				if abs(diffy) > self.vtstop:
 					if diffy > 0:
 						self.motup()
+						self.sustained_movement(1)
 					else:
 						self.motdown()
+						self.sustained_movement(2)
 					self.speedup("Y")
 					return 0
 			else:
@@ -701,20 +740,26 @@ class MotorFunctions():
 						if self.olddir == 2:
 							self.loose_wheel()
 						self.motleft()
+						self.sustained_movement(3)
 					else:
 						if self.olddir == 1:
 							self.loose_wheel()
 						self.motright()
+						self.sustained_movement(4)
 					self.speedup("X")
 					return 0
 			if (abs(diffx) < self.htstop and self.dcb > 0):
 				self.motstop("X")
+				self.sustained_movement(34)
 				return 0
 			if (abs(diffy) < self.vtstop and self.dca > 0):
 				self.motstop("Y")
+				self.sustained_movement(12)
 				return 0
 		if (abs(diffx) < self.htstop and abs(diffy) < self.vtstop):
 			self.motstop("B")
+			self.sustained_movement(12)
+			self.sustained_movement(34)
 			return 1
 	def motstop(self, direct):
 		"""
