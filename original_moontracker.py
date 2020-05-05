@@ -587,6 +587,8 @@ class MotorFunctions():
 		self.dca = 0                             # Set duty cycle variable to zero at first
 		self.dcb = 0
 		if DEV in (0, 4):
+			if DEV == 0:
+				self.pwm =  self.GPIO.PWM
 			self.pwma = self.pwm(self.apinp, freq)   # Initialize PWM on pwmPins
 			self.pwmb = self.pwm(self.bpinp, freq)
 			self.pwma.start(self.dca)                # Start pulse width at 0 (pin held low)
@@ -1056,13 +1058,14 @@ class CameraFunctions():
 			raise IOError("Invalid Hardware Selected")
 		try:
 			os.makedirs(self.folder)
-		else:
+		except:
 			raise FileExistsError("was not able to create folder path at", self.folder, \
 				"Is that hardware attached and mounted correctly?")
 		print(self.start)
 		print("Preparing outfile")
 		if DEV == 0:
 			self.camera = self.picamera.PiCamera()
+			self.camera.exposure_mode = 'off'
 			self.camera.led = False
 			self.camera.video_stabilization = True
 			self.camera.resolution = (1920, 1080)
@@ -1323,7 +1326,7 @@ class CameraFunctions():
 			fff.write("UUID: " + str(uuid.getnode()) + "\n")
 			if DEV == 0:
 				pass
-			if DEV in (1, 2):
+			elif DEV in (1, 2):
 				fff.write("Camera Control Values:\n")
 				for i in self.clist:
 					try:
@@ -1579,8 +1582,9 @@ class ManualAdjust():
 							#lcf.camera.iso = iso
 							#lcf.iso = iso
 							check = lcf.set_iso(iso)
-							if check == iso:
-								raise RuntimeError("failed to properly set ISO")
+							if DEV != 0:
+								if check != iso:
+									raise RuntimeError("failed to properly set ISO")
 							if LOGS:
 								print("iso set to ", iso)
 					elif event.key == pygame.K_g:
@@ -1590,8 +1594,9 @@ class ManualAdjust():
 							if exp < 5:
 								exp = 5
 							check = lcf.set_exp(exp)
-							if check != exp:
-								raise RuntimeError("failed to properly set Exposure Time")
+							if DEV != 0:
+								if check != exp:
+									raise RuntimeError("failed to properly set Exposure Time")
 							if LOGS:
 								print("exposure time set to ", exp)
 					elif event.key == pygame.K_b:
@@ -1607,8 +1612,9 @@ class ManualAdjust():
 							else:
 								raise IOError("Invalid Hardware Selected")
 							check = lcf.set_exp(exp)
-							if check != exp:
-								raise RuntimeError("failed to properly set Exposure Time")
+							if DEV != 0:
+								if check != exp:
+									raise RuntimeError("failed to properly set Exposure Time")
 							if LOGS:
 								print("exposure time set to ", exp)
 					elif event.key == pygame.K_h:
@@ -1618,8 +1624,9 @@ class ManualAdjust():
 							if exp < 5:
 								exp = 5
 							check = lcf.set_exp(exp)
-							if check != exp:
-								raise RuntimeError("failed to properly set Exposure Time")
+							if DEV != 0:
+								if check != exp:
+									raise RuntimeError("failed to properly set Exposure Time")
 							if LOGS:
 								print("exposure time set to ", exp)
 					elif event.key == pygame.K_n:
