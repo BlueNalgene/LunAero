@@ -1054,7 +1054,11 @@ class CameraFunctions():
 			self.folder = "/home/odroid/Documents/Vids_LunAero/" + str(int(self.start))
 		else:
 			raise IOError("Invalid Hardware Selected")
-		os.makedirs(self.folder)
+		try:
+			os.makedirs(self.folder)
+		else:
+			raise FileExistsError("was not able to create folder path at", self.folder, \
+				"Is that hardware attached and mounted correctly?")
 		print(self.start)
 		print("Preparing outfile")
 		if DEV == 0:
